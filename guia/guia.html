@@ -197,7 +197,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
       <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
       <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
-      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor, carga da âncora, nível da água.</td><td>Muda a segunda opção do bloco, quando existe.</td></tr>
+      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor, carga da âncora, nível da água. Numa muda, faz a árvore crescer.</td><td>Muda a segunda opção do bloco, quando existe. Numa muda, faz a versão grande da árvore.</td></tr>
       <tr><td>5</td><td><b>Girar</b></td><td><kbd>T</kbd></td><td>Passa para a próxima direção: frente, eixo do tronco, escada de cabeça para baixo, laje em cima/embaixo/dupla.</td><td>Gira ao contrário.</td></tr>
       <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="5">Dois cliques: o primeiro marca o ponto inicial, o segundo o final. Entre os dois, uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto mostra o ponto inicial e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No segundo clique, apaga a forma em vez de construir.</td></tr>
       <tr><td>7</td><td><b>Caixa sólida</b></td><td><kbd>R</kbd></td></tr>
@@ -263,6 +263,31 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <figure><img src="img/porta-fechada.jpg" alt="Porta de carvalho fechada na frente da casa" width="600" height="500" loading="lazy"><figcaption>Antes: porta fechada. A barra de status mostra o estado do bloco apontado.</figcaption></figure>
     <figure><img src="img/porta-aberta.jpg" alt="Mesma porta aberta depois de usar a ferramenta Usar, com o aviso Oak Door: open = true" width="600" height="650" loading="lazy"><figcaption>Depois de <b>Usar</b>: as duas metades abrem juntas e o aviso confirma <code>open = true</code>.</figcaption></figure>
   </div>
+  <h3>Árvores que crescem</h3>
+  <p>Coloque uma muda e clique nela com <b>Usar</b> (<kbd>U</kbd>): ela vira a árvore inteira, como com farinha de osso no jogo. Cada uso sai com altura e copa um pouco diferentes; se não gostar, <kbd>Ctrl</kbd>+<kbd>Z</kbd> e use de novo.</p>
+  <figure><img src="img/arvores.jpg" alt="Árvores crescidas a partir de mudas: abeto e árvore da selva gigantes, carvalho-escuro e carvalho-pálido no fundo; carvalho, bétula, abeto, selva, acácia, cerejeira e mangue no meio; carvalho grande, azaleia, cogumelos gigantes e fungos gigantes na frente" width="972" height="718" loading="lazy"><figcaption>Todas as árvores que crescem com Usar. No fundo, as de 4 mudas (abeto e selva gigantes, carvalho-escuro, carvalho-pálido); no meio, as de uma muda; na frente, o carvalho grande (com <kbd>Shift</kbd>), a azaleia, os cogumelos e os fungos do Nether.</figcaption></figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Muda</th><th>Vira</th><th>Com Shift ou 4 mudas em quadrado</th></tr></thead>
+    <tbody>
+      <tr><td>Carvalho</td><td>Carvalho de copa redonda (às vezes o grande, como no jogo)</td><td><kbd>Shift</kbd>: carvalho grande com galhos</td></tr>
+      <tr><td>Bétula</td><td>Bétula</td><td><kbd>Shift</kbd>: bétula alta</td></tr>
+      <tr><td>Abeto</td><td>Abeto em cone</td><td><kbd>Shift</kbd>: pinheiro (copa só no alto); 4 mudas: abeto gigante 2 × 2</td></tr>
+      <tr><td>Selva</td><td>Árvore da selva com cipós e cacau</td><td><kbd>Shift</kbd>: mais alta; 4 mudas: árvore da selva gigante com galhos</td></tr>
+      <tr><td>Acácia</td><td>Tronco torto e copa achatada, às vezes com dois galhos</td><td>—</td></tr>
+      <tr><td>Carvalho-escuro e carvalho-pálido</td><td>Só crescem com 4 mudas em quadrado, como no jogo; o pálido tem musgo pendurado</td><td>—</td></tr>
+      <tr><td>Cerejeira</td><td>Galhos tortos e copa cor-de-rosa larga</td><td>—</td></tr>
+      <tr><td>Propágulo de mangue</td><td>Mangue com raízes que entram na terra e propágulos pendurados (o propágulo pendurado não cresce)</td><td>—</td></tr>
+      <tr><td>Azaleia e azaleia florida</td><td>Árvore de azaleia com folhas floridas e terra enraizada embaixo</td><td>—</td></tr>
+      <tr><td>Cogumelo vermelho e marrom</td><td>Cogumelo gigante (chapéu em domo ou achatado)</td><td><kbd>Shift</kbd>: com o caule alto</td></tr>
+      <tr><td>Fungo carmesim e distorcido</td><td>Fungo gigante do Nether com luz-cogumelo; o carmesim tem vinhas penduradas</td><td><kbd>Shift</kbd>: o alto</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="plain">
+    <li>Como no jogo, o tronco precisa de espaço livre: se houver um bloco no caminho, ou se faltar altura no espaço, aparece um aviso e nada muda. As folhas só ocupam o ar (e plantinhas como grama), sem apagar nada que você construiu.</li>
+    <li>O bloco de grama embaixo do tronco vira terra, como no jogo.</li>
+    <li>A árvore inteira é um passo de desfazer.</li>
+  </ul>
+
   <figure><img src="img/girados.jpg" alt="Troncos de pé, deitados de leste a oeste e de norte a sul, coluna de quartzo e fornalhas viradas" width="972" height="600" loading="lazy"><figcaption><b>Girar</b> em blocos com eixo e com frente: troncos de pé e deitados (os anéis e a casca acompanham), fornalhas com a frente para lados diferentes.</figcaption></figure>
 </section>
 
@@ -344,7 +369,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Conexões automáticas</td><td>Cercas, muros, vidraças e barras se ligam aos vizinhos e aos blocos sólidos; portões encaixam no muro. O pó de redstone se liga a componentes e sobe degraus; sozinho, vira cruz. Escadas fazem cantos em L. Dois baús iguais lado a lado viram baú duplo. A linha de armadilha prende nos ganchos.</td></tr>
       <tr><td>Dois blocos</td><td>Porta, cama e plantas altas (girassol, roseira, lilás, peônia, capim alto) são colocadas, giradas, usadas e apagadas como uma peça só.</td></tr>
       <tr><td>Laje dupla</td><td>Pôr a mesma laje sobre a face de cima de uma laje de baixo (ou embaixo de uma de cima) junta as duas.</td></tr>
-      <tr><td>Blocos que mudam com Usar</td><td>Aberto/fechado, ligado/desligado, aceso/apagado, idade das plantações, pedaços do bolo, número de velas, picles do mar, camadas de neve, atraso do repetidor, modo do comparador, olho na moldura do portal do Fim, carga da âncora, nível de água, lava e luz.</td></tr>
+      <tr><td>Blocos que mudam com Usar</td><td>Aberto/fechado, ligado/desligado, aceso/apagado, idade das plantações, pedaços do bolo, número de velas, picles do mar, camadas de neve, atraso do repetidor, modo do comparador, olho na moldura do portal do Fim, carga da âncora, nível de água, lava e luz. Mudas, cogumelos e fungos crescem e viram a árvore (cap. 03).</td></tr>
     </tbody>
   </table></div>
   <h3>Técnicos e só Bedrock</h3>
@@ -509,7 +534,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>
         <tr><td><kbd>Delete</kbd></td><td>Apagar a seleção</td></tr>
         <tr><td><kbd>R</kbd> (colando)</td><td>Girar a cópia 90°</td></tr>
-        <tr><td><kbd>Shift</kbd></td><td>Pincel apaga; formas apagam; usar muda a segunda opção; girar volta</td></tr>
+        <tr><td><kbd>Shift</kbd></td><td>Pincel apaga; formas apagam; usar muda a segunda opção ou faz a árvore grande; girar volta</td></tr>
         <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Espaço da hotbar</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Desfazer / refazer</td></tr>
         <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Descer e subir a camada</td></tr>
@@ -529,6 +554,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <thead><tr><th>Assunto</th><th>Situação</th></tr></thead>
     <tbody>
       <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados como caixas simples (o jogo os desenha de um jeito especial). O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
+      <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia fica só nesta aba do navegador (não vai para a área de transferência do sistema e some ao recarregar a página). Girar é só de 90° na horizontal; espelhar ainda não existe.</td></tr>
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>

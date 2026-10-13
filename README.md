@@ -22,6 +22,7 @@ data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote v
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
+src/trees.js            Árvores que crescem com Usar nas mudas (geradores por tipo)
 src/selection.js        Selecionar, copiar, recortar, colar (com giro), apagar e substituir na área
 scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
 scripts/gen_shapes.js   Regera shapes.json (minecraft-assets 26.1, minecraft-data Java 1.21.11 e blocksJ2B do Bedrock 1.26)
@@ -54,6 +55,7 @@ npm test         # valida os exportadores
 - Exportação: `facing=…`/`axis=…`/`orientation=…` no `.schem`; no `.mcstructure`, os estados padrão completos do minecraft-data com o estado da direção trocado e a versão de esquema correspondente. No projeto salvo, a direção vai na paleta quando não é a inicial (ex.: `furnace[facing=east]`).
 - Tipo do bloco: 0 opaco, 1 translúcido (vidro, gelo, slime, mel), 2 recortado (folhas: buracos sem transparência parcial).
 - Seleção (`src/selection.js`, ferramenta Selecionar, V): caixa [mín, máx] marcada com dois cliques. Copiar guarda as células cruas (bloco + estado) num `Uint32Array` relativo ao canto mínimo; colar segue o mouse (centrada no ponto apontado), não sobrescreve com o ar da cópia e pode repetir. Girar a cópia (R) gira posições e estados 90° no sentido horário (`facing`, `axis`, `rotation`, trilhos, `orientation`, conexões norte/leste/sul/oeste). Substituir troca um tipo (ou todos) por outro dentro da área mantendo as propriedades em comum e pode preencher o ar. Cada operação é um lote de desfazer. A cópia fica na memória da aba e sobrevive a abrir outro projeto.
+- Árvores (`src/trees.js`): Usar numa muda, propágulo, azaleia, cogumelo ou fungo chama `growAt`, que monta um plano (`TreePlan`: toras com eixo, folhas, cipós, cacau, raízes, musgo, vinhas) com um gerador por tipo que imita o do jogo, com variação aleatória. Shift faz a versão grande; 4 mudas em quadrado fazem as de tronco 2 x 2 (abeto e selva gigantes, carvalho-escuro e carvalho-pálido, que só crescem assim). O tronco precisa de espaço livre (atravessa folhas); folhas só entram no ar e em plantinhas; grama embaixo do tronco vira terra. Tudo num lote de desfazer.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)

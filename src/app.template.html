@@ -864,6 +864,7 @@ function setShapeState(c, v, s2) {
 }
 function useAt(c, back) {
   var v = grid[idx(c[0], c[1], c[2])]; if (!v) return;
+  if (growAt(c, back)) return;
   var b = BLOCKS[cellBlock(v)];
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
   var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
@@ -1517,6 +1518,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SHAPES_JS%%*/
 /*%%IMPORT_JS%%*/
 /*%%SELECTION_JS%%*/
+/*%%TREES_JS%%*/
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
@@ -1764,7 +1766,7 @@ function openHelp() {
     '<span><kbd>B E I U T L R H S O V</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar</span>' +
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
-    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor e afins. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas).</span>' +
+    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
@@ -1882,7 +1884,7 @@ async function start() {
   changed(); updateStatus();
   if (!saved) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
-  window.__bab = { name: function (a) { return cellName(grid[idx(a[0], a[1], a[2])]); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
+  window.__bab = { name: function (a) { return cellName(grid[idx(a[0], a[1], a[2])]); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
 }
 })();
 </script>
