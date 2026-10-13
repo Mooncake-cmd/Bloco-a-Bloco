@@ -38,7 +38,7 @@ button{cursor:pointer}
 .brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
 .brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
 .group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--panel-2);border-radius:8px}
-.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:34px;height:34px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--fg)}
+.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:32px;height:34px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:var(--fg)}
 .tbtn:hover{background:var(--line)}
 .tbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .tbtn:disabled{opacity:.35;cursor:default}
@@ -49,7 +49,7 @@ button{cursor:pointer}
 .tbtn.primary:hover{filter:brightness(1.08)}
 .spacer{flex:1 1 0}
 .layer{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.layer input[type=range]{width:96px;accent-color:var(--accent)}
+.layer input[type=range]{width:80px;accent-color:var(--accent)}
 .layer output{font-family:var(--font-mono);min-width:38px;color:var(--fg)}
 details.menu{position:relative}
 details.menu summary{list-style:none}
@@ -206,11 +206,17 @@ var BLOCKS = BLOCKS_RAW.map(function (r) {
     jt: jt, bt: r[8] ? six(r[8]) : null, tint: tint6(r[9] || 0), ori: r[10] || null, bst: r[11] || null,
     tile: jt.map(function () { return -1; }), solid: r[6] !== 1, icon: '' };
 });
-/* Célula do mundo: bits 0-11 = índice do bloco + 1, bits 12-15 = direção (índice em ori.o) */
+/* Célula do mundo (32 bits): bits 0-11 = índice do bloco + 1; acima disso, o estado: índice em ori.o nos cubos que giram,
+   ou as propriedades guardadas das formas (base mista, ver stateIndex) */
 var OSH = 12, IMASK = 4095;
 function cellBlock(v) { return (v & IMASK) - 1; }
-function cellOri(v) { return v >> OSH; }
-function mkCell(bi, o) { var b = BLOCKS[bi]; return (bi + 1) | ((b.ori ? (o == null || o < 0 ? b.ori.d : o) : 0) << OSH); }
+function cellOri(v) { return Math.floor(v / 4096); }
+function mkCell(bi, o) {
+  var b = BLOCKS[bi], s = 0;
+  if (b.shape) s = o == null || o < 0 ? defaultState(b) : o;
+  else if (b.ori) s = o == null || o < 0 ? b.ori.d : o;
+  return (bi + 1) + s * 4096;
+}
 var DIR_PT = { north: 'norte', south: 'sul', east: 'leste', west: 'oeste', up: 'cima', down: 'baixo' };
 function oriLabel(b, o) {
   if (!b.ori) return '';
@@ -226,7 +232,7 @@ var $ = function (id) { return document.getElementById(id); };
 
 /* ---------- Estado do mundo ---------- */
 var SX = 32, SY = 32, SZ = 32;
-var grid = new Uint16Array(SX * SY * SZ);
+var grid = new Uint32Array(SX * SY * SZ);
 var blockCount = 0;
 var CS = 16;
 var layerOn = false, layerY = 0;
@@ -295,10 +301,16 @@ function changed() {
 /* ---------- Paleta ---------- */
 var CATS = [
   ['all', 'Todos'], ['fav', '★ Favoritos'], ['pedra', 'Pedra'], ['madeira', 'Madeira'], ['cor', 'Cores'],
-  ['minerio', 'Minérios'], ['natureza', 'Natureza'], ['vidro', 'Vidro'], ['outros', 'Outros']
+  ['minerio', 'Minérios'], ['natureza', 'Natureza'], ['vidro', 'Vidro'], ['formas', 'Formas'], ['redstone', 'Redstone'], ['plantas', 'Plantas'], ['deco', 'Decoração'], ['outros', 'Outros']
 ];
 function catOf(b) {
   var n = b.java;
+  if (b.shape) {
+    if (/redstone|repeater|comparator|lever|_button|pressure_plate|tripwire|rail$|piston|daylight|target|hopper|lightning_rod|sculk_sensor|lectern|tnt/.test(n)) return 'redstone';
+    if (/(_stairs|_slab|_wall|_fence|_fence_gate|_door|_trapdoor|_pane|_bars|_carpet|ladder|scaffolding|chain)$/.test(n)) return 'formas';
+    if (/sapling|flower|tulip|rose|orchid|allium|bluet|daisy|dandelion|poppy|cornflower|lily|fern|grass|bush|mushroom|wheat|carrots|potatoes|beetroots|stem|vine|kelp|seagrass|coral|cactus|sugar_cane|bamboo|dripleaf|azalea|petals|propagule|roots|fungus|sprouts|berr|cocoa|nether_wart|pickle|chorus|moss|lichen|eyeblossom|torchflower|pitcher|litter|lilac|peony|leaves/.test(n)) return 'plantas';
+    return 'deco';
+  }
   if (b.glass) return 'vidro';
   if (/(wool|concrete|terracotta|glazed)/.test(n)) return 'cor';
   if (/(planks|_log$|_wood$|_stem$|_hyphae$|bamboo|stripped|mosaic)/.test(n)) return 'madeira';
@@ -332,6 +344,7 @@ function renderList() {
   var out = [];
   for (var i = 0; i < BLOCKS.length; i++) {
     var b = BLOCKS[i];
+    if (b.hide) continue;
     if (activeCat === 'fav' ? !favs.has(b.java) : (activeCat !== 'all' && b.cat !== activeCat)) continue;
     var ok = true;
     for (var k = 0; k < q.length; k++) if (b.hay.indexOf(q[k]) < 0) { ok = false; break; }
@@ -385,6 +398,7 @@ var TOOLS = [
   ['place', 'Pincel', 'B', '<path class="f" d="M10 2l7 4v8l-7 4-7-4V6z"/><path d="M10 2l7 4v8l-7 4-7-4V6zM3 6l7 4 7-4M10 10v8"/>'],
   ['erase', 'Borracha', 'E', '<path class="f" d="M4 13l7-8 6 5-5 7H7z"/><path d="M4 13l7-8 6 5-5 7H7zM7 17h10M8 9l6 5"/>'],
   ['pick', 'Conta-gotas', 'I', '<path d="M13 3l4 4-3 3-4-4zM10 6L3 13v4h4l7-7"/>'],
+  ['use', 'Usar: abrir e fechar, ligar e desligar (Shift: outra opção)', 'U', '<path d="M7 10V4.5a1.5 1.5 0 013 0V9m0-1.5a1.5 1.5 0 013 0V10m0-1a1.5 1.5 0 013 0v3.5c0 3-2 5.5-5 5.5S5.5 16 4.5 14L3 11.2a1.4 1.4 0 012.3-1.5L7 12"/>'],
   ['rotate', 'Girar bloco (Shift gira ao contrário)', 'T', '<path d="M15.5 7.5A6 6 0 104 11"/><path d="M16 3v4.5h-4.5"/><path class="f" d="M8 9h4v4H8z"/>'],
   ['line', 'Linha', 'L', '<path d="M4 16L16 4"/><circle cx="4" cy="16" r="1.6" class="f"/><circle cx="16" cy="4" r="1.6" class="f"/>'],
   ['box', 'Caixa sólida', 'R', '<path class="f" d="M4 4h12v12H4z"/><path d="M4 4h12v12H4z"/>'],
@@ -539,7 +553,7 @@ function vis(x, y, z) {
   if (y > layerMax()) return 0;
   return grid[(y * SZ + z) * SX + x];
 }
-function solidAt(x, y, z) { var v = vis(x, y, z); return v && !BLOCKS[cellBlock(v)].glass ? 1 : 0; }
+function solidAt(x, y, z) { var v = vis(x, y, z); if (!v) return 0; var b = BLOCKS[cellBlock(v)]; return !b.glass && !b.shape ? 1 : 0; }
 function buildChunk(cx, cy, cz) {
   var key = cx + ',' + cy + ',' + cz;
   var old = chunks.get(key);
@@ -551,6 +565,7 @@ function buildChunk(cx, cy, cz) {
     var v = grid[(y * SZ + z) * SX + x];
     if (!v) continue;
     var b = BLOCKS[cellBlock(v)], T = b.glass ? G : b.solid ? O : C;
+    if (b.shape) { emitShape(b, cellOri(v), x, y, z, O, C, G); continue; }
     var fm = b.ori ? b.ori.o[cellOri(v)] && b.ori.o[cellOri(v)][2] : 0;
     var h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; h = h - Math.floor(h);
     var jit = 0.965 + h * 0.07;
@@ -683,6 +698,7 @@ function targetAt(cx, cy) {
   var res = { hit: null, place: null, normal: null, d: r.d };
   if (hit) {
     res.hit = hit.cell; res.normal = hit.normal;
+    res.pt = [r.o[0] + r.d[0] * hit.t, r.o[1] + r.d[1] * hit.t, r.o[2] + r.d[2] * hit.t];
     res.place = [hit.cell[0] + hit.normal[0], hit.cell[1] + hit.normal[1], hit.cell[2] + hit.normal[2]];
     res.t = hit.t;
   }
@@ -692,7 +708,7 @@ function targetAt(cx, cy) {
     if (!hit || tp < hit.t) {
       var px = r.o[0] + r.d[0] * tp, pz = r.o[2] + r.d[2] * tp;
       var gx = Math.floor(px), gz = Math.floor(pz);
-      if (inB(gx, py, gz)) { res.hit = null; res.normal = [0, 1, 0]; res.place = [gx, py, gz]; }
+      if (inB(gx, py, gz)) { res.hit = null; res.normal = [0, 1, 0]; res.place = [gx, py, gz]; res.pt = [px, py, pz]; }
     }
   }
   if (res.place && (!inB(res.place[0], res.place[1], res.place[2]) || res.place[1] > layerMax())) res.place = null;
@@ -717,7 +733,7 @@ function updatePreview() {
     ghostFill.material.color.setRGB(b.top[0] / 255, b.top[1] / 255, b.top[2] / 255);
     setBoxAt(ghostFill, cell); ghostFill.visible = true;
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
-  } else if (et === 'erase' || et === 'pick' || et === 'rotate') {
+  } else if (et === 'erase' || et === 'pick' || et === 'rotate' || et === 'use') {
     cell = t.hit; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(et === 'erase' ? danger : info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
   } else if (isShape(et)) {
@@ -736,7 +752,7 @@ function updateStatus() {
   var t = hoverT, cell = t && (t.hit || t.place);
   $('stPos').textContent = cell ? cell.join(', ') : '–';
   var tv = t && t.hit ? grid[idx(t.hit[0], t.hit[1], t.hit[2])] : 0, tb = tv ? BLOCKS[cellBlock(tv)] : null;
-  $('stBlock').textContent = (tb ? tb.name + (tb.ori ? ', ' + oriLabel(tb, cellOri(tv)) : '') + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
+  $('stBlock').textContent = (tb ? tb.name + (tb.ori ? ', ' + oriLabel(tb, cellOri(tv)) : tb.shape && tb.sp.length ? ' [' + shapeLabel(tb, cellOri(tv)) + ']' : '') + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
@@ -782,20 +798,68 @@ function orientFor(bi, t) {
   for (var i = 0; i < O.o.length; i++) if (O.o[i][0] === want) return i;
   return O.d;
 }
-function placeAt(c, t) { if (c && c[1] <= layerMax()) editSet(c[0], c[1], c[2], mkCell(curBlock(), orientFor(curBlock(), t))); }
+function placeAt(c, t) {
+  if (!c || c[1] > layerMax()) return;
+  var bi = curBlock(), b = BLOCKS[bi];
+  if (!b.shape) { editSet(c[0], c[1], c[2], mkCell(bi, orientFor(bi, t))); return; }
+  // laje sobre laje igual vira laje dupla, como no jogo
+  if (t && t.hit && b.sp.some(function (q) { return q[0] === 'type' && q[1].indexOf('double') >= 0; })) {
+    var hv = grid[idx(t.hit[0], t.hit[1], t.hit[2])];
+    if (hv && cellBlock(hv) === bi) {
+      var ty = stateProps(b, cellOri(hv)).type, n = t.normal || [0, 0, 0];
+      if ((ty === 'bottom' && n[1] > 0) || (ty === 'top' && n[1] < 0)) { editSet(t.hit[0], t.hit[1], t.hit[2], mkCell(bi, stateIndex(b, { type: 'double' }))); return; }
+    }
+  }
+  var r = placeShape(bi, t), rb = BLOCKS[r.bi];
+  var pa = partnerOf(rb, r.s, c[0], c[1], c[2]);
+  if (pa && (!inB(pa.x, pa.y, pa.z) || pa.y > layerMax() || grid[idx(pa.x, pa.y, pa.z)])) { if (!stroke || !stroke.warned) toast('Não cabe: ' + rb.name + ' ocupa dois blocos.'); if (stroke) stroke.warned = 1; return; }
+  editSet(c[0], c[1], c[2], mkCell(r.bi, r.s));
+  if (pa) editSet(pa.x, pa.y, pa.z, mkCell(r.bi, pa.s));
+}
+/* Muda o estado de uma célula com forma, junto com a outra parte (porta, cama, planta alta) */
+function setShapeState(c, v, s2) {
+  var b = BLOCKS[cellBlock(v)], pa = partnerOf(b, cellOri(v), c[0], c[1], c[2]);
+  editSet(c[0], c[1], c[2], mkCell(cellBlock(v), s2));
+  if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(grid[idx(pa.x, pa.y, pa.z)]) === cellBlock(v)) {
+    var pb = partnerOf(b, s2, c[0], c[1], c[2]);
+    if (pb && pb.x === pa.x && pb.y === pa.y && pb.z === pa.z) editSet(pa.x, pa.y, pa.z, mkCell(cellBlock(v), pb.s));
+  }
+}
+function useAt(c, back) {
+  var v = grid[idx(c[0], c[1], c[2])]; if (!v) return;
+  var b = BLOCKS[cellBlock(v)];
+  if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
+  var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
+  var s2 = cycleProp(b, cellOri(v), prop, back && !b.shape.tog[1]);
+  beginBatch(); setShapeState(c, v, s2); endBatch();
+  toast(b.name + ': ' + prop + ' = ' + stateProps(b, s2)[prop]);
+}
 function rotateAt(c, back) {
   var v = grid[idx(c[0], c[1], c[2])]; if (!v) return;
   var b = BLOCKS[cellBlock(v)];
+  if (b.shape) {
+    if (!b.shape.ori.length) { toast(b.name + ' não tem direção para girar.'); return; }
+    if (b.shape.multi && b.shape.multi.d !== 'up') { toast('Para girar a cama, apague e coloque de novo olhando para o outro lado.'); return; }
+    var s2 = cycleOrient(b, cellOri(v), back);
+    beginBatch(); setShapeState(c, v, s2); endBatch();
+    toast(b.name + ': ' + shapeLabel(b, s2)); return;
+  }
   if (!b.ori) { toast(b.name + ' não tem direção para girar.'); return; }
   var n = b.ori.o.length, o = (cellOri(v) + (back ? n - 1 : 1)) % n;
   beginBatch(); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), o)); endBatch();
   toast(b.name + ': ' + oriLabel(b, o));
 }
-function eraseAt(c) { if (c) editSet(c[0], c[1], c[2], 0); }
+function eraseAt(c) {
+  if (!c) return;
+  var v = grid[idx(c[0], c[1], c[2])];
+  var pa = v && partnerOf(BLOCKS[cellBlock(v)], cellOri(v), c[0], c[1], c[2]);
+  editSet(c[0], c[1], c[2], 0);
+  if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(grid[idx(pa.x, pa.y, pa.z)]) === cellBlock(v)) editSet(pa.x, pa.y, pa.z, 0);
+}
 function commitShape(kind, a, b, erase, t) {
   var cells = shapeCells(kind, a, b);
   beginBatch();
-  var v = erase ? 0 : mkCell(curBlock(), orientFor(curBlock(), t));
+  var v = erase ? 0 : BLOCKS[curBlock()].shape ? (function () { var r = placeShape(curBlock(), t); return mkCell(r.bi, r.s); })() : mkCell(curBlock(), orientFor(curBlock(), t));
   for (var i = 0; i < cells.length; i++) {
     var c = cells[i];
     if (!inB(c[0], c[1], c[2]) || c[1] > layerMax()) continue;
@@ -817,10 +881,16 @@ function pressAt(cx, cy, shift) {
   } else if (et === 'pick') {
     if (t && t.hit) {
       var v = grid[idx(t.hit[0], t.hit[1], t.hit[2])];
-      if (v) { chooseBlock(cellBlock(v)); toast('Bloco: ' + BLOCKS[cellBlock(v)].name); }
+      if (v) {
+        var pb = BLOCKS[cellBlock(v)], pi = pb.shape && pb.shape.hide ? BY_JAVA[pb.java.replace('_wall_', '_').replace(/^wall_/, '')] : cellBlock(v);
+        if (pi == null) pi = cellBlock(v);
+        chooseBlock(pi); toast('Bloco: ' + BLOCKS[pi].name);
+      }
     }
   } else if (et === 'rotate') {
     if (t && t.hit) rotateAt(t.hit, shift);
+  } else if (et === 'use') {
+    if (t && t.hit) useAt(t.hit, shift);
   } else if (isShape(et)) {
     if (!t || !t.place) return;
     if (!anchor) { anchor = t.place.slice(); updateAnchorChip(); }
@@ -960,7 +1030,7 @@ $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.targe
    cinza usado pelos blocos sem textura (1 = versão translúcida, para vidros). */
 var BE_TEX = /*%%BETEX%%*/{};
 var GRASS_TINT = 0x91BD59;
-var PACK_V = 2; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
+var PACK_V = 3; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
 var packs = [];
 var texOn = true;
 try { texOn = localStorage.getItem('bloco-a-bloco-tex') !== '0'; } catch (e) {}
@@ -1143,7 +1213,7 @@ async function importPack(src, name, depth, prog) {
   if (kind === 'java') {
     var names = {};
     BLOCKS.forEach(function (b) { b.jt.forEach(function (n) { names[n] = 1; }); });
-    for (k in names) jobs.push([k, 'assets/minecraft/textures/block/' + k, 0]);
+    for (k in names) jobs.push([k, 'assets/minecraft/textures/' + (k.indexOf('/') >= 0 ? '' : 'block/') + k, 0]);
   } else {
     var terr = {}, blk = {};
     try { terr = (stripJson(new TextDecoder().decode(await file('textures/terrain_texture.json'))).texture_data) || {}; } catch (e) {}
@@ -1151,13 +1221,14 @@ async function importPack(src, name, depth, prog) {
     var shorts = {};
     BLOCKS.forEach(function (b) {
       // Blocos com frente usam o mapeamento embutido, que já está girado para o estado exportado
-      var e = !b.ori && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
+      var e = !b.ori && !b.shape && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
       if (e && e.textures) pack.bmap[b.java] = beFaces(e.textures);
       (pack.bmap[b.java] || b.bt || []).forEach(function (n) { if (n) shorts[n] = 1; });
     });
     for (k in shorts) {
       var base = k.split('#')[0];
       var pp = terr[base] ? bePath(terr[base], k) : BE_TEX[k] ? (Array.isArray(BE_TEX[k]) ? BE_TEX[k] : [BE_TEX[k], 0]) : null;
+      if (k.charAt(0) === '@') pp = [k.slice(1), 0]; // formas: caminho direto
       if (pp) jobs.push([k, pp[0], pp[1]]);
     }
   }
@@ -1204,19 +1275,37 @@ function prepTile(img, T, tint, ov) {
 }
 function nextPow2(v) { var p = 1; while (p < v) p *= 2; return p; }
 /* tiles: [{img, tint, ov}] -> ladrilhos 2.. do atlas */
+/* tiles: [{img, tint, ov, big}] -> ladrilhos 2.. do atlas. Texturas de entidade (baú: 64x64) ocupam um quadrado
+   de span x span ladrilhos, alinhado, para não obrigar todos os ladrilhos a terem o tamanho delas. */
 function buildAtlas(tiles) {
-  var maxTex = Math.min(4096, renderer.capabilities.maxTextureSize || 4096), n = tiles.length + 2;
-  var T = Math.max(16, Math.min(256, nextPow2(tiles.reduce(function (m, t) { return Math.max(m, Math.min(t.img.w, t.img.h)); }, 16))));
-  var cols = nextPow2(Math.ceil(Math.sqrt(n)));
+  var maxTex = Math.min(4096, renderer.capabilities.maxTextureSize || 4096);
+  var T = Math.max(16, Math.min(256, nextPow2(tiles.reduce(function (m, t) { return t.big ? m : Math.max(m, Math.min(t.img.w, t.img.h)); }, 16))));
+  var spanOf = function (t) { return t && t.big ? Math.min(4, Math.max(1, nextPow2(Math.ceil(Math.min(t.img.w, t.img.h) / T)))) : 1; };
+  var all = [null, null].concat(tiles), spans = all.map(spanOf), cells = spans.reduce(function (a, s) { return a + s * s; }, 0);
+  var cols = Math.max(4, nextPow2(Math.ceil(Math.sqrt(cells))));
   while (cols * T > maxTex && T > 16) T /= 2;
-  while (cols * T > maxTex) cols /= 2; // não deve acontecer com a lista atual de blocos
-  var rows = nextPow2(Math.ceil(n / cols)), W = cols * T, H = rows * T, data = new Uint8Array(W * H * 4);
-  var px = [noiseTile(T, 255), noiseTile(T, 128)].concat(tiles.map(function (t) { return prepTile(t.img, T, t.tint, t.ov); }));
-  var e = 0.5 / T; // margem de meio texel para não pegar o vizinho no atlas
+  // posições: maiores primeiro, cada um alinhado ao próprio tamanho
+  var order = all.map(function (_, i) { return i; }).sort(function (a, b) { return spans[b] - spans[a] || a - b; });
+  var maxRows = Math.ceil(cells / cols) + 8, occ = new Uint8Array(cols * maxRows), pos = [], usedRows = 0;
+  order.forEach(function (i) {
+    var sp = spans[i];
+    for (var r = 0; ; r += sp) {
+      for (var c = 0; c + sp <= cols; c += sp) {
+        var free = true;
+        for (var a = 0; a < sp && free; a++) for (var b2 = 0; b2 < sp; b2++) if (occ[(r + a) * cols + c + b2]) { free = false; break; }
+        if (free) {
+          for (a = 0; a < sp; a++) for (b2 = 0; b2 < sp; b2++) occ[(r + a) * cols + c + b2] = 1;
+          pos[i] = [c, r]; usedRows = Math.max(usedRows, r + sp); return;
+        }
+      }
+    }
+  });
+  var rows = nextPow2(usedRows), W = cols * T, H = rows * T, data = new Uint8Array(W * H * 4);
+  var px = all.map(function (t, i) { return i < 2 ? noiseTile(T, i ? 128 : 255) : prepTile(t.img, T * spans[i], t.tint, t.ov); });
   tileUV = px.map(function (tp, i) {
-    var cx = (i % cols) * T, cy = ((i / cols) | 0) * T;
-    for (var r = 0; r < T; r++) data.set(tp.subarray(r * T * 4, (r + 1) * T * 4), ((cy + T - 1 - r) * W + cx) * 4);
-    return [(cx + e) / W, (cy + e) / H, (cx + T - e) / W, (cy + T - e) / H];
+    var S = T * spans[i], cx = pos[i][0] * T, cy = pos[i][1] * T, e = 0.5; // margem de meio texel (em pixels do atlas)
+    for (var r = 0; r < S; r++) data.set(tp.subarray(r * S * 4, (r + 1) * S * 4), ((cy + S - 1 - r) * W + cx) * 4);
+    return [(cx + e) / W, (cy + e) / H, (cx + S - e) / W, (cy + S - e) / H];
   });
   if (atlasTex) atlasTex.dispose();
   atlasTex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
@@ -1255,7 +1344,7 @@ async function applyTextures() {
       if (!seen.has(id)) {
         var img = cache.get(t);
         if (!img) continue;
-        seen.set(id, tiles.length + 2); tiles.push({ img: img, tint: tint, ov: t.ov });
+        seen.set(id, tiles.length + 2); tiles.push({ img: img, tint: tint, ov: t.ov, big: /entity\//.test(key) });
       }
       res[bi][f] = seen.get(id); break;
     }
@@ -1265,17 +1354,24 @@ async function applyTextures() {
   texBlocks = 0;
   BLOCKS.forEach(function (b, i) {
     b.tile = res[i];
-    b.solid = !b.glass && !(b.kind === 2 && b.tile.some(function (t) { return t >= 0; }));
+    b.solid = !b.shape && !b.glass && !(b.kind === 2 && b.tile.some(function (t) { return t >= 0; }));
     // ícone: face sul na direção inicial (a frente dos blocos com frente)
-    var dm = b.ori && b.ori.o[b.ori.d][2], si = b.tile[dm ? dm[6] : 3];
+    var dm = b.ori && b.ori.o[b.ori.d][2], si = b.shape ? b.tile[b.ptIdx] : b.tile[dm ? dm[6] : 3];
     var s = si >= 0 ? si : b.tile[0];
     if (s >= 0) texBlocks++;
-    if (s >= 0 && !(s in icons)) {
-      var c = document.createElement('canvas'); c.width = c.height = T;
-      c.getContext('2d').putImageData(new ImageData(px[s], T, T), 0, 0);
-      icons[s] = 1; css.push('--tx-' + s + ':url(' + c.toDataURL() + ')');
+    // ícone pintado como no jogo quando a textura é pintada (ex.: pó de redstone vermelho, grama)
+    var tc = b.shape && b.shape.ti ? b.shape.tint : 0, ik = s + (tc ? 't' + tc : '');
+    if (s >= 0 && !(ik in icons)) {
+      var TS = Math.round(Math.sqrt(px[s].length / 4)), c = document.createElement('canvas'), ip = px[s];
+      c.width = c.height = TS;
+      if (tc) {
+        ip = new Uint8ClampedArray(ip);
+        for (var q = 0; q < ip.length; q += 4) { ip[q] *= (tc >> 16 & 255) / 255; ip[q + 1] *= (tc >> 8 & 255) / 255; ip[q + 2] *= (tc & 255) / 255; }
+      }
+      c.getContext('2d').putImageData(new ImageData(ip, TS, TS), 0, 0);
+      icons[ik] = 1; css.push('--tx-' + ik + ':url(' + c.toDataURL() + ')');
     }
-    b.icon = s >= 0 ? 'var(--tx-' + s + ')' : '';
+    b.icon = s >= 0 ? 'var(--tx-' + ik + ')' : '';
   });
   var st = $('texStyle');
   if (!st) { st = document.createElement('style'); st.id = 'texStyle'; document.head.appendChild(st); }
@@ -1372,14 +1468,21 @@ $('packDirIn').addEventListener('change', async function (e) {
   try { await addPackFrom(openDir(fs), nm); } catch (x) { packError(x, 'a pasta'); }
 });
 
+/*%%SHAPES_JS%%*/
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
 function cellName(v) {
   var b = BLOCKS[cellBlock(v)], o = cellOri(v);
+  if (b.shape) { var sp = stateProps(b, o), ks = Object.keys(sp); return ks.length ? b.java + '[' + ks.map(function (k) { return k + '=' + sp[k]; }).join(',') + ']' : b.java; }
   return b.ori && o !== b.ori.d ? b.java + '[' + b.ori.k + '=' + b.ori.o[o][0] + ']' : b.java;
 }
 function cellFromName(nm) {
+  var ms = /^([^\[]+)\[(.*)\]$/.exec(nm || '');
+  if (ms && ms[1] in BY_JAVA && BLOCKS[BY_JAVA[ms[1]]].shape) {
+    var pr = {}; ms[2].split(',').forEach(function (pv) { var a = pv.split('='); pr[a[0]] = a[1]; });
+    return mkCell(BY_JAVA[ms[1]], stateIndex(BLOCKS[BY_JAVA[ms[1]]], pr));
+  }
   var m = /^([^\[]+)(?:\[(\w+)=(\w+)\])?$/.exec(nm || '');
   if (!m || !(m[1] in BY_JAVA)) return 0;
   var bi = BY_JAVA[m[1]], b = BLOCKS[bi], o = -1;
@@ -1416,7 +1519,7 @@ function loadProject(o) {
 }
 function newWorld(sx, sy, sz) {
   SX = sx; SY = sy; SZ = sz;
-  grid = new Uint16Array(SX * SY * SZ); blockCount = 0;
+  grid = new Uint32Array(SX * SY * SZ); blockCount = 0;
   undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip();
   layerOn = false; layerY = 0; syncLayerUI();
   clearChunks(); dirty.clear(); dirtyAll();
@@ -1491,7 +1594,9 @@ function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&
 function collectVoxels() {
   var out = [];
   for (var y = 0; y < SY; y++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
-    var v = grid[(y * SZ + z) * SX + x]; if (v) out.push([x, y, z, cellBlock(v), cellOri(v)]);
+    var v = grid[(y * SZ + z) * SX + x]; if (!v) continue;
+    var bi = cellBlock(v);
+    out.push(BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]);
   }
   return out;
 }
@@ -1592,7 +1697,8 @@ function openHelp() {
     '<span><kbd>Botão dir.</kbd> arrastar</span><span>Girar a câmera (clique simples cancela a forma)</span>' +
     '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
-    '<span><kbd>B E I T L R H S O</kbd></span><span>Pincel, borracha, conta-gotas, girar, linha, caixa, caixa oca, esfera, esfera oca</span>' +
+    '<span><kbd>B E I U T L R H S O</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca</span>' +
+    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor e afins. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas).</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
@@ -1652,7 +1758,7 @@ window.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
@@ -1685,6 +1791,11 @@ renderChips(); renderList(); renderTools(); renderHotbar(); syncLayerUI();
 if (!THREE_OK) {
   viewport.innerHTML = '<div class="empty" style="padding:32px">Não foi possível carregar a biblioteca 3D. Verifique a conexão com a internet e recarregue a página.</div>';
 } else {
+  start();
+}
+async function start() {
+  try { await loadShapes(); } catch (e) { toast('Não foi possível carregar os blocos que não são cubos: ' + (e.message || e), 8000); }
+  renderList(); renderHotbar();
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   initThree(); bindCanvas();
@@ -1694,7 +1805,7 @@ if (!THREE_OK) {
   changed(); updateStatus();
   if (!saved) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
-  window.__bab = { grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); } };
+  window.__bab = { exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); } };
 }
 })();
 </script>

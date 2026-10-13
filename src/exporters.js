@@ -120,10 +120,10 @@
     opts = opts || {};
     if (!voxels.length) throw new Error('A construção está vazia.');
     const b = bounds(voxels);
-    const grid = new Int32Array(b.w * b.h * b.l).fill(-1), oris = new Int32Array(grid.length);
-    for (const [x, y, z, idx, o] of voxels) {
+    const grid = new Int32Array(b.w * b.h * b.l).fill(-1), oris = new Int32Array(grid.length), extra = [];
+    for (const [x, y, z, idx, o, ex] of voxels) {
       const i = ((y - b.minY) * b.l + (z - b.minZ)) * b.w + (x - b.minX);
-      grid[i] = idx; oris[i] = o == null ? -1 : o;
+      grid[i] = idx; oris[i] = o == null ? -1 : o; if (ex) extra[i] = ex;
     }
     const palette = { 'minecraft:air': 0 };
     let next = 1;
@@ -131,7 +131,8 @@
     for (let i = 0; i < grid.length; i++) {
       const idx = grid[i];
       if (idx < 0) { varint(data, 0); continue; }
-      const key = 'minecraft:' + BLOCKS[idx].java + javaState(BLOCKS[idx], oris[i] < 0 ? null : oris[i]);
+      // ex.j: estado Java completo já calculado pelo editor (formas: portas, escadas, cercas...)
+      const key = 'minecraft:' + BLOCKS[idx].java + (extra[i] ? extra[i].j : javaState(BLOCKS[idx], oris[i] < 0 ? null : oris[i]));
       if (palette[key] === undefined) palette[key] = next++;
       varint(data, palette[key]);
     }
@@ -184,10 +185,10 @@
     const b = bounds(voxels);
     const sx = b.w, sy = b.h, sz = b.l;
     const total = sx * sy * sz;
-    const grid = new Int32Array(total).fill(-1), oris = new Int32Array(total);
-    for (const [x, y, z, idx, o] of voxels) {
+    const grid = new Int32Array(total).fill(-1), oris = new Int32Array(total), extra = [];
+    for (const [x, y, z, idx, o, ex] of voxels) {
       const i = ((x - b.minX) * sy + (y - b.minY)) * sz + (z - b.minZ);
-      grid[i] = idx; oris[i] = o == null ? -1 : o;
+      grid[i] = idx; oris[i] = o == null ? -1 : o; if (ex) extra[i] = ex;
     }
     const emptyName = opts.preserveTerrain === false ? 'minecraft:air' : 'minecraft:structure_void';
     const pal = []; const palIndex = {};
@@ -204,7 +205,9 @@
     for (let i = 0; i < total; i++) {
       const idx = grid[i];
       if (idx < 0) { layer0[i] = emptyIdx; continue; }
-      const blk = BLOCKS[idx];
+      const blk = BLOCKS[idx], ex = extra[i];
+      // ex.bn/bs/bv: nome, estados e versão Bedrock calculados pelo editor (tabela Java -> Bedrock)
+      if (ex) { layer0[i] = getPal('minecraft:' + ex.bn, ex.bs, ex.bv); continue; }
       layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk, oris[i] < 0 ? null : oris[i]), blk.bst && blk.bst[0]);
     }
     const layer1 = new Array(total).fill(-1);

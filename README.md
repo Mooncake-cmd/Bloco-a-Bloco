@@ -17,7 +17,10 @@ src/app.template.html   Interface e toda a lógica do editor (CSS + JS em um arq
 src/exporters.js        Exportadores .schem e .mcstructure, escritor NBT e ZIP mínimo (sem dependências)
 data/blocks.json        Lista de blocos: [id java, nome, id bedrock, cor topo, cor lado, cor base, tipo, texturas java, texturas bedrock, cor de bioma, estado java, estado bedrock]
 data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote vanilla (terrain_texture.json)
-scripts/gen_blocks.js   Regera os dois arquivos de data/ a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
+data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
+src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
+scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
+scripts/gen_shapes.js   Regera shapes.json (minecraft-assets 26.1, minecraft-data Java 1.21.11 e blocksJ2B do Bedrock 1.26)
 scripts/build.js        Junta template + exportadores + blocos e gera os dois HTML em dist/
 tests/test_export.js    Gera um .schem e um .mcstructure e lê os dois de volta com prismarine-nbt
 dist/bloco-a-bloco.html Versão local (Three.js embutido), downloads diretos
@@ -48,6 +51,17 @@ npm test         # valida os exportadores
 - Tipo do bloco: 0 opaco, 1 translúcido (vidro, gelo, slime, mel), 2 recortado (folhas: buracos sem transparência parcial).
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
+## Blocos que não são cubos (formas)
+
+Escadas, lajes, portas, alçapões, cercas, portões, muros, vidraças, barras, botões, alavancas, placas de pressão, pó de redstone, repetidor, comparador, tochas, trilhos, linha de armadilha e gancho, baús, placas, estandartes, camas, cabeças, moldura e portal do fim, plantas, flores, plantações, lanternas, correntes, bolo, bigorna, caldeirão e o resto: 738 blocos (61 são variantes de parede, escondidas da paleta). Ficam de fora só os técnicos (ar, água, lava, barreira, luz, estrutura, comando, gerador...) e as estátuas de golem de cobre.
+
+- **Desenho**: o modelo Java do estado (variantes ou multipart do blockstate, cadeia de `parent`, elementos com `from`/`to`, `uv`, `rotation` da face e do elemento, `cullface`, `tintindex`, rotação `x`/`y` do blockstate). `uvlock` é ignorado. Blocos que o jogo desenha como entidade (baú, placa, estandarte, cama, cabeça, caixa de shulker, portal do fim) têm uma geometria simples própria em `entityGeometry` (`scripts/gen_shapes.js`); o baú usa a textura de entidade com o desdobramento do modelo do jogo.
+- **Estado da célula**: o mundo agora é `Uint32Array`; acima dos 12 bits do bloco fica o índice das propriedades guardadas (base mista, `stateIndex`). Cada propriedade Java é guardada (direção, metade, aberta, idade...), calculada pelos vizinhos (conexões de cerca, muro, vidraça, barras, pó de redstone, formato da escada, baú duplo, linha de armadilha, `in_wall` do portão, `attached` do gancho) ou fixa no padrão (`waterlogged`, `power` etc.).
+- **Colocação**: como no jogo. Escada, porta, portão e cama ficam virados para onde você olha; baú, repetidor, comparador e afins ficam de frente para você; alçapão, laje e escada de cabeça para baixo dependem de clicar na metade de cima ou de baixo; tocha, placa, estandarte, cabeça e coral clicados na lateral viram a variante de parede; botão, alavanca e sino dependem da face (chão, teto, parede); placa, estandarte e cabeça no chão giram em 16 posições. Laje sobre laje igual vira laje dupla. Porta, planta alta e cama ocupam duas células, colocadas e apagadas juntas.
+- **Usar (U)**: troca a primeira propriedade da lista `TOGGLE` (aberta, olho, aceso, ligada, modo, atraso, idade, pedaços do bolo, quantidade de velas...); com Shift, a segunda. **Girar (T)** passa pelas combinações de direção (`facing`, `half`, `hinge`, `type`, `face`, `axis`, `rotation`...). Porta e planta alta mudam junto com a outra metade.
+- **Exportação**: estado Java completo no `.schem`. No `.mcstructure`, o nome e os estados Bedrock saem da tabela `blocksJ2B` do minecraft-data: para cada estado Bedrock, o gerador acha o menor conjunto de propriedades Java que o determina e guarda a tabela (ex.: `weirdo_direction` depende só de `facing`). Os estados que faltam vêm do padrão do Bedrock, com a versão de esquema do minecraft-data.
+- **Texturas**: cada forma lista os nomes Java que usa. Para pacote Bedrock, o caminho sai de pares aprendidos dos cubos, do mesmo nome em `terrain_texture.json`, de regras (cor da vidraça, corais, caixas de shulker) e da tabela `BE_SYN`; 37 texturas raras ficam sem equivalente e usam a cor média. Texturas de entidade (baú, portal do fim) ocupam vários ladrilhos no atlas.
+
 ## Texturas
 
 Menu Projeto > Texturas. O usuário escolhe um pacote de recursos e os blocos passam a aparecer com as texturas dele. Sem pacote, cada bloco usa a cor média com ruído.
@@ -67,6 +81,9 @@ Menu Projeto > Texturas. O usuário escolhe um pacote de recursos e os blocos pa
 
 ## Não testado ainda
 
+- Formas no jogo, principalmente no Bedrock: blocos com entidade (baú, placa, cama, estandarte, cabeça) saem sem os dados de entidade no `.mcstructure`; o jogo costuma criar os padrões, mas vale conferir. Baús lado a lado aparecem duplos no Java (`type=left/right`); no Bedrock o par depende da entidade e pode sair como dois baús simples.
+- O clique numa forma acerta a célula inteira (o alvo não segue o formato da laje ou da escada).
+
 - Importar os arquivos dentro do jogo. Testar primeiro numa cópia criativa do mundo. Se o terreno for afetado de forma estranha, desmarcar "preservar terreno".
 - A versão com Three.js via CDN (`dist/artifact.html`) em um navegador com internet.
 - Direções no jogo, principalmente no Bedrock. Os mais duvidosos: observador (se `minecraft:facing_direction` é o lado do rosto, como o `facing` do Java), terracota esmaltada (se o padrão gira igual ao Java para o mesmo `facing_direction`) e crafter.
@@ -74,7 +91,7 @@ Menu Projeto > Texturas. O usuário escolhe um pacote de recursos e os blocos pa
 
 ## Ideias para as próximas versões
 
-1. Blocos que não são cubos inteiros: escadas, lajes, portas, alçapões, cercas.
+1. Geometria real de cama, placa, estandarte e cabeça (hoje são caixas simples) e baú duplo sem a emenda no meio.
 2. Importar `.schem` e `.mcstructure` existentes para editar.
 3. Selecionar, copiar, colar, espelhar e girar trechos.
 4. Preencher região, substituir um bloco por outro e cilindro.

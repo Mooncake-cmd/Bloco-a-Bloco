@@ -4,8 +4,11 @@ let t=fs.readFileSync(root+'/src/app.template.html','utf8');
 const blocks=fs.readFileSync(root+'/data/blocks.json','utf8');
 const exp=fs.readFileSync(root+'/src/exporters.js','utf8');
 const betex=fs.readFileSync(root+'/data/bedrock_textures.json','utf8');
+// formas: código e dados (dados compactados em gzip + base64; o editor abre com DecompressionStream)
+const shapesJs=fs.readFileSync(root+'/src/shapes.js','utf8');
+const shapesGz=require('zlib').gzipSync(fs.readFileSync(root+'/data/shapes.json'),{level:9}).toString('base64');
 const three=fs.readFileSync(root+'/node_modules/three/build/three.min.js','utf8');
-t=t.replace('/*%%EXPORTERS%%*/',()=>exp).replace('/*%%BLOCKS%%*/[]',()=>blocks).replace('/*%%BETEX%%*/{}',()=>betex);
+t=t.replace('/*%%EXPORTERS%%*/',()=>exp).replace('/*%%BLOCKS%%*/[]',()=>blocks).replace('/*%%BETEX%%*/{}',()=>betex).replace('/*%%SHAPES_JS%%*/',()=>shapesJs.replace('%%SHAPES%%',()=>shapesGz));
 // artifact: CDN
 const art=t.replace('%%THREE%%','<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>');
 fs.writeFileSync(root+'/dist/artifact.html',art);
