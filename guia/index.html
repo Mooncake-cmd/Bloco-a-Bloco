@@ -125,7 +125,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
   <div class="facts">
     <div class="fact"><b>1.088</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
-    <div class="fact"><b>10</b><span>ferramentas de construção</span></div>
+    <div class="fact"><b>11</b><span>ferramentas, com seleção para copiar, colar e substituir</span></div>
     <div class="fact"><b>13</b><span>categorias de blocos</span></div>
     <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
     <div class="fact"><b>64 mi</b><span>blocos de espaço no máximo (ex.: 400 × 400 × 400)</span></div>
@@ -190,7 +190,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="strip-wrap"><div class="strip">
     <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
     <div class="marks">
-      <span class="pin" style="left:3.1%">1</span><span class="pin" style="left:6.6%">2</span><span class="pin" style="left:10.1%">3</span><span class="pin" style="left:13.6%">4</span><span class="pin" style="left:17.1%">5</span><span class="pin" style="left:20.6%">6</span><span class="pin" style="left:24.1%">7</span><span class="pin" style="left:27.6%">8</span><span class="pin" style="left:31.1%">9</span><span class="pin" style="left:34.6%">10</span><span class="pin" style="left:39.1%">11</span><span class="pin" style="left:42.6%">12</span><span class="pin" style="left:48.8%">13</span><span class="pin" style="left:57.5%">14</span>
+      <span class="pin" style="left:3.1%">1</span><span class="pin" style="left:6.6%">2</span><span class="pin" style="left:10.1%">3</span><span class="pin" style="left:13.6%">4</span><span class="pin" style="left:17.1%">5</span><span class="pin" style="left:20.6%">6</span><span class="pin" style="left:24.1%">7</span><span class="pin" style="left:27.6%">8</span><span class="pin" style="left:31.1%">9</span><span class="pin" style="left:34.6%">10</span><span class="pin" style="left:38.1%">11</span><span class="pin" style="left:42.6%">12</span><span class="pin" style="left:46.1%">13</span><span class="pin" style="left:52.3%">14</span><span class="pin" style="left:61.0%">15</span>
     </div>
   </div></div>
   <div class="tbl"><table>
@@ -206,8 +206,9 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>8</td><td><b>Caixa oca</b> (paredes)</td><td><kbd>H</kbd></td></tr>
       <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td></tr>
       <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
-      <tr><td>11–12</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
-      <tr><td>13–14</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
+      <tr><td>11</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
+      <tr><td>12–13</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
+      <tr><td>14–15</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
     </tbody>
   </table></div>
 
@@ -224,6 +225,40 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 
   <h3>Formas com dois cliques</h3>
   <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida entre o primeiro e o segundo clique, com o aviso do ponto inicial no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida depois do primeiro clique: a prévia laranja mostra a área, e o aviso no canto superior esquerdo mostra o ponto inicial com o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
+
+  <h3>Selecionar, copiar e colar</h3>
+  <figure><img src="img/selecao.jpg" alt="Árvore marcada por uma caixa azul de seleção, com o aviso Seleção 5 × 6 × 5 e os botões Copiar, Recortar, Apagar, Substituir e Limpar" width="972" height="718" loading="lazy"><figcaption>Com <b>Selecionar</b> (<kbd>V</kbd>): o primeiro clique marca um canto, a caixa azul acompanha o mouse e o segundo clique fecha a área. O aviso no canto mostra o tamanho e os botões de ação; a barra de status também mostra o tamanho da seleção.</figcaption></figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Ação</th><th>Botão no aviso</th><th>Tecla</th><th>O que faz</th></tr></thead>
+    <tbody>
+      <tr><td>Copiar</td><td>Copiar</td><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Guarda os blocos da área, com direção e estado (porta aberta, escada virada, laje em cima…).</td></tr>
+      <tr><td>Recortar</td><td>Recortar</td><td><kbd>Ctrl</kbd>+<kbd>X</kbd></td><td>Copia e apaga a área.</td></tr>
+      <tr><td>Colar</td><td>Colar</td><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Uma prévia azul da cópia segue o mouse, centrada no ponto apontado e apoiada nele. Cada clique cola uma cópia; <kbd>Esc</kbd>, Cancelar ou um clique simples com o botão direito terminam.</td></tr>
+      <tr><td>Girar a cópia</td><td>Girar 90°</td><td><kbd>R</kbd> (colando)</td><td>Gira a cópia 90° no sentido horário, visto de cima. Os blocos giram junto: escadas, portas, troncos deitados, trilhos, placas.</td></tr>
+      <tr><td>Apagar</td><td>Apagar</td><td><kbd>Delete</kbd></td><td>Apaga todos os blocos da área.</td></tr>
+      <tr><td>Substituir</td><td>Substituir…</td><td>—</td><td>Troca um tipo de bloco (ou todos) por outro só dentro da área (veja abaixo).</td></tr>
+      <tr><td>Limpar</td><td>Limpar</td><td><kbd>Esc</kbd></td><td>Tira a seleção. A cópia continua guardada.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="plain">
+    <li>O ar copiado não apaga nada: ao colar, só os blocos da cópia entram, o que já existe nos espaços vazios fica.</li>
+    <li>O que sairia do espaço não é colado, e o aviso diz quantos blocos ficaram de fora.</li>
+    <li>Cada colagem, recorte, apagamento ou substituição é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+    <li>A cópia vale para o projeto aberto depois: dá para copiar de uma estrutura importada e colar num projeto novo, sem recarregar a página.</li>
+    <li>No celular, use os botões do aviso no lugar das teclas.</li>
+  </ul>
+  <figure><img src="img/colar.jpg" alt="Uma cópia da árvore já colada à esquerda da casa e a prévia azul de outra cópia seguindo o mouse à direita" width="972" height="718" loading="lazy"><figcaption>Colando: à esquerda, uma cópia da árvore já colada; à direita, a prévia azul da próxima. O aviso mostra o tamanho da cópia e o botão <b>Girar 90°</b>.</figcaption></figure>
+
+  <h3>Substituir blocos na seleção</h3>
+  <div class="side">
+    <figure><img src="img/substituir.jpg" alt="Janela Substituir na seleção com a lista Trocar, o campo Por e a opção de preencher os espaços vazios" width="536" height="362" loading="lazy"><figcaption>A janela <b>Substituir…</b> do aviso de seleção.</figcaption></figure>
+    <ul class="plain">
+      <li><b>Trocar</b>: “Todos os blocos” ou um dos tipos que existem na área, com a quantidade de cada um.</li>
+      <li><b>Por</b>: o bloco novo. Comece a digitar o nome ou o id (ex.: <code>stone_bricks</code>) e escolha na lista; já vem preenchido com o bloco ativo da hotbar. Escreva <code>ar</code> para apagar só aquele tipo.</li>
+      <li>Quando o bloco novo tem as mesmas propriedades, a direção e o estado são mantidos: escada de carvalho vira escada de pedra virada para o mesmo lado, tronco deitado vira outro tronco deitado.</li>
+      <li><b>Também preencher os espaços vazios</b>: além de trocar, enche todo o ar da área com o bloco novo. Com essa opção, a seleção vira também uma ferramenta de preencher.</li>
+    </ul>
+  </div>
 
   <h3>Usar e Girar</h3>
   <div class="grid2">
@@ -331,7 +366,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <tbody>
       <tr><td>Alvo</td><td>Coordenadas x, y, z do bloco apontado (ou de onde o próximo bloco vai).</td></tr>
       <tr><td>Bloco</td><td>O bloco apontado com o estado (ex.: <code>Oak Door [facing=north, hinge=left, open=false]</code> ou <code>Oak Log, deitado (leste-oeste)</code>) e, depois, o bloco ativo da hotbar.</td></tr>
-      <tr><td>Construção</td><td>Largura × altura × profundidade da parte construída; durante uma forma, também o tamanho da forma.</td></tr>
+      <tr><td>Construção</td><td>Largura × altura × profundidade da parte construída; durante uma forma, também o tamanho da forma; com uma seleção, o tamanho da seleção.</td></tr>
       <tr><td>Blocos</td><td>Total de blocos colocados.</td></tr>
     </tbody>
   </table></div>
@@ -471,6 +506,10 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tbody>
         <tr><td><kbd>B</kbd> <kbd>E</kbd> <kbd>I</kbd> <kbd>U</kbd> <kbd>T</kbd></td><td>Pincel, borracha, conta-gotas, usar, girar</td></tr>
         <tr><td><kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>O</kbd></td><td>Linha, caixa, caixa oca, esfera, esfera oca</td></tr>
+        <tr><td><kbd>V</kbd></td><td>Selecionar área</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>
+        <tr><td><kbd>Delete</kbd></td><td>Apagar a seleção</td></tr>
+        <tr><td><kbd>R</kbd> (colando)</td><td>Girar a cópia 90°</td></tr>
         <tr><td><kbd>Shift</kbd></td><td>Pincel apaga; formas apagam; usar muda a segunda opção; girar volta</td></tr>
         <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Espaço da hotbar</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Desfazer / refazer</td></tr>
@@ -478,7 +517,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Setas</td><td>Mover a câmera</td></tr>
         <tr><td><kbd>Home</kbd></td><td>Recentralizar</td></tr>
         <tr><td><kbd>G</kbd></td><td>Grade</td></tr>
-        <tr><td><kbd>Esc</kbd></td><td>Fecha janela, cancela forma, fecha menu</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Fecha janela, cancela forma, termina a colagem, tira a seleção, fecha menu</td></tr>
         <tr><td><kbd>?</kbd></td><td>Atalhos e ajuda</td></tr>
       </tbody>
     </table></div>
@@ -491,6 +530,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <thead><tr><th>Assunto</th><th>Situação</th></tr></thead>
     <tbody>
       <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados como caixas simples (o jogo os desenha de um jeito especial). O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
+      <tr><td>Copiar e colar</td><td>A cópia fica só nesta aba do navegador (não vai para a área de transferência do sistema e some ao recarregar a página). Girar é só de 90° na horizontal; espelhar ainda não existe.</td></tr>
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>

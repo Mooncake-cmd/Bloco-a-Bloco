@@ -22,6 +22,7 @@ data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote v
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
+src/selection.js        Selecionar, copiar, recortar, colar (com giro), apagar e substituir na área
 scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
 scripts/gen_shapes.js   Regera shapes.json (minecraft-assets 26.1, minecraft-data Java 1.21.11 e blocksJ2B do Bedrock 1.26)
 scripts/build.js        Junta template + exportadores + blocos e gera os dois HTML em dist/
@@ -52,6 +53,7 @@ npm test         # valida os exportadores
 - Ao colocar, a frente fica virada para quem coloca (o observador olha para longe, como no jogo; dispensador, liberador, barril e observador também apontam para cima e para baixo) e os blocos com eixo seguem a face clicada. A ferramenta Girar (T) passa para a próxima direção; com Shift, para a anterior. Direção inicial (sem pista de câmera, projetos antigos, exemplo): frente para o sul nos blocos com frente, barril de pé, o padrão do Java nos demais.
 - Exportação: `facing=…`/`axis=…`/`orientation=…` no `.schem`; no `.mcstructure`, os estados padrão completos do minecraft-data com o estado da direção trocado e a versão de esquema correspondente. No projeto salvo, a direção vai na paleta quando não é a inicial (ex.: `furnace[facing=east]`).
 - Tipo do bloco: 0 opaco, 1 translúcido (vidro, gelo, slime, mel), 2 recortado (folhas: buracos sem transparência parcial).
+- Seleção (`src/selection.js`, ferramenta Selecionar, V): caixa [mín, máx] marcada com dois cliques. Copiar guarda as células cruas (bloco + estado) num `Uint32Array` relativo ao canto mínimo; colar segue o mouse (centrada no ponto apontado), não sobrescreve com o ar da cópia e pode repetir. Girar a cópia (R) gira posições e estados 90° no sentido horário (`facing`, `axis`, `rotation`, trilhos, `orientation`, conexões norte/leste/sul/oeste). Substituir troca um tipo (ou todos) por outro dentro da área mantendo as propriedades em comum e pode preencher o ar. Cada operação é um lote de desfazer. A cópia fica na memória da aba e sobrevive a abrir outro projeto.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)
@@ -108,6 +110,6 @@ Projeto > Abrir projeto ou estrutura… aceita `.json` (projeto), `.mcstructure`
 
 1. Geometria real de cama, placa, estandarte e cabeça (hoje são caixas simples) e baú duplo sem a emenda no meio.
 2. Importar `.schem` e `.mcstructure` existentes para editar.
-3. Selecionar, copiar, colar, espelhar e girar trechos.
-4. Preencher região, substituir um bloco por outro e cilindro.
+3. Espelhar a cópia (girar 90° já existe) e copiar para a área de transferência do sistema, para levar entre abas.
+4. Cilindro (preencher e substituir já existem na seleção).
 5. Crafter apontando para cima e para baixo (hoje só as 4 direções horizontais).

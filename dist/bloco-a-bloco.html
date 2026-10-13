@@ -69,6 +69,10 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 .chip{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:8px;font:500 12px var(--font-mono);backdrop-filter:blur(6px);pointer-events:auto}
 .chip b{font-weight:500;color:var(--muted)}
 .chip button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:5px;padding:2px 8px;font-size:12px}
+#selChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#selBtns{display:inline-flex;flex-wrap:wrap;gap:4px}
+#selBtns button+button{background:var(--line);color:var(--fg)}
+.dialog .err{color:var(--danger)}
 #status{display:flex;flex-wrap:wrap;gap:4px 18px;padding:6px 16px;background:var(--panel);border-top:1px solid var(--line);font:12px var(--font-mono);color:var(--muted)}
 #status span b{color:var(--fg);font-weight:500}
 #sidebar{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--panel);border-left:1px solid var(--line)}
@@ -95,7 +99,7 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 .dialog p{margin:0;color:var(--muted)}
 .dialog .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .dialog label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
-.dialog input[type=text],.dialog input[type=number]{height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0}
+.dialog input[type=text],.dialog input[type=number],.dialog select{height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0}
 .dialog .check{flex-direction:row;align-items:flex-start;gap:8px;color:var(--fg);font-size:13px}
 .dialog .check input{margin-top:3px;accent-color:var(--accent)}
 .btn{height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);font-weight:500}
@@ -163,7 +167,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div></div>
+      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -755,7 +759,8 @@ var TOOLS = [
   ['box', 'Caixa sólida', 'R', '<path class="f" d="M4 4h12v12H4z"/><path d="M4 4h12v12H4z"/>'],
   ['hbox', 'Caixa oca (paredes)', 'H', '<path d="M3 3h14v14H3zM7.5 7.5h5v5h-5z"/>'],
   ['sphere', 'Esfera sólida', 'S', '<circle class="f" cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="7"/>'],
-  ['hsphere', 'Esfera oca', 'O', '<circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="7" ry="2.6" stroke-dasharray="2 2"/>']
+  ['hsphere', 'Esfera oca', 'O', '<circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="7" ry="2.6" stroke-dasharray="2 2"/>'],
+  ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>']
 ];
 var tool = 'place';
 var anchor = null;
@@ -764,7 +769,7 @@ function renderTools() {
     return '<button type="button" class="tbtn" data-tool="' + t[0] + '" aria-pressed="' + (t[0] === tool) + '" title="' + t[1] + ' (' + t[2] + ')" aria-label="' + t[1] + '"><svg viewBox="0 0 20 20">' + t[3] + '</svg></button>';
   }).join('');
 }
-function setTool(t) { tool = t; anchor = null; renderTools(); updateAnchorChip(); updatePreview(); updateStatus(); requestRender(); }
+function setTool(t) { tool = t; anchor = null; if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
 $('tools').addEventListener('click', function (e) { var b = e.target.closest('[data-tool]'); if (b) setTool(b.getAttribute('data-tool')); });
 function isShape(t) { return t === 'line' || t === 'box' || t === 'hbox' || t === 'sphere' || t === 'hsphere'; }
 function updateAnchorChip() {
@@ -1083,7 +1088,9 @@ var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0;
   var t = hoverT;
+  if (selA) drawSelBox();
   if (!t) { requestRender(); return; }
+  if (pasting) { pastePreview(t); requestRender(); return; }
   var et = effTool(lastShift);
   var accent = new THREE.Color(cssColor('--accent')), danger = new THREE.Color(cssColor('--danger')), info = new THREE.Color(cssColor('--info'));
   var cell;
@@ -1096,6 +1103,9 @@ function updatePreview() {
   } else if (et === 'erase' || et === 'pick' || et === 'rotate' || et === 'use') {
     cell = t.hit; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(et === 'erase' ? danger : info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
+  } else if (et === 'select') {
+    cell = t.hit || t.place; if (!cell) { requestRender(); return; }
+    ghostEdges.material.color.copy(info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
   } else if (isShape(et)) {
     cell = t.place; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
@@ -1120,6 +1130,8 @@ function updateStatus() {
     var a = anchor, b2 = t.place;
     $('stSize').textContent += '  |  forma ' + (Math.abs(a[0] - b2[0]) + 1) + ' × ' + (Math.abs(a[1] - b2[1]) + 1) + ' × ' + (Math.abs(a[2] - b2[2]) + 1);
   }
+  var ss = sel || (selA && cell ? selFrom(selA, cell) : null);
+  if (ss) { var sd = selSize(ss); $('stSize').textContent += '  |  seleção ' + sd[0] + ' × ' + sd[1] + ' × ' + sd[2]; }
 }
 function bbox() {
   if (!blockCount) return null;
@@ -1230,8 +1242,10 @@ function commitShape(kind, a, b, erase, t) {
 }
 function pressAt(cx, cy, shift) {
   var t = targetAt(cx, cy); hoverT = t; lastShift = shift;
+  if (pasting) { commitPaste(t); updatePreview(); updateStatus(); return; }
   var et = effTool(shift);
-  if (et === 'place' || et === 'erase') {
+  if (et === 'select') selectPress(t);
+  else if (et === 'place' || et === 'erase') {
     if (!t) return;
     stroke = { mode: et, cells: new Set() };
     beginBatch();
@@ -1338,7 +1352,11 @@ function bindCanvas() {
       return;
     }
     if (mode === 'act') releaseStroke();
-    if (mode === 'orbit' && downInfo && downInfo.b === 2 && moved < 5 && anchor) { anchor = null; updateAnchorChip(); updatePreview(); }
+    if (mode === 'orbit' && downInfo && downInfo.b === 2 && moved < 5) {
+      if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); }
+      else if (pasting) { pasting = false; selRefresh(); }
+      else if (selA) { selA = null; selRefresh(); }
+    }
     mode = null;
   }
   cv.addEventListener('pointerup', end);
@@ -2389,6 +2407,233 @@ function importSchem(u8) {
   importReport('.schem', cut, unknown);
 }
 
+/* ---------- Seleção: selecionar, copiar, recortar, colar, apagar e substituir ---------- */
+/* A seleção é uma caixa [min, max] escolhida com dois cliques (ferramenta Selecionar, V). A área de transferência guarda
+   as células cruas (bloco + estado) relativas ao canto mínimo, então colar mantém direção, portas abertas etc. */
+var selA = null;          // primeiro canto, enquanto a seleção está sendo feita
+var sel = null;           // { a: [x,y,z] mínimo, b: [x,y,z] máximo }
+var clip = null;          // { w, h, l, cells: Uint32Array, n: blocos }
+var pasting = false;      // modo colar: a prévia segue o mouse e o clique cola
+var selBox = null;
+
+function selSize(s) { return [s.b[0] - s.a[0] + 1, s.b[1] - s.a[1] + 1, s.b[2] - s.a[2] + 1]; }
+function selFrom(p, q) {
+  return { a: [Math.min(p[0], q[0]), Math.min(p[1], q[1]), Math.min(p[2], q[2])], b: [Math.max(p[0], q[0]), Math.max(p[1], q[1]), Math.max(p[2], q[2])] };
+}
+function drawSelBox() {
+  if (selBox) { scene.remove(selBox); selBox.geometry.dispose(); selBox = null; }
+  var s = sel || (selA && hoverT && (hoverT.hit || hoverT.place) ? selFrom(selA, hoverT.hit || hoverT.place) : selA ? selFrom(selA, selA) : null);
+  if (!s) { requestRender(); return; }
+  var d = selSize(s);
+  selBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(d[0] + 0.04, d[1] + 0.04, d[2] + 0.04)),
+    new THREE.LineBasicMaterial({ color: new THREE.Color(cssColor('--info')), depthTest: false, transparent: true }));
+  selBox.position.set(s.a[0] + d[0] / 2, s.a[1] + d[1] / 2, s.a[2] + d[2] / 2);
+  selBox.renderOrder = 7; scene.add(selBox); requestRender();
+}
+function updateSelChip() {
+  var c = $('selChip');
+  if (pasting && clip) {
+    c.hidden = false;
+    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). Clique para colar.';
+    $('selBtns').innerHTML = '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="cancel">Cancelar</button>';
+  } else if (sel) {
+    var d = selSize(sel);
+    c.hidden = false;
+    $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
+    $('selBtns').innerHTML = '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
+      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button>' +
+      (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
+  } else if (clip && tool === 'select') {
+    c.hidden = false;
+    $('selTxt').innerHTML = '<b>Copiado</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l;
+    $('selBtns').innerHTML = '<button data-s="paste" title="Ctrl+V">Colar</button>';
+  } else if (selA) {
+    c.hidden = false; $('selTxt').innerHTML = '<b>Seleção</b>: clique no canto oposto'; $('selBtns').innerHTML = '<button data-s="clear">Cancelar</button>';
+  } else c.hidden = true;
+}
+function selRefresh() { updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); }
+
+/* Clique da ferramenta Selecionar: primeiro canto, depois o oposto (aceita bloco ou espaço vazio) */
+function selectPress(t) {
+  var c = t && (t.hit || t.place); if (!c) return;
+  if (!selA || sel) { sel = null; selA = c.slice(); }
+  else { sel = selFrom(selA, c); selA = null; }
+  selRefresh();
+}
+function clearSel() { sel = null; selA = null; pasting = false; selRefresh(); }
+
+function copySel(cut) {
+  if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
+  var d = selSize(sel), cells = new Uint32Array(d[0] * d[1] * d[2]), n = 0;
+  for (var y = 0; y < d[1]; y++) for (var z = 0; z < d[2]; z++) for (var x = 0; x < d[0]; x++) {
+    var v = grid[idx(sel.a[0] + x, sel.a[1] + y, sel.a[2] + z)];
+    cells[(y * d[2] + z) * d[0] + x] = v; if (v) n++;
+  }
+  clip = { w: d[0], h: d[1], l: d[2], cells: cells, n: n };
+  if (cut) { deleteSel(true); toast('Recortado: ' + n + ' blocos. Ctrl+V para colar.'); }
+  else toast('Copiado: ' + n + ' blocos. Ctrl+V para colar.');
+  selRefresh();
+}
+function deleteSel(quiet) {
+  if (!sel) return;
+  var n = 0;
+  beginBatch();
+  for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++)
+    if (grid[idx(x, y, z)]) { editSet(x, y, z, 0); n++; }
+  endBatch();
+  if (!quiet) toast('Apagados ' + n + ' blocos.');
+}
+
+/* Girar 90° no sentido horário (visto de cima): posição e estado de cada bloco */
+var CWD = { north: 'east', east: 'south', south: 'west', west: 'north' };
+var RAIL_CW = { north_south: 'east_west', east_west: 'north_south', ascending_north: 'ascending_east', ascending_east: 'ascending_south',
+  ascending_south: 'ascending_west', ascending_west: 'ascending_north', south_east: 'south_west', south_west: 'north_west', north_west: 'north_east', north_east: 'south_east' };
+function rotValue(k, v) {
+  if (k === 'facing' && CWD[v]) return CWD[v];
+  if (k === 'axis') return v === 'x' ? 'z' : v === 'z' ? 'x' : v;
+  if (k === 'rotation') return String((+v + 4) % 16);
+  if (k === 'shape' && RAIL_CW[v]) return RAIL_CW[v];
+  if (k === 'orientation') return v.split('_').map(function (p) { return CWD[p] || p; }).join('_');
+  return v;
+}
+function rotateCell(v) {
+  if (!v) return 0;
+  var bi = cellBlock(v), b = BLOCKS[bi], s = cellOri(v);
+  if (b.shape) {
+    var o = stateProps(b, s), r = {};
+    for (var k in o) r[k] = rotValue(k, o[k]);
+    ['north', 'east', 'south', 'west'].forEach(function (h) { if (h in o) r[CWD[h]] = o[h]; }); // trepadeiras e afins
+    return mkCell(bi, stateIndex(b, r));
+  }
+  if (b.ori) {
+    var want = rotValue(b.ori.k, b.ori.o[s][0]);
+    for (var i = 0; i < b.ori.o.length; i++) if (b.ori.o[i][0] === want) return mkCell(bi, i);
+  }
+  return v;
+}
+function rotateClip() {
+  if (!clip) return;
+  var w = clip.w, h = clip.h, l = clip.l, out = new Uint32Array(clip.cells.length);
+  for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
+    var nx = l - 1 - z, nz = x; // norte vira leste
+    out[(y * w + nz) * l + nx] = rotateCell(clip.cells[(y * l + z) * w + x]);
+  }
+  clip = { w: l, h: h, l: w, cells: out, n: clip.n };
+  updateSelChip(); updatePreview();
+}
+
+/* Colar: a prévia fica centralizada no ponto apontado, apoiada nele */
+function pasteOrigin(t) {
+  var c = t && t.place; if (!c || !clip) return null;
+  return [c[0] - Math.floor(clip.w / 2), c[1], c[2] - Math.floor(clip.l / 2)];
+}
+function startPaste() {
+  if (!clip) { toast('Nada copiado ainda: selecione uma área e use Copiar (Ctrl+C).'); return; }
+  pasting = true; anchor = null; updateAnchorChip(); selRefresh();
+  toast('Clique onde quer colar. R gira 90°, Esc cancela.');
+}
+function commitPaste(t) {
+  var o = pasteOrigin(t); if (!o) return;
+  var n = 0, out = 0;
+  beginBatch();
+  for (var y = 0; y < clip.h; y++) for (var z = 0; z < clip.l; z++) for (var x = 0; x < clip.w; x++) {
+    var v = clip.cells[(y * clip.l + z) * clip.w + x]; if (!v) continue; // o ar copiado não apaga o que já existe
+    var X = o[0] + x, Y = o[1] + y, Z = o[2] + z;
+    if (!inB(X, Y, Z)) { out++; continue; }
+    editSet(X, Y, Z, v); n++;
+  }
+  endBatch();
+  toast('Colados ' + n + ' blocos' + (out ? ' (' + out + ' ficaram fora do espaço)' : '') + '. Clique de novo para colar outra cópia, Esc para terminar.', 5000);
+}
+function pastePreview(t) {
+  var o = pasteOrigin(t); if (!o) return;
+  var m = new THREE.Matrix4(), k = 0, info = new THREE.Color(cssColor('--info'));
+  for (var y = 0; y < clip.h && k < 40000; y++) for (var z = 0; z < clip.l && k < 40000; z++) for (var x = 0; x < clip.w && k < 40000; x++) {
+    if (!clip.cells[(y * clip.l + z) * clip.w + x]) continue;
+    m.setPosition(o[0] + x + 0.5, o[1] + y + 0.5, o[2] + z + 0.5); previewInst.setMatrixAt(k++, m);
+  }
+  previewInst.count = k; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(info);
+  ghostEdges.visible = false;
+}
+
+/* Substituir na seleção: um tipo de bloco (ou todos) por outro; opcionalmente preenche o ar */
+function convertCell(v, bi) {
+  // tenta manter direção e estado quando o bloco novo tem as mesmas propriedades (escada por escada, tronco por tronco)
+  var b = BLOCKS[bi];
+  if (!v) return mkCell(bi);
+  var from = BLOCKS[cellBlock(v)], s = cellOri(v), props = {};
+  if (from.shape) props = stateProps(from, s);
+  else if (from.ori) props[from.ori.k] = from.ori.o[s][0];
+  if (b.shape) return mkCell(bi, stateIndex(b, props));
+  if (b.ori && props[b.ori.k] != null) for (var i = 0; i < b.ori.o.length; i++) if (b.ori.o[i][0] === props[b.ori.k]) return mkCell(bi, i);
+  return mkCell(bi);
+}
+function blockByText(txt) {
+  txt = String(txt || '').trim().toLowerCase().replace(/^minecraft:/, '');
+  if (!txt) return -1;
+  if (/^(ar|air|nada|apagar)$/.test(txt)) return -2;
+  if (txt in BY_JAVA) return BY_JAVA[txt];
+  for (var i = 0; i < BLOCKS.length; i++) if (!BLOCKS[i].hide && BLOCKS[i].name.toLowerCase() === txt) return i;
+  return -1;
+}
+function openReplace() {
+  if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
+  var counts = {}, empty = 0;
+  for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
+    var v = grid[idx(x, y, z)]; if (!v) { empty++; continue; }
+    var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1;
+  }
+  var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0);
+  var opts = '<option value="all">Todos os blocos (' + total + ')</option>' + Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })
+    .map(function (k) { return '<option value="' + k + '">' + esc(BLOCKS[k].name) + ' (' + counts[k] + ')</option>'; }).join('');
+  var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
+  var d = selSize(sel);
+  openDialog('<h3>Substituir na seleção</h3><p>Área de ' + d[0] + ' × ' + d[1] + ' × ' + d[2] + ' com ' + total + ' blocos e ' + empty + ' espaços vazios. Quando o bloco novo tem as mesmas propriedades (ex.: escada por escada), a direção é mantida.</p>' +
+    '<label>Trocar<select id="rpFrom">' + opts + '</select></label>' +
+    '<label>Por (nome ou id; “ar” apaga)<input type="text" id="rpTo" list="rpList" value="' + esc(BLOCKS[curBlock()].java) + '" autocomplete="off"></label><datalist id="rpList">' + list + '</datalist>' +
+    '<label class="check"><input type="checkbox" id="rpFill"><span>Também preencher os espaços vazios da seleção com o bloco novo</span></label>' +
+    '<p id="rpErr" class="err" hidden></p>' +
+    '<div class="row"><button class="btn primary" id="rpOk">Substituir</button><button class="btn" id="rpNo">Cancelar</button></div>',
+    function () {
+      $('rpNo').onclick = closeDialog;
+      $('rpOk').onclick = function () {
+        var to = blockByText($('rpTo').value);
+        if (to === -1) { $('rpErr').hidden = false; $('rpErr').textContent = 'Bloco não encontrado: escreva o id (ex.: stone_bricks) ou escolha um nome da lista.'; return; }
+        var from = $('rpFrom').value, fill = $('rpFill').checked, n = 0;
+        beginBatch();
+        for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
+          var v = grid[idx(x, y, z)];
+          if (v ? (from === 'all' || cellBlock(v) === +from) : (fill && to >= 0)) { editSet(x, y, z, to === -2 ? 0 : convertCell(v, to)); n++; }
+        }
+        endBatch(); closeDialog();
+        toast(n + ' blocos ' + (to === -2 ? 'apagados' : 'trocados por ' + BLOCKS[to].name) + '.');
+      };
+    });
+}
+
+$('selBtns').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-s]'); if (!b) return;
+  var a = b.getAttribute('data-s');
+  if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
+  else if (a === 'repl') openReplace(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip();
+  else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
+});
+/* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */
+function selectionKey(e, k) {
+  var ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl && k === 'c' && sel) { e.preventDefault(); copySel(false); return true; }
+  if (ctrl && k === 'x' && sel) { e.preventDefault(); copySel(true); return true; }
+  if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
+  if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
+  if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
+  return false;
+}
+function selectionEscape() {
+  if (pasting) { pasting = false; selRefresh(); return true; }
+  if (sel || selA) { clearSel(); return true; }
+  return false;
+}
+
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
@@ -2444,6 +2689,7 @@ function newWorld(sx, sy, sz) {
   SX = sx; SY = sy; SZ = sz;
   grid = g; blockCount = 0; verCounter++;
   undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip();
+  sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
   clearChunks(); dirty.clear(); dirtyAll();
   if (scene) { buildHelpers(); resetCamera(); }
@@ -2632,7 +2878,9 @@ function openHelp() {
     '<span><kbd>Botão dir.</kbd> arrastar</span><span>Girar a câmera (clique simples cancela a forma)</span>' +
     '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
-    '<span><kbd>B E I U T L R H S O</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca</span>' +
+    '<span><kbd>B E I U T L R H S O V</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar</span>' +
+    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área.</span>' +
+    '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor e afins. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas).</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
@@ -2697,13 +2945,14 @@ if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEven
 window.addEventListener('keydown', function (e) {
   var tg = e.target, typing = tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable);
   if (e.key === 'Shift') { lastShift = true; updatePreview(); }
-  if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } $('menu').open = false; return; }
+  if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else selectionEscape(); $('menu').open = false; return; }
   if (typing || overlayRoot.firstChild || !camera) return;
   var k = e.key.toLowerCase();
+  if (selectionKey(e, k)) return;
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
@@ -2750,7 +2999,7 @@ async function start() {
   changed(); updateStatus();
   if (!saved) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
-  window.__bab = { name: function (a) { return cellName(grid[idx(a[0], a[1], a[2])]); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); } };
+  window.__bab = { name: function (a) { return cellName(grid[idx(a[0], a[1], a[2])]); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
 }
 })();
 </script>

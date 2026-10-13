@@ -24,7 +24,7 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await p.waitForTimeout(1500); await hideToast(); await cam(VIEW);
   await shot('visao-geral', null, await rectsOf(p, { tools: '#tools', undo: '#undo', layer: '#layerBtn', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary', view: '#viewport', hotbar: '#hotbar', status: '#status', search: '#search', chips: '#chips', list: '#list' }));
   // barra de ferramentas
-  const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere']) tsel[t] = '[data-tool="' + t + '"]';
+  const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere', 'select']) tsel[t] = '[data-tool="' + t + '"]';
   Object.assign(tsel, { undo: '#undo', redo: '#redo', layer: '#layerBtn', range: '#layerRange', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary' });
   await shot('barra', { x: 0, y: 0, width: 972, height: 54 }, await rectsOf(p, tsel));
   // hotbar e status
@@ -46,6 +46,19 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await p.mouse.click(250, 560); await p.waitForTimeout(200); await p.mouse.move(420, 640); await p.waitForTimeout(500);
   await shot('caixa', { x: 0, y: 54, width: 972, height: 718 });
   await p.keyboard.press('Escape'); await p.keyboard.press('b'); await hideToast();
+  // seleção: área da casa, colar uma cópia ao lado e a janela Substituir
+  await cam(VIEW); await p.keyboard.press('v');
+  // a árvore: caixa das folhas, do chão (y = 1) até o topo
+  await p.evaluate(() => { const B = window.__bab, mn = [1e9, 1e9, 1e9], mx = [-1, -1, -1]; B.vox().forEach(q => { if (!/leaves/.test(B.name(q))) return; for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], q[i]); mx[i] = Math.max(mx[i], q[i]); } }); mn[1] = 1; B.setSel(mn, mx); });
+  await p.mouse.move(900, 200); await p.waitForTimeout(500);
+  await shot('selecao', { x: 0, y: 54, width: 972, height: 718 });
+  await p.keyboard.press('Control+c'); await p.keyboard.press('Control+v'); await hideToast();
+  await p.mouse.click(150, 520); await p.waitForTimeout(400); await hideToast(); await p.mouse.move(800, 640); await p.waitForTimeout(500);
+  await shot('colar', { x: 0, y: 54, width: 972, height: 718 });
+  await p.keyboard.press('Escape'); await p.keyboard.press('Control+z'); await hideToast();
+  await p.click('#selBtns [data-s="repl"]'); await p.waitForTimeout(500);
+  { const r = await rectsOf(p, { d: '.dialog' }); await shot('substituir', { x: r.d[0] - 8, y: r.d[1] - 8, width: r.d[2] + 16, height: r.d[3] + 16 }); }
+  await p.keyboard.press('Escape'); await p.keyboard.press('Escape'); await p.keyboard.press('b'); await hideToast();
   // camada
   await p.click('#layerBtn'); await p.evaluate(() => { const r = document.getElementById('layerRange'); r.value = 2; r.dispatchEvent(new Event('input')); }); await p.waitForTimeout(800);
   await cam({ yaw: 0.55, pitch: 0.9, dist: 26, tx: 11, ty: 2, tz: 12 });
