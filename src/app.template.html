@@ -104,6 +104,8 @@ details.menu .pop button{justify-content:flex-start;height:36px;width:100%}
 .mat table{width:100%;border-collapse:collapse;font-size:13px}
 .mat td{padding:5px 10px;border-bottom:1px solid var(--line)}
 .mat td.num{font-family:var(--font-mono);text-align:right;white-space:nowrap}
+.mat td small{color:var(--muted)}
+.mat td.num .btn{font-family:var(--font-ui);height:32px}
 .mat .sw{display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:8px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel-2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
@@ -142,11 +144,14 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="openBtn">Abrir projeto…</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
+          <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
           <button class="tbtn txt" id="helpBtn">Atalhos e ajuda</button>
         </div>
       </details>
       <input type="file" id="fileIn" accept=".json,application/json" hidden>
+      <input type="file" id="packIn" accept=".zip,.mcpack,.mcaddon,application/zip" hidden>
+      <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
       <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div></div>
@@ -180,8 +185,12 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 (function () {
 'use strict';
 var BLOCKS_RAW = /*%%BLOCKS%%*/[];
+function trio(v) { return Array.isArray(v) ? v : [v, v, v]; }
+/* Linha: [id java, nome, id bedrock, cor topo, cor lado, cor base, tipo (0 opaco, 1 translúcido, 2 recortado),
+   texturas java [topo, lado, base], texturas bedrock (nomes curtos do terrain_texture.json), cor de bioma por face] */
 var BLOCKS = BLOCKS_RAW.map(function (r) {
-  return { java: r[0], name: r[1], bedrock: r[2], top: r[3], side: r[4], bottom: r[5], glass: !!r[6] };
+  return { java: r[0], name: r[1], bedrock: r[2], top: r[3], side: r[4], bottom: r[5], kind: r[6] | 0, glass: r[6] === 1,
+    jt: trio(r[7]), bt: r[8] ? trio(r[8]) : null, tint: trio(r[9] || 0), tile: [-1, -1, -1], solid: r[6] !== 1, icon: '' };
 });
 var BY_JAVA = {};
 BLOCKS.forEach(function (b, i) { BY_JAVA[b.java] = i; });
@@ -274,6 +283,7 @@ function catOf(b) {
 BLOCKS.forEach(function (b) { b.cat = catOf(b); b.hay = (b.java + ' ' + b.name).toLowerCase(); });
 function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
 function swatch(b) {
+  if (b.icon) return 'background:' + b.icon + ' 0 0/100% 100% no-repeat,' + rgb(b.side) + ';image-rendering:pixelated';
   return 'background:linear-gradient(to bottom,' + rgb(b.top) + ' 0,' + rgb(b.top) + ' 28%,' + rgb(b.side) + ' 28%,' + rgb(b.side) + ' 100%)';
 }
 var favs = new Set();
@@ -405,7 +415,7 @@ function shapeCells(kind, a, b) {
 /* ---------- Three.js ---------- */
 var THREE_OK = typeof THREE !== 'undefined';
 var viewport = $('viewport');
-var renderer, scene, camera, noiseTex, matOpaque, matGlass;
+var renderer, scene, camera, atlasTex, matOpaque, matCutout, matGlass;
 var chunks = new Map();
 var helpers = [];
 var ghostEdges, ghostFill, previewInst, previewEdges;
@@ -422,18 +432,10 @@ function initThree() {
   renderer.domElement.tabIndex = 0;
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1500);
-  var c = document.createElement('canvas'); c.width = c.height = 16;
-  var g = c.getContext('2d'), img = g.createImageData(16, 16);
-  for (var i = 0; i < 256; i++) {
-    var h = (Math.sin(i * 12.9898 + 4.1414) * 43758.5453); h = h - Math.floor(h);
-    var v = Math.round(228 + h * 27);
-    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255;
-  }
-  g.putImageData(img, 0, 0);
-  noiseTex = new THREE.CanvasTexture(c);
-  noiseTex.magFilter = THREE.NearestFilter; noiseTex.minFilter = THREE.NearestFilter;
-  matOpaque = new THREE.MeshBasicMaterial({ map: noiseTex, vertexColors: true });
-  matGlass = new THREE.MeshBasicMaterial({ map: noiseTex, vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false });
+  matOpaque = new THREE.MeshBasicMaterial({ vertexColors: true });
+  matCutout = new THREE.MeshBasicMaterial({ vertexColors: true, alphaTest: 0.5 });
+  matGlass = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false });
+  buildAtlas([]);
   var box = new THREE.BoxGeometry(1.004, 1.004, 1.004);
   ghostEdges = new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color: 0xffffff }));
   ghostEdges.visible = false; ghostEdges.renderOrder = 5; scene.add(ghostEdges);
@@ -459,7 +461,7 @@ function labelSprite(text, color) {
 function disposeObj(o) {
   scene.remove(o);
   if (o.geometry) o.geometry.dispose();
-  if (o.material) { if (o.material.map && o.material.map !== noiseTex) o.material.map.dispose(); o.material.dispose(); }
+  if (o.material) { if (o.material.map && o.material.map !== atlasTex) o.material.map.dispose(); o.material.dispose(); }
 }
 var gridObj = null;
 function buildHelpers() {
@@ -494,14 +496,15 @@ function positionGrid() { if (gridObj) { gridObj.position.y = (layerOn ? layerY 
 
 /* Malha dos chunks */
 var FACES = [
-  { n: [1, 0, 0], v: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 'side' },
-  { n: [-1, 0, 0], v: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 'side' },
-  { n: [0, 1, 0], v: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: 'top' },
-  { n: [0, -1, 0], v: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.55, k: 'bottom' },
-  { n: [0, 0, 1], v: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.9, k: 'side' },
-  { n: [0, 0, -1], v: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.9, k: 'side' }
+  { n: [1, 0, 0], v: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 'side', t: 1 },
+  { n: [-1, 0, 0], v: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 'side', t: 1 },
+  { n: [0, 1, 0], v: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: 'top', t: 0 },
+  { n: [0, -1, 0], v: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.55, k: 'bottom', t: 2 },
+  { n: [0, 0, 1], v: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.9, k: 'side', t: 1 },
+  { n: [0, 0, -1], v: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.9, k: 'side', t: 1 }
 ];
 var UVS = [[0, 0], [1, 0], [1, 1], [0, 1]];
+var WHITE = [255, 255, 255];
 var AO_L = [0.55, 0.72, 0.86, 1];
 function vis(x, y, z) {
   if (x < 0 || y < 0 || z < 0 || x >= SX || y >= SY || z >= SZ) return 0;
@@ -515,11 +518,11 @@ function buildChunk(cx, cy, cz) {
   if (old) { old.forEach(function (m) { scene.remove(m); m.geometry.dispose(); }); chunks.delete(key); }
   var x0 = cx * CS, y0 = cy * CS, z0 = cz * CS;
   var x1 = Math.min(x0 + CS, SX), z1 = Math.min(z0 + CS, SZ), y1 = Math.min(y0 + CS, SY, layerMax() + 1);
-  var O = { p: [], c: [], u: [], i: [], n: 0 }, G = { p: [], c: [], u: [], i: [], n: 0 };
+  var O = { p: [], c: [], u: [], i: [], n: 0 }, G = { p: [], c: [], u: [], i: [], n: 0 }, C = { p: [], c: [], u: [], i: [], n: 0 };
   for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
     var v = grid[(y * SZ + z) * SX + x];
     if (!v) continue;
-    var b = BLOCKS[v - 1], T = b.glass ? G : O;
+    var b = BLOCKS[v - 1], T = b.glass ? G : b.solid ? O : C;
     var h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; h = h - Math.floor(h);
     var jit = 0.965 + h * 0.07;
     for (var f = 0; f < 6; f++) {
@@ -528,9 +531,11 @@ function buildChunk(cx, cy, cz) {
       var nv = vis(nx, ny, nz);
       if (nv) {
         var nb = BLOCKS[nv - 1];
-        if (b.glass) { if (!nb.glass || nv === v) continue; } else if (!nb.glass) continue;
+        if (nb.solid || (b.glass && nb.glass && nv === v)) continue;
       }
-      var col = b[F.k], ao = [];
+      var tl = b.tile[F.t], col = tl >= 0 ? WHITE : b[F.k], jj = tl >= 0 ? 1 : jit, ao = [];
+      if (tl < 0) tl = b.glass ? 1 : 0;
+      var uv = tileUV[tl];
       var ax = F.n[0] ? 0 : F.n[1] ? 1 : 2;
       var ob = ax === 0 ? 1 : 0, oc = ax === 2 ? 1 : 2;
       for (var q = 0; q < 4; q++) {
@@ -544,10 +549,10 @@ function buildChunk(cx, cy, cz) {
       }
       var bi = T.n;
       for (q = 0; q < 4; q++) {
-        var p = F.v[q], l = F.s * jit * AO_L[ao[q]] / 255;
+        var p = F.v[q], l = F.s * jj * AO_L[ao[q]] / 255;
         T.p.push(x + p[0], y + p[1], z + p[2]);
         T.c.push(col[0] * l, col[1] * l, col[2] * l);
-        T.u.push(UVS[q][0], UVS[q][1]);
+        T.u.push(uv[UVS[q][0] * 2], uv[1 + UVS[q][1] * 2]);
       }
       if (ao[0] + ao[2] < ao[1] + ao[3]) T.i.push(bi + 1, bi + 2, bi + 3, bi + 1, bi + 3, bi);
       else T.i.push(bi, bi + 1, bi + 2, bi, bi + 2, bi + 3);
@@ -555,7 +560,7 @@ function buildChunk(cx, cy, cz) {
     }
   }
   var meshes = [];
-  [[O, matOpaque, 0], [G, matGlass, 1]].forEach(function (e) {
+  [[O, matOpaque, 0], [C, matCutout, 0], [G, matGlass, 1]].forEach(function (e) {
     var T = e[0];
     if (!T.n) return;
     var geo = new THREE.BufferGeometry();
@@ -885,6 +890,382 @@ function topY() {
 $('layerBtn').addEventListener('click', function () { setLayer(!layerOn, layerOn ? null : (layerY || topY())); });
 $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.target.value); });
 
+/* ---------- Texturas de pacote de recursos ---------- */
+/* O usuário escolhe um pacote (Bedrock .mcpack/.zip/pasta ou Java .zip). Só as texturas dos blocos da lista são
+   lidas e guardadas no IndexedDB. Elas viram um atlas (DataTexture), em que os ladrilhos 0 e 1 são o ruído
+   cinza usado pelos blocos sem textura (1 = versão translúcida, para vidros). */
+var BE_TEX = /*%%BETEX%%*/{};
+var GRASS_TINT = 0x91BD59;
+var packs = [];
+var texOn = true;
+try { texOn = localStorage.getItem('bloco-a-bloco-tex') !== '0'; } catch (e) {}
+var tileUV = [], texBlocks = 0;
+
+function stripJson(txt) { return JSON.parse(txt.replace(/^﻿/, '').replace(/^\s*\/\/.*$/mg, '')); }
+
+/* ZIP: lê só o diretório central e as entradas pedidas (um pacote vanilla inteiro pode ter centenas de MB). */
+async function openZip(blob) {
+  var size = blob.size, tail = Math.min(size, 65557);
+  var dv = new DataView(await blob.slice(size - tail).arrayBuffer()), e = -1, i;
+  for (i = tail - 22; i >= 0; i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Error('Este arquivo não é um .zip nem um .mcpack.');
+  var n = dv.getUint16(e + 10, true), cdSize = dv.getUint32(e + 12, true), cdOff = dv.getUint32(e + 16, true);
+  if (e >= 20 && dv.getUint32(e - 20, true) === 0x07064b50) {
+    var z = new DataView(await blob.slice(Number(dv.getBigUint64(e - 12, true))).slice(0, 56).arrayBuffer());
+    if (z.getUint32(0, true) === 0x06064b50) { n = Number(z.getBigUint64(32, true)); cdSize = Number(z.getBigUint64(40, true)); cdOff = Number(z.getBigUint64(48, true)); }
+  }
+  var cd = new DataView(await blob.slice(cdOff, cdOff + cdSize).arrayBuffer());
+  var dec = new TextDecoder(), ents = new Map(), p = 0;
+  for (i = 0; i < n && p + 46 <= cd.byteLength; i++) {
+    if (cd.getUint32(p, true) !== 0x02014b50) break;
+    var method = cd.getUint16(p + 10, true), csz = cd.getUint32(p + 20, true), usz = cd.getUint32(p + 24, true);
+    var nl = cd.getUint16(p + 28, true), xl = cd.getUint16(p + 30, true), cl = cd.getUint16(p + 32, true), off = cd.getUint32(p + 42, true);
+    var name = dec.decode(new Uint8Array(cd.buffer, p + 46, nl)).replace(/\\/g, '/');
+    for (var xp = p + 46 + nl, xe = xp + xl; xp + 4 <= xe;) {
+      var id = cd.getUint16(xp, true), ln = cd.getUint16(xp + 2, true), q = xp + 4;
+      if (id === 1) {
+        if (usz === 0xffffffff) { q += 8; }
+        if (csz === 0xffffffff) { csz = Number(cd.getBigUint64(q, true)); q += 8; }
+        if (off === 0xffffffff) off = Number(cd.getBigUint64(q, true));
+      }
+      xp += 4 + ln;
+    }
+    p += 46 + nl + xl + cl;
+    if (name.slice(-1) !== '/') ents.set(name, { m: method, c: csz, o: off });
+  }
+  return {
+    paths: Array.from(ents.keys()),
+    read: async function (path) {
+      var en = ents.get(path);
+      var h = new DataView(await blob.slice(en.o, en.o + 30).arrayBuffer());
+      if (h.getUint32(0, true) !== 0x04034b50) throw new Error('ZIP corrompido.');
+      var st = en.o + 30 + h.getUint16(26, true) + h.getUint16(28, true), raw = blob.slice(st, st + en.c);
+      if (en.m === 0) return new Uint8Array(await raw.arrayBuffer());
+      if (en.m === 8) return new Uint8Array(await new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+      throw new Error('Compressão de ZIP não suportada.');
+    }
+  };
+}
+function openDir(files) {
+  var m = new Map();
+  Array.from(files).forEach(function (f) { m.set((f.webkitRelativePath || f.name).replace(/\\/g, '/'), f); });
+  return { paths: Array.from(m.keys()), read: async function (p) { return new Uint8Array(await m.get(p).arrayBuffer()); } };
+}
+
+/* Decodificadores próprios de PNG e TGA: o canvas pré-multiplica o alfa e perde a cor de pixels com alfa 0,
+   e a lateral da grama do Bedrock usa justamente o alfa como máscara da cor do bioma. */
+async function inflate(bytes) {
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+}
+async function decodePNG(b) {
+  var dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  if (dv.getUint32(0) !== 0x89504e47) throw new Error('png');
+  var p = 8, w, h, depth, ct, il, pal = null, trns = null, idat = [];
+  while (p + 8 <= b.length) {
+    var len = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]), d = b.subarray(p + 8, p + 8 + len);
+    if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); depth = b[p + 16]; ct = b[p + 17]; il = b[p + 20]; }
+    else if (type === 'PLTE') pal = d;
+    else if (type === 'tRNS') trns = d;
+    else if (type === 'IDAT') idat.push(d);
+    else if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  if (il) throw new Error('png entrelaçado');
+  var ch = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[ct], bpp = Math.max(1, ch * depth >> 3), stride = (w * ch * depth + 7) >> 3;
+  var all = new Uint8Array(idat.reduce(function (s, x) { return s + x.length; }, 0)), o = 0;
+  idat.forEach(function (x) { all.set(x, o); o += x.length; });
+  var raw = await inflate(all), cur = new Uint8Array(stride), prev = new Uint8Array(stride), out = new Uint8ClampedArray(w * h * 4);
+  for (var y = 0, rp = 0; y < h; y++) {
+    var f = raw[rp++];
+    for (var x = 0; x < stride; x++) {
+      var a = x >= bpp ? cur[x - bpp] : 0, up = prev[x], c = x >= bpp ? prev[x - bpp] : 0, v = raw[rp++];
+      if (f === 1) v += a; else if (f === 2) v += up; else if (f === 3) v += (a + up) >> 1;
+      else if (f === 4) { var pa = Math.abs(up - c), pb = Math.abs(a - c), pc = Math.abs(a + up - 2 * c); v += pa <= pb && pa <= pc ? a : pb <= pc ? up : c; }
+      cur[x] = v;
+    }
+    for (x = 0; x < w; x++) {
+      var s = function (k) { // amostra k do pixel x (8 bits)
+        if (depth === 16) return cur[(x * ch + k) * 2];
+        if (depth === 8) return cur[x * ch + k];
+        var bit = (x * ch + k) * depth, val = (cur[bit >> 3] >> (8 - depth - (bit & 7))) & ((1 << depth) - 1);
+        return ct === 3 ? val : Math.round(val * 255 / ((1 << depth) - 1));
+      };
+      var r, g, bl, al = 255, i4 = (y * w + x) * 4;
+      if (ct === 3) { var ix = s(0); r = pal[ix * 3]; g = pal[ix * 3 + 1]; bl = pal[ix * 3 + 2]; if (trns && ix < trns.length) al = trns[ix]; }
+      else if (ct === 0 || ct === 4) { r = g = bl = s(0); if (ct === 4) al = s(1); }
+      else { r = s(0); g = s(1); bl = s(2); if (ct === 6) al = s(3); }
+      out[i4] = r; out[i4 + 1] = g; out[i4 + 2] = bl; out[i4 + 3] = al;
+    }
+    var t = prev; prev = cur; cur = t;
+  }
+  return { w: w, h: h, d: out };
+}
+function decodeTGA(b) {
+  var idl = b[0], cmt = b[1], it = b[2], cml = b[5] | b[6] << 8, cmd = b[7];
+  var w = b[12] | b[13] << 8, h = b[14] | b[15] << 8, px = b[16] >> 3, desc = b[17];
+  if ([2, 3, 10, 11].indexOf(it) < 0 || !w || !h) throw new Error('tga');
+  var p = 18 + idl + (cmt ? cml * ((cmd + 7) >> 3) : 0), n = w * h, out = new Uint8ClampedArray(n * 4), k = 0;
+  function put(q) {
+    var x = k % w, y = (k / w) | 0;
+    if (!(desc & 0x20)) y = h - 1 - y;
+    if (desc & 0x10) x = w - 1 - x;
+    var o = (y * w + x) * 4;
+    if (px < 3) { out[o] = out[o + 1] = out[o + 2] = b[q]; out[o + 3] = px === 2 ? b[q + 1] : 255; }
+    else { out[o] = b[q + 2]; out[o + 1] = b[q + 1]; out[o + 2] = b[q]; out[o + 3] = px === 4 ? b[q + 3] : 255; }
+    k++;
+  }
+  if (it < 9) { while (k < n) { put(p); p += px; } }
+  else while (k < n && p < b.length) {
+    var hd = b[p++], cnt = (hd & 127) + 1;
+    if (hd & 128) { for (var j = 0; j < cnt && k < n; j++) put(p); p += px; }
+    else for (j = 0; j < cnt && k < n; j++) { put(p); p += px; }
+  }
+  return { w: w, h: h, d: out };
+}
+async function decodeImage(t) {
+  if (t.ext === 'tga') return decodeTGA(t.d);
+  try { return await decodePNG(t.d); } catch (e) {
+    var bmp = await createImageBitmap(new Blob([t.d], { type: 'image/png' }));
+    var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    var g = c.getContext('2d'); g.drawImage(bmp, 0, 0);
+    return { w: c.width, h: c.height, d: g.getImageData(0, 0, c.width, c.height).data };
+  }
+}
+
+/* Importação: acha a pasta do pacote dentro do arquivo e copia só as texturas que a lista de blocos usa. */
+function bePath(e, k) {
+  var t = e && e.textures;
+  if (Array.isArray(t)) {
+    var want = /^mushroom_brown/.test(k) ? 'skin_brown' : /^mushroom_red/.test(k) ? 'skin_red' : null;
+    t = (want && t.filter(function (x) { return (typeof x === 'string' ? x : x.path || '').indexOf(want) >= 0; })[0]) || t[0];
+  }
+  if (t && typeof t === 'object') { if (t.variations) t = t.variations[0]; return t.path ? [t.path, t.overlay_color || t.tint_color ? 1 : 0] : null; }
+  return typeof t === 'string' ? [t, 0] : null;
+}
+function beFace(t, k) {
+  if (typeof t === 'string') return t;
+  if (k === 'side') return t.side || t.north || t.east || t.west || t.south || null;
+  return t[k] || null;
+}
+async function importPack(src, name, depth) {
+  var low = new Map(), score = {};
+  src.paths.forEach(function (p) {
+    low.set(p.toLowerCase(), p);
+    var m = /^(.*?)textures\/blocks\/[^\/]+\.(png|tga)$/i.exec(p);
+    if (m && !/assets\/minecraft\/$/i.test(m[1])) score['bedrock|' + m[1]] = (score['bedrock|' + m[1]] || 0) + 1;
+    m = /^(.*?)assets\/minecraft\/textures\/block\/[^\/]+\.png$/i.exec(p);
+    if (m) score['java|' + m[1]] = (score['java|' + m[1]] || 0) + 1;
+  });
+  var best = Object.keys(score).sort(function (a, b) { return score[b] - score[a]; })[0];
+  if (!best) {
+    // .mcaddon ou .zip com pacotes dentro: tenta o maior pacote interno
+    var inner = (depth ? [] : src.paths.filter(function (p) { return /\.(mcpack|zip)$/i.test(p); }));
+    for (var i = 0; i < inner.length; i++) {
+      try { var r = await importPack(await openZip(new Blob([await src.read(inner[i])])), name, 1); if (r) return r; } catch (e) {}
+    }
+    return null;
+  }
+  var kind = best.split('|')[0], root = best.slice(kind.length + 1).toLowerCase();
+  async function file(rel) { var p = low.get((root + rel).toLowerCase()); return p ? src.read(p) : null; }
+  var pack = { name: name, kind: kind, tex: {}, bmap: {} }, d, k;
+  if (kind === 'java') {
+    var names = {};
+    BLOCKS.forEach(function (b) { b.jt.forEach(function (n) { names[n] = 1; }); });
+    for (k in names) if ((d = await file('assets/minecraft/textures/block/' + k + '.png'))) pack.tex[k] = { d: d, ext: 'png', ov: 0 };
+  } else {
+    var terr = {}, blk = {};
+    try { terr = (stripJson(new TextDecoder().decode(await file('textures/terrain_texture.json'))).texture_data) || {}; } catch (e) {}
+    try { blk = stripJson(new TextDecoder().decode(await file('blocks.json'))) || {}; } catch (e) {}
+    var shorts = {};
+    BLOCKS.forEach(function (b) {
+      var e = blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock];
+      if (e && e.textures) {
+        var u = beFace(e.textures, 'up'), s = beFace(e.textures, 'side'), dn = beFace(e.textures, 'down');
+        pack.bmap[b.java] = [u || s || dn, s || u || dn, dn || s || u];
+      }
+      (pack.bmap[b.java] || b.bt || []).forEach(function (n) { if (n) shorts[n] = 1; });
+    });
+    for (k in shorts) {
+      var pp = terr[k] ? bePath(terr[k], k) : BE_TEX[k] ? (Array.isArray(BE_TEX[k]) ? BE_TEX[k] : [BE_TEX[k], 0]) : null;
+      if (!pp) continue;
+      if ((d = await file(pp[0] + '.png'))) pack.tex[k] = { d: d, ext: 'png', ov: pp[1] };
+      else if ((d = await file(pp[0] + '.tga'))) pack.tex[k] = { d: d, ext: 'tga', ov: pp[1] };
+    }
+  }
+  return Object.keys(pack.tex).length ? pack : null;
+}
+function packKeys(P, b) { return P.kind === 'java' ? b.jt : (P.bmap && P.bmap[b.java]) || b.bt || []; }
+function packBlocks(P) { return BLOCKS.filter(function (b) { return packKeys(P, b).some(function (k) { return k && P.tex[k]; }); }).length; }
+
+/* Atlas */
+function noiseTile(T, alpha) {
+  var out = new Uint8ClampedArray(T * T * 4), sc = T / 16;
+  for (var y = 0; y < T; y++) for (var x = 0; x < T; x++) {
+    var i = ((y / sc) | 0) * 16 + ((x / sc) | 0), h = Math.sin(i * 12.9898 + 4.1414) * 43758.5453; h -= Math.floor(h);
+    var o = (y * T + x) * 4; out[o] = out[o + 1] = out[o + 2] = Math.round(228 + h * 27); out[o + 3] = alpha;
+  }
+  return out;
+}
+/* Recorta o primeiro quadro (texturas animadas são tiras verticais), aplica a cor de bioma e redimensiona para T x T. */
+function prepTile(img, T, tint, ov) {
+  var sw = Math.min(img.w, img.h), out = new Uint8ClampedArray(T * T * 4);
+  var tr = (tint >> 16 & 255) / 255, tg = (tint >> 8 & 255) / 255, tb = (tint & 255) / 255;
+  for (var y = 0; y < T; y++) for (var x = 0; x < T; x++) {
+    var x0 = Math.floor(x * sw / T), x1 = Math.max(x0 + 1, Math.floor((x + 1) * sw / T));
+    var y0 = Math.floor(y * sw / T), y1 = Math.max(y0 + 1, Math.floor((y + 1) * sw / T));
+    var r = 0, g = 0, b = 0, a = 0, n = 0;
+    for (var yy = y0; yy < y1; yy++) for (var xx = x0; xx < x1; xx++) {
+      var i = (yy * img.w + xx) * 4, A = img.d[i + 3], R = img.d[i], G = img.d[i + 1], B = img.d[i + 2];
+      if (ov) { var m = A / 255; R *= 1 - m + m * tr; G *= 1 - m + m * tg; B *= 1 - m + m * tb; A = 255; }
+      else if (tint) { R *= tr; G *= tg; B *= tb; }
+      var wgt = A + 1; r += R * wgt; g += G * wgt; b += B * wgt; a += A; n += wgt;
+    }
+    var o = (y * T + x) * 4, cnt = (y1 - y0) * (x1 - x0);
+    out[o] = r / n; out[o + 1] = g / n; out[o + 2] = b / n; out[o + 3] = a / cnt;
+  }
+  return out;
+}
+function nextPow2(v) { var p = 1; while (p < v) p *= 2; return p; }
+/* tiles: [{img, tint, ov}] -> ladrilhos 2.. do atlas */
+function buildAtlas(tiles) {
+  var maxTex = Math.min(4096, renderer.capabilities.maxTextureSize || 4096), n = tiles.length + 2;
+  var T = Math.max(16, Math.min(256, nextPow2(tiles.reduce(function (m, t) { return Math.max(m, Math.min(t.img.w, t.img.h)); }, 16))));
+  var cols = nextPow2(Math.ceil(Math.sqrt(n)));
+  while (cols * T > maxTex && T > 16) T /= 2;
+  while (cols * T > maxTex) cols /= 2; // não deve acontecer com a lista atual de blocos
+  var rows = nextPow2(Math.ceil(n / cols)), W = cols * T, H = rows * T, data = new Uint8Array(W * H * 4);
+  var px = [noiseTile(T, 255), noiseTile(T, 128)].concat(tiles.map(function (t) { return prepTile(t.img, T, t.tint, t.ov); }));
+  var e = 0.5 / T; // margem de meio texel para não pegar o vizinho no atlas
+  tileUV = px.map(function (tp, i) {
+    var cx = (i % cols) * T, cy = ((i / cols) | 0) * T;
+    for (var r = 0; r < T; r++) data.set(tp.subarray(r * T * 4, (r + 1) * T * 4), ((cy + T - 1 - r) * W + cx) * 4);
+    return [(cx + e) / W, (cy + e) / H, (cx + T - e) / W, (cy + T - e) / H];
+  });
+  if (atlasTex) atlasTex.dispose();
+  atlasTex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+  atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestMipmapLinearFilter;
+  atlasTex.generateMipmaps = true;
+  atlasTex.needsUpdate = true;
+  [matOpaque, matCutout, matGlass].forEach(function (m) { m.map = atlasTex; m.needsUpdate = true; });
+  return px;
+}
+var texJob = 0;
+async function applyTextures() {
+  if (!renderer) return;
+  var job = ++texJob, active = texOn ? packs : [], tiles = [], seen = new Map(), cache = new Map();
+  var res = BLOCKS.map(function () { return [-1, -1, -1]; });
+  for (var bi = 0; bi < BLOCKS.length; bi++) {
+    var b = BLOCKS[bi];
+    for (var f = 0; f < 3; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
+      var P = active[pi], key = packKeys(P, b)[f], t = key && P.tex[key];
+      if (!t) continue;
+      var tint = t.ov ? GRASS_TINT : b.tint[f], id = pi + '|' + key + '|' + tint;
+      if (!seen.has(id)) {
+        var img = cache.get(t);
+        if (!img) { try { img = await decodeImage(t); } catch (e) { img = null; } cache.set(t, img); }
+        if (!img) continue;
+        seen.set(id, tiles.length + 2); tiles.push({ img: img, tint: tint, ov: t.ov });
+      }
+      res[bi][f] = seen.get(id); break;
+    }
+  }
+  if (job !== texJob) return;
+  var px = buildAtlas(tiles), T = Math.sqrt(px[0].length / 4), css = [], icons = {};
+  texBlocks = 0;
+  BLOCKS.forEach(function (b, i) {
+    b.tile = res[i];
+    b.solid = !b.glass && !(b.kind === 2 && b.tile[1] >= 0);
+    var s = b.tile[1] >= 0 ? b.tile[1] : b.tile[0];
+    if (s >= 0) texBlocks++;
+    if (s >= 0 && !(s in icons)) {
+      var c = document.createElement('canvas'); c.width = c.height = T;
+      c.getContext('2d').putImageData(new ImageData(px[s], T, T), 0, 0);
+      icons[s] = 1; css.push('--tx-' + s + ':url(' + c.toDataURL() + ')');
+    }
+    b.icon = s >= 0 ? 'var(--tx-' + s + ')' : '';
+  });
+  var st = $('texStyle');
+  if (!st) { st = document.createElement('style'); st.id = 'texStyle'; document.head.appendChild(st); }
+  st.textContent = css.length ? ':root{' + css.join(';') + '}' : '';
+  dirtyAll(); renderList(); renderHotbar(); requestRender();
+}
+
+/* Guardar no navegador (IndexedDB). Se não der, os pacotes valem só até recarregar a página. */
+function idb() {
+  return new Promise(function (res, rej) {
+    try {
+      var r = indexedDB.open('bloco-a-bloco', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('kv'); };
+      r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
+    } catch (e) { rej(e); }
+  });
+}
+function idbDo(mode, fn) {
+  return idb().then(function (db) {
+    return new Promise(function (res, rej) {
+      var t = db.transaction('kv', mode), q = fn(t.objectStore('kv'));
+      t.oncomplete = function () { res(q && q.result); }; t.onerror = t.onabort = function () { rej(t.error); };
+    });
+  });
+}
+function savePacks() {
+  return idbDo('readwrite', function (s) { return s.put(packs, 'packs'); })
+    .then(function () { return true; }, function () { toast('Não foi possível guardar o pacote neste navegador. Ele vale até recarregar a página.'); return false; });
+}
+function loadPacks() {
+  return idbDo('readonly', function (s) { return s.get('packs'); }).then(function (v) { if (Array.isArray(v)) packs = v; }, function () {});
+}
+
+/* Diálogo */
+async function addPackFrom(src, name) {
+  toast('Lendo o pacote…');
+  var P = await importPack(src, name, 0);
+  if (!P) throw new Error('Não achei texturas de blocos nesse arquivo. Escolha um pacote de recursos (Bedrock ou Java).');
+  packs = packs.filter(function (q) { return q.name !== P.name; }).concat([P]);
+  texOn = true; try { localStorage.setItem('bloco-a-bloco-tex', '1'); } catch (e) {}
+  await applyTextures(); savePacks();
+  toast(P.name + ': ' + packBlocks(P) + ' de ' + BLOCKS.length + ' blocos com textura.');
+  if ($('texList')) openTextures();
+}
+function openTextures() {
+  var list = packs.slice().reverse().map(function (P, i) {
+    return '<tr><td>' + esc(P.name) + '<br><small>' + (P.kind === 'java' ? 'Java' : 'Bedrock') + ' · ' + packBlocks(P) + ' blocos</small></td>' +
+      '<td class="num"><button class="btn" data-rm="' + (packs.length - 1 - i) + '">Remover</button></td></tr>';
+  }).join('');
+  openDialog('<h3>Texturas</h3>' +
+    '<p>Escolha um pacote de recursos para ver os blocos com as texturas de verdade. Serve pacote do Bedrock (.mcpack, .zip ou a pasta) e do Java (.zip). Só muda a aparência no editor: a exportação continua igual.</p>' +
+    '<div class="row"><button class="btn primary" id="txFile">Escolher arquivo…</button><button class="btn" id="txDir">Escolher pasta…</button></div>' +
+    (packs.length ? '<div class="mat" id="texList"><table>' + list + '</table></div>' +
+      '<label class="check"><input type="checkbox" id="txOn"' + (texOn ? ' checked' : '') + '><span>Mostrar texturas (' + texBlocks + ' de ' + BLOCKS.length + ' blocos). Se houver mais de um pacote, o de cima tem prioridade e os de baixo completam o que faltar.</span></label>'
+      : '<div class="info" id="texList">Nenhum pacote carregado. Os blocos aparecem com a cor média de cada um.</div>') +
+    '<p>Sem pacote nenhum à mão? As texturas padrão do Bedrock estão no repositório Mojang/bedrock-samples no GitHub (botão Code, Download ZIP). Pode escolher o .zip inteiro: o editor acha a pasta de texturas sozinho e guarda só o que usa.</p>' +
+    '<div class="row"><button class="btn" id="txClose">Fechar</button></div>',
+    function () {
+      $('txClose').onclick = closeDialog;
+      $('txFile').onclick = function () { $('packIn').click(); };
+      $('txDir').onclick = function () { $('packDirIn').click(); };
+      if ($('txOn')) $('txOn').onchange = function (e) {
+        texOn = e.target.checked; try { localStorage.setItem('bloco-a-bloco-tex', texOn ? '1' : '0'); } catch (x) {}
+        applyTextures();
+      };
+      overlayRoot.querySelectorAll('[data-rm]').forEach(function (bt) {
+        bt.onclick = async function () { packs.splice(+bt.getAttribute('data-rm'), 1); await applyTextures(); savePacks(); openTextures(); };
+      });
+    });
+}
+$('texBtn').addEventListener('click', function () { $('menu').open = false; openTextures(); });
+$('packIn').addEventListener('change', async function (e) {
+  var f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try { await addPackFrom(await openZip(f), f.name.replace(/\.(zip|mcpack|mcaddon)$/i, '')); } catch (x) { toast(x.message || 'Não foi possível ler o pacote.'); }
+});
+$('packDirIn').addEventListener('change', async function (e) {
+  var fs = e.target.files; e.target.value = '';
+  if (!fs || !fs.length) return;
+  var nm = (fs[0].webkitRelativePath || fs[0].name).split('/')[0];
+  try { await addPackFrom(openDir(fs), nm); } catch (x) { toast(x.message || 'Não foi possível ler a pasta.'); }
+});
+
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 function serialize() {
@@ -1174,6 +1555,7 @@ if (!THREE_OK) {
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   initThree(); bindCanvas();
+  loadPacks().then(function () { if (packs.length) applyTextures(); });
   if (saved && saved.rle) { try { loadProject(saved); } catch (e) { buildSample(); } }
   else { buildSample(); dirtyAll(); }
   changed(); updateStatus();
