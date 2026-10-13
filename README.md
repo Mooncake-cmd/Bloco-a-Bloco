@@ -19,6 +19,7 @@ data/blocks.json        Lista de blocos: [id java, nome, id bedrock, cor topo, c
 data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote vanilla (terrain_texture.json)
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
+src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
 scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
 scripts/gen_shapes.js   Regera shapes.json (minecraft-assets 26.1, minecraft-data Java 1.21.11 e blocksJ2B do Bedrock 1.26)
 scripts/build.js        Junta template + exportadores + blocos e gera os dois HTML em dist/
@@ -74,6 +75,15 @@ Menu Projeto > Texturas. O usuário escolhe um pacote de recursos e os blocos pa
 - PNG e TGA têm decodificador próprio, porque o canvas pré-multiplica o alfa. A lateral da grama do Bedrock usa o alfa como máscara da cor do bioma (`overlay_color`).
 - Topo da grama e folhas recebem a cor de bioma das planícies (tabela `TINT` em `scripts/gen_blocks.js`). As mesmas cores tingem as cores médias usadas sem pacote.
 - Texturas animadas usam o primeiro quadro. Todas viram um atlas (`THREE.DataTexture`, potência de 2, filtro mais próximo) com ladrilhos de 16 a 256 px. Só as texturas usadas ficam guardadas no IndexedDB, então o pacote continua carregado ao reabrir a página. Com vários pacotes, o mais recente tem prioridade e os outros completam o que faltar.
+
+## Importação
+
+Projeto > Abrir projeto ou estrutura… aceita `.json` (projeto), `.mcstructure` e `.schem` (Sponge v2 e v3; o `.schematic` antigo do MCEdit não).
+
+- **.schem**: cada entrada da paleta (`minecraft:oak_stairs[facing=east,...]`) vira o bloco do editor com as propriedades guardadas; as calculadas pelos vizinhos são recalculadas.
+- **.mcstructure**: para cada entrada da paleta, os blocos do editor com o mesmo nome Bedrock são testados em todos os estados guardados, usando a mesma tabela da exportação; ganha o que bate com mais estados e, no empate (o Bedrock não guarda tudo, ex.: botão no chão), o mais perto do padrão. `structure_void` vira vazio. A cor da cama vem de `block_position_data` (a exportação agora grava esse dado).
+- Ida e volta (exportar e importar de novo) testada: idêntica nos dois formatos, com escadas, portas, redstone, cercas, camas e cubos girados.
+- Limites: estruturas acima de 128 em algum lado são cortadas; nomes antigos (antes da 1.13 no Java, ou nomes Bedrock antigos como `wool` com estado de cor) ficam de fora, com aviso; conteúdo de baús, texto de placas e comandos não são importados; a segunda camada do `.mcstructure` (água dentro do bloco) é ignorada.
 
 ## Exportação
 

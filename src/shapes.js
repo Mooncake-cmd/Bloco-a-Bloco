@@ -6,6 +6,7 @@ var SHAPES_GZ = '%%SHAPES%%';
 var SH = null;
 var DIRS = ['up', 'down', 'north', 'south', 'east', 'west'];
 var DV = { up: [0, 1, 0], down: [0, -1, 0], north: [0, 0, -1], south: [0, 0, 1], east: [1, 0, 0], west: [-1, 0, 0] };
+var BED_COLORS = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'];
 var CW = { north: 'east', east: 'south', south: 'west', west: 'north' }, CCW = { north: 'west', west: 'south', south: 'east', east: 'north' };
 
 async function loadShapes() {
@@ -378,6 +379,14 @@ function shapeExport(b, s, x, y, z) {
   var o = fullProps(b, s, x, y, z), d = b.shape;
   var j = '[' + d.p.map(function (p) { return p[0] + '=' + o[p[0]]; }).join(',') + ']';
   if (!d.p.length) j = '';
+  var r = bedrockFromProps(b, o); r.j = j;
+  var bm = /^(\w+?)_bed$/.exec(b.java);
+  if (bm) r.ent = { id: 'Bed', color: BED_COLORS.indexOf(bm[1]) };
+  return r;
+}
+/* Nome e estados Bedrock de um conjunto completo de propriedades Java */
+function bedrockFromProps(b, o) {
+  var d = b.shape;
   var look = function (tab) { return tab[1][tab[0].map(function (p) { return o[p]; }).join('|')]; };
   var bn = d.be['#name'] ? look(d.be['#name']) : b.java;
   var def = SH.beStates[bn], st = {};
@@ -387,5 +396,5 @@ function shapeExport(b, s, x, y, z) {
     var v = look(d.be[key]); if (v == null) continue;
     st[key].v = st[key].t === 'string' ? v : st[key].t === 'byte' ? (v === 'true' || v === '1' ? 1 : 0) : +v;
   }
-  return { j: j, bn: bn, bs: st, bv: def ? def[0] : 0 };
+  return { bn: bn, bs: st, bv: def ? def[0] : 0 };
 }

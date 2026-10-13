@@ -204,13 +204,22 @@
       return palIndex[key];
     }
     const emptyIdx = getPal(emptyName, {});
-    const layer0 = new Array(total);
+    const layer0 = new Array(total), posData = {};
     for (let i = 0; i < total; i++) {
       const idx = grid[i];
       if (idx < 0) { layer0[i] = emptyIdx; continue; }
       const blk = BLOCKS[idx], ex = extra[i];
       // ex.bn/bs/bv: nome, estados e versão Bedrock calculados pelo editor (tabela Java -> Bedrock)
-      if (ex) { layer0[i] = getPal('minecraft:' + ex.bn, ex.bs, ex.bv); continue; }
+      if (ex) {
+        layer0[i] = getPal('minecraft:' + ex.bn, ex.bs, ex.bv);
+        // dados de entidade que o jogo guarda fora do estado (ex.: cor da cama)
+        if (ex.ent) {
+          const e = { id: { t: 'string', v: ex.ent.id }, isMovable: { t: 'byte', v: 1 } };
+          for (const k of Object.keys(ex.ent)) if (k !== 'id') e[k] = { t: 'byte', v: ex.ent[k] };
+          posData[String(i)] = { t: 'compound', v: { block_entity_data: { t: 'compound', v: e } } };
+        }
+        continue;
+      }
       layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk, oris[i] < 0 ? null : oris[i]), blk.bst && blk.bst[0]);
     }
     const layer1 = new Array(total).fill(-1);
@@ -230,7 +239,7 @@
                 t: 'compound',
                 v: {
                   block_palette: { t: 'list', of: 'compound', v: pal.map(p => p) },
-                  block_position_data: { t: 'compound', v: {} }
+                  block_position_data: { t: 'compound', v: posData }
                 }
               }
             }
