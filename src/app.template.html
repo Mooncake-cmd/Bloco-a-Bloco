@@ -1,0 +1,1185 @@
+<title>Bloco a Bloco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ateliê de maquete. Viewport 3D à esquerda, paleta de blocos na lateral direita, barra de ferramentas no topo, hotbar sobre o viewport. */
+:root{
+  --bg:#eef1ee; --panel:#fbfcfb; --panel-2:#e6ebe7; --fg:#18221d; --muted:#586861; --line:#cdd6d0;
+  --accent:#b4530a; --accent-fg:#ffffff; --danger:#b3261e; --info:#1d6fa5; --hud:rgba(251,252,251,.86);
+  --scene-bg:#dbe5e3; --scene-floor:#c9d7d4; --scene-grid:#9bb0aa; --scene-edge:#5d7770;
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1412; --panel:#161d1a; --panel-2:#1f2924; --fg:#e5ebe7; --muted:#8c9d94; --line:#2a3631;
+    --accent:#f0a23b; --accent-fg:#1a1204; --danger:#ff7b72; --info:#6cb6e8; --hud:rgba(22,29,26,.86);
+    --scene-bg:#0d1210; --scene-floor:#141b18; --scene-grid:#2f3f39; --scene-edge:#4f6b60;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1412; --panel:#161d1a; --panel-2:#1f2924; --fg:#e5ebe7; --muted:#8c9d94; --line:#2a3631;
+  --accent:#f0a23b; --accent-fg:#1a1204; --danger:#ff7b72; --info:#6cb6e8; --hud:rgba(22,29,26,.86);
+  --scene-bg:#0d1210; --scene-floor:#141b18; --scene-grid:#2f3f39; --scene-edge:#4f6b60;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 var(--font-ui);overflow:hidden}
+*{box-sizing:border-box}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 308px;height:100%}
+#main{display:flex;flex-direction:column;min-width:0;min-height:0}
+#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
+.brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
+.group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--panel-2);border-radius:8px}
+.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:34px;height:34px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--fg)}
+.tbtn:hover{background:var(--line)}
+.tbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.tbtn:disabled{opacity:.35;cursor:default}
+.tbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tbtn svg .f{fill:currentColor;fill-opacity:.22}
+.tbtn.txt{padding:0 12px;font-weight:500}
+.tbtn.primary{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.tbtn.primary:hover{filter:brightness(1.08)}
+.spacer{flex:1 1 0}
+.layer{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.layer input[type=range]{width:96px;accent-color:var(--accent)}
+.layer output{font-family:var(--font-mono);min-width:38px;color:var(--fg)}
+details.menu{position:relative}
+details.menu summary{list-style:none}
+details.menu summary::-webkit-details-marker{display:none}
+details.menu .pop{position:absolute;right:0;top:40px;z-index:30;min-width:200px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column}
+details.menu .pop button{justify-content:flex-start;height:36px;width:100%}
+#viewport{position:relative;flex:1 1 auto;min-height:0;background:var(--scene-bg);overflow:hidden}
+#viewport canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+#hotbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px;padding:5px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
+.slot{position:relative;width:44px;height:44px;border:2px solid transparent;border-radius:6px;background:var(--panel-2);padding:0;overflow:hidden}
+.slot[aria-pressed="true"]{border-color:var(--accent)}
+.slot .n{position:absolute;left:3px;top:1px;font:500 10px var(--font-mono);color:#fff;text-shadow:0 1px 2px #000}
+.sw{display:block;width:100%;height:100%}
+#hud-tl{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:8px;font:500 12px var(--font-mono);backdrop-filter:blur(6px);pointer-events:auto}
+.chip b{font-weight:500;color:var(--muted)}
+.chip button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:5px;padding:2px 8px;font-size:12px}
+#status{display:flex;flex-wrap:wrap;gap:4px 18px;padding:6px 16px;background:var(--panel);border-top:1px solid var(--line);font:12px var(--font-mono);color:var(--muted)}
+#status span b{color:var(--fg);font-weight:500}
+#sidebar{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--panel);border-left:1px solid var(--line)}
+#sidebar .head{padding:12px 16px 8px;display:flex;flex-direction:column;gap:8px}
+#sidebar h2{margin:0;font:700 13px var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#search{width:100%;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+#chips{display:flex;flex-wrap:wrap;gap:4px}
+#chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted)}
+#chips button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
+#list{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 8px 12px}
+.item{display:flex;align-items:center;gap:10px;width:100%;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent;text-align:left}
+.item:hover{background:var(--panel-2)}
+.item.sel{border-color:var(--accent);background:var(--panel-2)}
+.item .sw{width:30px;height:30px;flex:none;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.item .nm{flex:1;min-width:0;display:flex;flex-direction:column}
+.item .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .nm small{font:11px var(--font-mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .star{border:0;background:transparent;color:var(--muted);font-size:16px;padding:2px 4px;line-height:1}
+.item .star.on{color:var(--accent)}
+.empty{padding:20px 12px;color:var(--muted);font-size:13px}
+.overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
+.dialog{width:min(520px,100%);max-height:calc(100% - 8px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.dialog h3{margin:0;font:700 20px var(--font-display);letter-spacing:-.01em}
+.dialog p{margin:0;color:var(--muted)}
+.dialog .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dialog label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.dialog input[type=text],.dialog input[type=number]{height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0}
+.dialog .check{flex-direction:row;align-items:flex-start;gap:8px;color:var(--fg);font-size:13px}
+.dialog .check input{margin-top:3px;accent-color:var(--accent)}
+.btn{height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.info{padding:10px 12px;border-radius:8px;background:var(--panel-2);font:12px/1.5 var(--font-mono)}
+.mat{max-height:44vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.mat table{width:100%;border-collapse:collapse;font-size:13px}
+.mat td{padding:5px 10px;border-bottom:1px solid var(--line)}
+.mat td.num{font-family:var(--font-mono);text-align:right;white-space:nowrap}
+.mat .sw{display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:8px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel-2)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
+#toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:60;padding:8px 14px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:13px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+@media (max-width:820px){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 40%}
+  #sidebar{border-left:0;border-top:1px solid var(--line)}
+  .layer input[type=range]{width:80px}
+  .slot{width:36px;height:36px}
+}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+
+<div id="app">
+  <div id="main">
+    <div id="toolbar" role="toolbar" aria-label="Ferramentas de construção">
+      <div class="group" id="tools"></div>
+      <div class="group">
+        <button class="tbtn" id="undo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><svg viewBox="0 0 20 20"><path d="M7 5L3 9l4 4M3 9h8a5 5 0 010 10h-2"/></svg></button>
+        <button class="tbtn" id="redo" title="Refazer (Ctrl+Y)" aria-label="Refazer"><svg viewBox="0 0 20 20"><path d="M13 5l4 4-4 4M17 9H9a5 5 0 000 10h2"/></svg></button>
+      </div>
+      <div class="layer">
+        <button class="tbtn txt" id="layerBtn" aria-pressed="false" title="Mostrar só até uma altura ( [ e ] )">Camada</button>
+        <input type="range" id="layerRange" min="0" max="31" value="0" disabled aria-label="Altura da camada">
+        <output id="layerOut">–</output>
+      </div>
+      <div class="spacer"></div>
+      <button class="tbtn txt" id="matBtn" title="Lista de materiais">Materiais</button>
+      <button class="tbtn txt primary" id="exportBtn" title="Exportar .schem / .mcstructure">Exportar</button>
+      <details class="menu" id="menu">
+        <summary class="tbtn txt" role="button" aria-label="Menu do projeto">Projeto ▾</summary>
+        <div class="pop">
+          <button class="tbtn txt" id="newBtn">Novo (limpar tudo)</button>
+          <button class="tbtn txt" id="saveBtn">Salvar projeto (.json)</button>
+          <button class="tbtn txt" id="openBtn">Abrir projeto…</button>
+          <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
+          <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
+          <button class="tbtn txt" id="themeBtn">Tema: automático</button>
+          <button class="tbtn txt" id="helpBtn">Atalhos e ajuda</button>
+        </div>
+      </details>
+      <input type="file" id="fileIn" accept=".json,application/json" hidden>
+    </div>
+    <div id="viewport">
+      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div></div>
+      <div id="hotbar" aria-label="Blocos rápidos"></div>
+    </div>
+    <div id="status">
+      <span>Alvo <b id="stPos">–</b></span>
+      <span>Bloco <b id="stBlock">–</b></span>
+      <span>Construção <b id="stSize">vazia</b></span>
+      <span>Blocos <b id="stCount">0</b></span>
+    </div>
+  </div>
+  <aside id="sidebar" aria-label="Blocos do Minecraft">
+    <div class="head">
+      <div class="brand">Bloco a Bloco</div>
+      <h2>Blocos</h2>
+      <input id="search" type="search" placeholder="Buscar bloco (ex.: oak, glass)" autocomplete="off" aria-label="Buscar bloco">
+      <div id="chips"></div>
+    </div>
+    <div id="list"></div>
+  </aside>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="overlayRoot"></div>
+
+%%THREE%%
+<script>
+/*%%EXPORTERS%%*/
+</script>
+<script>
+(function () {
+'use strict';
+var BLOCKS_RAW = /*%%BLOCKS%%*/[];
+var BLOCKS = BLOCKS_RAW.map(function (r) {
+  return { java: r[0], name: r[1], bedrock: r[2], top: r[3], side: r[4], bottom: r[5], glass: !!r[6] };
+});
+var BY_JAVA = {};
+BLOCKS.forEach(function (b, i) { BY_JAVA[b.java] = i; });
+var inArtifact = !!(window.claude && window.claude.use);
+var $ = function (id) { return document.getElementById(id); };
+
+/* ---------- Estado do mundo ---------- */
+var SX = 32, SY = 32, SZ = 32;
+var grid = new Uint16Array(SX * SY * SZ);
+var blockCount = 0;
+var CS = 16;
+var layerOn = false, layerY = 0;
+function layerMax() { return layerOn ? layerY : SY - 1; }
+function idx(x, y, z) { return (y * SZ + z) * SX + x; }
+function inB(x, y, z) { return x >= 0 && y >= 0 && z >= 0 && x < SX && y < SY && z < SZ; }
+
+var verCounter = 0, bboxCache = null, bboxVer = -1;
+var undoStack = [], redoStack = [];
+var batch = null;
+var dirty = new Set();
+var saveTimer = 0;
+
+function markDirty(x, y, z) {
+  for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) for (var dz = -1; dz <= 1; dz++) {
+    var nx = x + dx, ny = y + dy, nz = z + dz;
+    if (!inB(nx, ny, nz)) continue;
+    dirty.add(((nx / CS) | 0) + ',' + ((ny / CS) | 0) + ',' + ((nz / CS) | 0));
+  }
+}
+function setRaw(x, y, z, v) {
+  var i = idx(x, y, z), old = grid[i];
+  if (old === v) return false;
+  grid[i] = v; verCounter++;
+  if (!old && v) blockCount++; else if (old && !v) blockCount--;
+  markDirty(x, y, z);
+  return old;
+}
+function beginBatch() { batch = []; }
+function editSet(x, y, z, v) {
+  if (!inB(x, y, z)) return;
+  var i = idx(x, y, z), old = grid[i];
+  if (old === v) return;
+  setRaw(x, y, z, v);
+  if (batch) batch.push([i, old, v]);
+  if (stroke) stroke.cells.add(i);
+}
+function endBatch() {
+  if (batch && batch.length) {
+    undoStack.push(batch);
+    if (undoStack.length > 300) undoStack.shift();
+    redoStack = [];
+    changed();
+  }
+  batch = null;
+}
+function applyBatch(b, undo) {
+  for (var k = 0; k < b.length; k++) {
+    var i = b[undo ? b.length - 1 - k : k][0];
+    var e = b[undo ? b.length - 1 - k : k];
+    var x = i % SX, z = ((i / SX) | 0) % SZ, y = (i / (SX * SZ)) | 0;
+    setRaw(x, y, z, undo ? e[1] : e[2]);
+  }
+}
+function undo() { var b = undoStack.pop(); if (!b) return; applyBatch(b, true); redoStack.push(b); changed(); }
+function redo() { var b = redoStack.pop(); if (!b) return; applyBatch(b, false); undoStack.push(b); changed(); }
+function changed() {
+  requestRender();
+  updateStatus();
+  $('undo').disabled = !undoStack.length;
+  $('redo').disabled = !redoStack.length;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(autosave, 700);
+}
+
+/* ---------- Paleta ---------- */
+var CATS = [
+  ['all', 'Todos'], ['fav', '★ Favoritos'], ['pedra', 'Pedra'], ['madeira', 'Madeira'], ['cor', 'Cores'],
+  ['minerio', 'Minérios'], ['natureza', 'Natureza'], ['vidro', 'Vidro'], ['outros', 'Outros']
+];
+function catOf(b) {
+  var n = b.java;
+  if (b.glass) return 'vidro';
+  if (/(wool|concrete|terracotta|glazed)/.test(n)) return 'cor';
+  if (/(planks|_log$|_wood$|_stem$|_hyphae$|bamboo|stripped|mosaic)/.test(n)) return 'madeira';
+  if (/(_ore$|ancient_debris|^raw_|^(iron|gold|diamond|emerald|lapis|redstone|coal|copper|netherite|amethyst)_block$)/.test(n)) return 'minerio';
+  if (/(dirt|grass|sand$|gravel|clay|snow|moss|leaves|mud$|podzol|mycelium|sponge|hay|melon|pumpkin|ice|soul_soil|nylium|wart)/.test(n) && !/sandstone/.test(n)) return 'natureza';
+  if (/(stone|cobble|granite|diorite|andesite|deepslate|brick|basalt|blackstone|tuff|calcite|obsidian|prismarine|sandstone|quartz|purpur|netherrack|copper|tile|smooth|polished|chiseled|cut_)/.test(n)) return 'pedra';
+  return 'outros';
+}
+BLOCKS.forEach(function (b) { b.cat = catOf(b); b.hay = (b.java + ' ' + b.name).toLowerCase(); });
+function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
+function swatch(b) {
+  return 'background:linear-gradient(to bottom,' + rgb(b.top) + ' 0,' + rgb(b.top) + ' 28%,' + rgb(b.side) + ' 28%,' + rgb(b.side) + ' 100%)';
+}
+var favs = new Set();
+try { favs = new Set(JSON.parse(localStorage.getItem('bloco-a-bloco-fav') || '[]')); } catch (e) {}
+function saveFavs() { try { localStorage.setItem('bloco-a-bloco-fav', JSON.stringify(Array.from(favs))); } catch (e) {} }
+var activeCat = 'all', query = '';
+var hotbar = ['stone', 'cobblestone', 'oak_planks', 'stone_bricks', 'glass', 'oak_log', 'sandstone', 'white_wool', 'bricks']
+  .map(function (n) { return n in BY_JAVA ? BY_JAVA[n] : 0; });
+var slot = 0;
+function curBlock() { return hotbar[slot]; }
+
+function renderChips() {
+  $('chips').innerHTML = CATS.map(function (c) {
+    return '<button type="button" data-cat="' + c[0] + '" aria-pressed="' + (c[0] === activeCat) + '">' + c[1] + '</button>';
+  }).join('');
+}
+function renderList() {
+  var q = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  var out = [];
+  for (var i = 0; i < BLOCKS.length; i++) {
+    var b = BLOCKS[i];
+    if (activeCat === 'fav' ? !favs.has(b.java) : (activeCat !== 'all' && b.cat !== activeCat)) continue;
+    var ok = true;
+    for (var k = 0; k < q.length; k++) if (b.hay.indexOf(q[k]) < 0) { ok = false; break; }
+    if (!ok) continue;
+    out.push('<div class="item' + (i === curBlock() ? ' sel' : '') + '" role="button" tabindex="0" data-i="' + i + '" title="' + b.name + '">' +
+      '<span class="sw" style="' + swatch(b) + '"></span><span class="nm"><span>' + b.name + '</span><small>' + b.java + '</small></span>' +
+      '<button type="button" class="star' + (favs.has(b.java) ? ' on' : '') + '" data-fav="' + b.java + '" aria-label="Favoritar ' + b.name + '">' + (favs.has(b.java) ? '★' : '☆') + '</button></div>');
+  }
+  $('list').innerHTML = out.length ? out.join('') : '<div class="empty">' + (activeCat === 'fav' ? 'Nenhum favorito ainda. Toque na estrela de um bloco.' : 'Nenhum bloco encontrado.') + '</div>';
+}
+function renderHotbar() {
+  $('hotbar').innerHTML = hotbar.map(function (bi, s) {
+    var b = BLOCKS[bi];
+    return '<button type="button" class="slot" data-slot="' + s + '" aria-pressed="' + (s === slot) + '" title="' + b.name + ' (' + (s + 1) + ')"><span class="n">' + (s + 1) + '</span><span class="sw" style="' + swatch(b) + '"></span></button>';
+  }).join('');
+}
+function selectSlot(s) { slot = s; renderHotbar(); markSel(); updateStatus(); requestRender(); }
+function markSel() {
+  var cur = $('list').querySelector('.sel'); if (cur) cur.classList.remove('sel');
+  var n = $('list').querySelector('[data-i="' + curBlock() + '"]'); if (n) n.classList.add('sel');
+}
+function chooseBlock(i) { hotbar[slot] = i; renderHotbar(); markSel(); updateStatus(); requestRender(); autosave(); }
+$('chips').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-cat]'); if (!b) return;
+  activeCat = b.getAttribute('data-cat'); renderChips(); renderList();
+});
+$('search').addEventListener('input', function (e) { query = e.target.value; renderList(); });
+$('list').addEventListener('click', function (e) {
+  var f = e.target.closest('[data-fav]');
+  if (f) {
+    var j = f.getAttribute('data-fav');
+    if (favs.has(j)) favs.delete(j); else favs.add(j);
+    saveFavs();
+    f.classList.toggle('on', favs.has(j)); f.textContent = favs.has(j) ? '★' : '☆';
+    if (activeCat === 'fav') renderList();
+    e.stopPropagation(); return;
+  }
+  var it = e.target.closest('[data-i]'); if (it) chooseBlock(+it.getAttribute('data-i'));
+});
+$('list').addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var it = e.target.closest && e.target.closest('[data-i]');
+  if (it && e.target === it) { e.preventDefault(); chooseBlock(+it.getAttribute('data-i')); }
+});
+$('hotbar').addEventListener('click', function (e) {
+  var s = e.target.closest('[data-slot]'); if (s) selectSlot(+s.getAttribute('data-slot'));
+});
+
+/* ---------- Ferramentas ---------- */
+var TOOLS = [
+  ['place', 'Pincel', 'B', '<path class="f" d="M10 2l7 4v8l-7 4-7-4V6z"/><path d="M10 2l7 4v8l-7 4-7-4V6zM3 6l7 4 7-4M10 10v8"/>'],
+  ['erase', 'Borracha', 'E', '<path class="f" d="M4 13l7-8 6 5-5 7H7z"/><path d="M4 13l7-8 6 5-5 7H7zM7 17h10M8 9l6 5"/>'],
+  ['pick', 'Conta-gotas', 'I', '<path d="M13 3l4 4-3 3-4-4zM10 6L3 13v4h4l7-7"/>'],
+  ['line', 'Linha', 'L', '<path d="M4 16L16 4"/><circle cx="4" cy="16" r="1.6" class="f"/><circle cx="16" cy="4" r="1.6" class="f"/>'],
+  ['box', 'Caixa sólida', 'R', '<path class="f" d="M4 4h12v12H4z"/><path d="M4 4h12v12H4z"/>'],
+  ['hbox', 'Caixa oca (paredes)', 'H', '<path d="M3 3h14v14H3zM7.5 7.5h5v5h-5z"/>'],
+  ['sphere', 'Esfera sólida', 'S', '<circle class="f" cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="7"/>'],
+  ['hsphere', 'Esfera oca', 'O', '<circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="7" ry="2.6" stroke-dasharray="2 2"/>']
+];
+var tool = 'place';
+var anchor = null;
+function renderTools() {
+  $('tools').innerHTML = TOOLS.map(function (t) {
+    return '<button type="button" class="tbtn" data-tool="' + t[0] + '" aria-pressed="' + (t[0] === tool) + '" title="' + t[1] + ' (' + t[2] + ')" aria-label="' + t[1] + '"><svg viewBox="0 0 20 20">' + t[3] + '</svg></button>';
+  }).join('');
+}
+function setTool(t) { tool = t; anchor = null; renderTools(); updateAnchorChip(); updatePreview(); updateStatus(); requestRender(); }
+$('tools').addEventListener('click', function (e) { var b = e.target.closest('[data-tool]'); if (b) setTool(b.getAttribute('data-tool')); });
+function isShape(t) { return t === 'line' || t === 'box' || t === 'hbox' || t === 'sphere' || t === 'hsphere'; }
+function updateAnchorChip() {
+  $('anchorChip').hidden = !anchor;
+  if (anchor) $('anchorTxt').textContent = 'Início ' + anchor.join(', ') + ' · toque no ponto final (Shift apaga)';
+}
+$('anchorCancel').addEventListener('click', function () { anchor = null; updateAnchorChip(); updatePreview(); requestRender(); });
+
+function shapeCells(kind, a, b) {
+  var out = [];
+  var x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
+  var y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+  var z0 = Math.min(a[2], b[2]), z1 = Math.max(a[2], b[2]);
+  var x, y, z;
+  if (kind === 'line') {
+    var dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+    var n = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+    for (var i = 0; i <= n; i++) {
+      var t = n ? i / n : 0;
+      out.push([Math.round(a[0] + dx * t), Math.round(a[1] + dy * t), Math.round(a[2] + dz * t)]);
+    }
+  } else if (kind === 'box' || kind === 'hbox') {
+    for (y = y0; y <= y1; y++) for (z = z0; z <= z1; z++) for (x = x0; x <= x1; x++) {
+      if (kind === 'hbox' && !(x === x0 || x === x1 || y === y0 || y === y1 || z === z0 || z === z1)) continue;
+      out.push([x, y, z]);
+    }
+  } else {
+    var dx2 = b[0] - a[0], dy2 = b[1] - a[1], dz2 = b[2] - a[2];
+    var r = Math.round(Math.sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2));
+    var R2 = (r + 0.5) * (r + 0.5), r2 = (r - 0.5) * (r - 0.5);
+    for (y = a[1] - r; y <= a[1] + r; y++) for (z = a[2] - r; z <= a[2] + r; z++) for (x = a[0] - r; x <= a[0] + r; x++) {
+      var d = (x - a[0]) * (x - a[0]) + (y - a[1]) * (y - a[1]) + (z - a[2]) * (z - a[2]);
+      if (d > R2) continue;
+      if (kind === 'hsphere' && d <= r2 && r > 0) continue;
+      out.push([x, y, z]);
+    }
+  }
+  return out;
+}
+
+/* ---------- Three.js ---------- */
+var THREE_OK = typeof THREE !== 'undefined';
+var viewport = $('viewport');
+var renderer, scene, camera, noiseTex, matOpaque, matGlass;
+var chunks = new Map();
+var helpers = [];
+var ghostEdges, ghostFill, previewInst, previewEdges;
+var showGrid = true;
+var cam = { yaw: 0.8, pitch: 0.62, dist: 50, tx: 16, ty: 4, tz: 16 };
+var needsRender = true;
+function requestRender() { needsRender = true; }
+function cssColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function initThree() {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  viewport.insertBefore(renderer.domElement, viewport.firstChild);
+  renderer.domElement.tabIndex = 0;
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1500);
+  var c = document.createElement('canvas'); c.width = c.height = 16;
+  var g = c.getContext('2d'), img = g.createImageData(16, 16);
+  for (var i = 0; i < 256; i++) {
+    var h = (Math.sin(i * 12.9898 + 4.1414) * 43758.5453); h = h - Math.floor(h);
+    var v = Math.round(228 + h * 27);
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  noiseTex = new THREE.CanvasTexture(c);
+  noiseTex.magFilter = THREE.NearestFilter; noiseTex.minFilter = THREE.NearestFilter;
+  matOpaque = new THREE.MeshBasicMaterial({ map: noiseTex, vertexColors: true });
+  matGlass = new THREE.MeshBasicMaterial({ map: noiseTex, vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false });
+  var box = new THREE.BoxGeometry(1.004, 1.004, 1.004);
+  ghostEdges = new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color: 0xffffff }));
+  ghostEdges.visible = false; ghostEdges.renderOrder = 5; scene.add(ghostEdges);
+  ghostFill = new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false }));
+  ghostFill.visible = false; ghostFill.renderOrder = 4; scene.add(ghostFill);
+  previewInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1.01, 1.01, 1.01), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false }), 40000);
+  previewInst.count = 0; previewInst.frustumCulled = false; previewInst.renderOrder = 4; scene.add(previewInst);
+  buildHelpers();
+  resetCamera();
+  resize();
+}
+
+function labelSprite(text, color) {
+  var c = document.createElement('canvas'); c.width = c.height = 128;
+  var g = c.getContext('2d');
+  g.font = '600 84px "IBM Plex Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = color; g.fillText(text, 64, 70);
+  var tex = new THREE.CanvasTexture(c);
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(3, 3, 1); sp.renderOrder = 6;
+  return sp;
+}
+function disposeObj(o) {
+  scene.remove(o);
+  if (o.geometry) o.geometry.dispose();
+  if (o.material) { if (o.material.map && o.material.map !== noiseTex) o.material.map.dispose(); o.material.dispose(); }
+}
+var gridObj = null;
+function buildHelpers() {
+  if (gridObj) scene.remove(gridObj);
+  helpers.forEach(disposeObj); helpers = []; gridObj = null;
+  var bg = new THREE.Color(cssColor('--scene-bg'));
+  scene.background = bg;
+  var floorC = new THREE.Color(cssColor('--scene-floor'));
+  var gridC = new THREE.Color(cssColor('--scene-grid'));
+  var edgeC = new THREE.Color(cssColor('--scene-edge'));
+  var fg = cssColor('--fg') || '#888';
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(SX, SZ), new THREE.MeshBasicMaterial({ color: floorC }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(SX / 2, -0.02, SZ / 2); scene.add(floor); helpers.push(floor);
+  var pts = [], pts2 = [], i;
+  for (i = 0; i <= SX; i++) { (i % 8 === 0 ? pts2 : pts).push(i, 0, 0, i, 0, SZ); }
+  for (i = 0; i <= SZ; i++) { (i % 8 === 0 ? pts2 : pts).push(0, 0, i, SX, 0, i); }
+  var gm = new THREE.BufferGeometry(); gm.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  var gm2 = new THREE.BufferGeometry(); gm2.setAttribute('position', new THREE.Float32BufferAttribute(pts2, 3));
+  var gl = new THREE.LineSegments(gm, new THREE.LineBasicMaterial({ color: gridC }));
+  var gl2 = new THREE.LineSegments(gm2, new THREE.LineBasicMaterial({ color: edgeC }));
+  gridObj = new THREE.Group(); gridObj.add(gl); gridObj.add(gl2); scene.add(gridObj);
+  gridObj.visible = showGrid; gridObj._parts = [gl, gl2];
+  helpers.push(gl, gl2);
+  var vol = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(SX, SY, SZ)), new THREE.LineBasicMaterial({ color: edgeC, transparent: true, opacity: 0.35 }));
+  vol.position.set(SX / 2, SY / 2, SZ / 2); scene.add(vol); helpers.push(vol);
+  [['N', SX / 2, -2.2], ['S', SX / 2, SZ + 2.2], ['L', SX + 2.2, SZ / 2], ['O', -2.2, SZ / 2]].forEach(function (l) {
+    var s = labelSprite(l[0], fg); s.position.set(l[1], 0.2, l[2]); scene.add(s); helpers.push(s);
+  });
+  positionGrid();
+}
+function positionGrid() { if (gridObj) { gridObj.position.y = (layerOn ? layerY : 0) + 0.01; gridObj.visible = showGrid; } }
+
+/* Malha dos chunks */
+var FACES = [
+  { n: [1, 0, 0], v: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 'side' },
+  { n: [-1, 0, 0], v: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 'side' },
+  { n: [0, 1, 0], v: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: 'top' },
+  { n: [0, -1, 0], v: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.55, k: 'bottom' },
+  { n: [0, 0, 1], v: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.9, k: 'side' },
+  { n: [0, 0, -1], v: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.9, k: 'side' }
+];
+var UVS = [[0, 0], [1, 0], [1, 1], [0, 1]];
+var AO_L = [0.55, 0.72, 0.86, 1];
+function vis(x, y, z) {
+  if (x < 0 || y < 0 || z < 0 || x >= SX || y >= SY || z >= SZ) return 0;
+  if (y > layerMax()) return 0;
+  return grid[(y * SZ + z) * SX + x];
+}
+function solidAt(x, y, z) { var v = vis(x, y, z); return v && !BLOCKS[v - 1].glass ? 1 : 0; }
+function buildChunk(cx, cy, cz) {
+  var key = cx + ',' + cy + ',' + cz;
+  var old = chunks.get(key);
+  if (old) { old.forEach(function (m) { scene.remove(m); m.geometry.dispose(); }); chunks.delete(key); }
+  var x0 = cx * CS, y0 = cy * CS, z0 = cz * CS;
+  var x1 = Math.min(x0 + CS, SX), z1 = Math.min(z0 + CS, SZ), y1 = Math.min(y0 + CS, SY, layerMax() + 1);
+  var O = { p: [], c: [], u: [], i: [], n: 0 }, G = { p: [], c: [], u: [], i: [], n: 0 };
+  for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
+    var v = grid[(y * SZ + z) * SX + x];
+    if (!v) continue;
+    var b = BLOCKS[v - 1], T = b.glass ? G : O;
+    var h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; h = h - Math.floor(h);
+    var jit = 0.965 + h * 0.07;
+    for (var f = 0; f < 6; f++) {
+      var F = FACES[f];
+      var nx = x + F.n[0], ny = y + F.n[1], nz = z + F.n[2];
+      var nv = vis(nx, ny, nz);
+      if (nv) {
+        var nb = BLOCKS[nv - 1];
+        if (b.glass) { if (!nb.glass || nv === v) continue; } else if (!nb.glass) continue;
+      }
+      var col = b[F.k], ao = [];
+      var ax = F.n[0] ? 0 : F.n[1] ? 1 : 2;
+      var ob = ax === 0 ? 1 : 0, oc = ax === 2 ? 1 : 2;
+      for (var q = 0; q < 4; q++) {
+        var vv = F.v[q];
+        var db = vv[ob] ? 1 : -1, dc = vv[oc] ? 1 : -1;
+        var base = [nx, ny, nz];
+        var s1 = base.slice(), s2 = base.slice(), cr = base.slice();
+        s1[ob] += db; s2[oc] += dc; cr[ob] += db; cr[oc] += dc;
+        var a1 = solidAt(s1[0], s1[1], s1[2]), a2 = solidAt(s2[0], s2[1], s2[2]), a3 = solidAt(cr[0], cr[1], cr[2]);
+        ao.push(a1 && a2 ? 0 : 3 - (a1 + a2 + a3));
+      }
+      var bi = T.n;
+      for (q = 0; q < 4; q++) {
+        var p = F.v[q], l = F.s * jit * AO_L[ao[q]] / 255;
+        T.p.push(x + p[0], y + p[1], z + p[2]);
+        T.c.push(col[0] * l, col[1] * l, col[2] * l);
+        T.u.push(UVS[q][0], UVS[q][1]);
+      }
+      if (ao[0] + ao[2] < ao[1] + ao[3]) T.i.push(bi + 1, bi + 2, bi + 3, bi + 1, bi + 3, bi);
+      else T.i.push(bi, bi + 1, bi + 2, bi, bi + 2, bi + 3);
+      T.n += 4;
+    }
+  }
+  var meshes = [];
+  [[O, matOpaque, 0], [G, matGlass, 1]].forEach(function (e) {
+    var T = e[0];
+    if (!T.n) return;
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(T.p, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(T.c, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(T.u, 2));
+    geo.setIndex(new THREE.BufferAttribute(new Uint32Array(T.i), 1));
+    geo.computeBoundingSphere();
+    var m = new THREE.Mesh(geo, e[1]); m.renderOrder = e[2]; scene.add(m); meshes.push(m);
+  });
+  if (meshes.length) chunks.set(key, meshes);
+}
+function rebuildDirty() {
+  if (!dirty.size) return;
+  dirty.forEach(function (k) { var p = k.split(','); buildChunk(+p[0], +p[1], +p[2]); });
+  dirty.clear();
+}
+function dirtyAll() {
+  for (var cx = 0; cx * CS < SX; cx++) for (var cy = 0; cy * CS < SY; cy++) for (var cz = 0; cz * CS < SZ; cz++) dirty.add(cx + ',' + cy + ',' + cz);
+}
+function clearChunks() {
+  chunks.forEach(function (ms) { ms.forEach(function (m) { scene.remove(m); m.geometry.dispose(); }); });
+  chunks.clear();
+}
+
+/* Câmera */
+function updateCamera() {
+  var cp = Math.cos(cam.pitch);
+  camera.position.set(cam.tx + cam.dist * cp * Math.sin(cam.yaw), cam.ty + cam.dist * Math.sin(cam.pitch), cam.tz + cam.dist * cp * Math.cos(cam.yaw));
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+  camera.updateMatrixWorld(true);
+}
+function resetCamera() {
+  cam.yaw = 0.8; cam.pitch = 0.62; cam.dist = Math.max(SX, SZ) * 1.35 + 6;
+  cam.tx = SX / 2; cam.ty = Math.min(6, SY / 4); cam.tz = SZ / 2;
+  updateCamera(); requestRender();
+}
+function resize() {
+  if (!renderer) return;
+  var w = viewport.clientWidth, h = viewport.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  requestRender();
+}
+window.addEventListener('resize', resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(viewport);
+
+/* Raio e alvo */
+function rayFrom(cx, cy) {
+  var r = renderer.domElement.getBoundingClientRect();
+  var nx = ((cx - r.left) / r.width) * 2 - 1, ny = -((cy - r.top) / r.height) * 2 + 1;
+  var v = new THREE.Vector3(nx, ny, 0.5).unproject(camera);
+  var o = camera.position, d = v.sub(o).normalize();
+  return { o: [o.x, o.y, o.z], d: [d.x, d.y, d.z] };
+}
+var stroke = null;
+function solidForRay(x, y, z) {
+  if (!inB(x, y, z) || y > layerMax()) return 0;
+  var i = idx(x, y, z);
+  if (stroke && stroke.cells.has(i)) return stroke.mode === 'erase' ? 1 : 0;
+  return grid[i];
+}
+function castRay(o, d) {
+  var x = Math.floor(o[0]), y = Math.floor(o[1]), z = Math.floor(o[2]);
+  var st = [d[0] > 0 ? 1 : -1, d[1] > 0 ? 1 : -1, d[2] > 0 ? 1 : -1];
+  var td = [d[0] ? Math.abs(1 / d[0]) : Infinity, d[1] ? Math.abs(1 / d[1]) : Infinity, d[2] ? Math.abs(1 / d[2]) : Infinity];
+  var c = [x, y, z];
+  var tm = [0, 0, 0];
+  for (var a = 0; a < 3; a++) {
+    if (!d[a]) tm[a] = Infinity;
+    else tm[a] = d[a] > 0 ? (c[a] + 1 - o[a]) / d[a] : (o[a] - c[a]) / -d[a];
+  }
+  var face = [0, 0, 0], t = 0;
+  for (var n = 0; n < 1600; n++) {
+    if (n > 0 && solidForRay(c[0], c[1], c[2])) return { cell: [c[0], c[1], c[2]], normal: face.slice(), t: t };
+    var ax = tm[0] < tm[1] ? (tm[0] < tm[2] ? 0 : 2) : (tm[1] < tm[2] ? 1 : 2);
+    t = tm[ax]; c[ax] += st[ax]; tm[ax] += td[ax];
+    face = [0, 0, 0]; face[ax] = -st[ax];
+    if (t > 700) break;
+  }
+  return null;
+}
+function planeY() { return layerOn ? layerY : 0; }
+function targetAt(cx, cy) {
+  var r = rayFrom(cx, cy);
+  var hit = castRay(r.o, r.d);
+  var res = { hit: null, place: null, normal: null };
+  if (hit) {
+    res.hit = hit.cell; res.normal = hit.normal;
+    res.place = [hit.cell[0] + hit.normal[0], hit.cell[1] + hit.normal[1], hit.cell[2] + hit.normal[2]];
+    res.t = hit.t;
+  }
+  var py = planeY();
+  if (r.d[1] < -1e-6 && r.o[1] > py) {
+    var tp = (py - r.o[1]) / r.d[1];
+    if (!hit || tp < hit.t) {
+      var px = r.o[0] + r.d[0] * tp, pz = r.o[2] + r.d[2] * tp;
+      var gx = Math.floor(px), gz = Math.floor(pz);
+      if (inB(gx, py, gz)) { res.hit = null; res.normal = [0, 1, 0]; res.place = [gx, py, gz]; }
+    }
+  }
+  if (res.place && (!inB(res.place[0], res.place[1], res.place[2]) || res.place[1] > layerMax())) res.place = null;
+  return res.hit || res.place ? res : null;
+}
+
+/* Visual do alvo */
+var hoverT = null, hoverXY = null;
+function setBoxAt(mesh, c) { mesh.position.set(c[0] + 0.5, c[1] + 0.5, c[2] + 0.5); }
+function effTool(shift) { return tool === 'place' && shift ? 'erase' : tool; }
+var lastShift = false;
+function updatePreview() {
+  ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0;
+  var t = hoverT;
+  if (!t) { requestRender(); return; }
+  var et = effTool(lastShift);
+  var accent = new THREE.Color(cssColor('--accent')), danger = new THREE.Color(cssColor('--danger')), info = new THREE.Color(cssColor('--info'));
+  var cell;
+  if (et === 'place') {
+    cell = t.place; if (!cell) { requestRender(); return; }
+    var b = BLOCKS[curBlock()];
+    ghostFill.material.color.setRGB(b.top[0] / 255, b.top[1] / 255, b.top[2] / 255);
+    setBoxAt(ghostFill, cell); ghostFill.visible = true;
+    ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
+  } else if (et === 'erase' || et === 'pick') {
+    cell = t.hit; if (!cell) { requestRender(); return; }
+    ghostEdges.material.color.copy(et === 'erase' ? danger : info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
+  } else if (isShape(et)) {
+    cell = t.place; if (!cell) { requestRender(); return; }
+    ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
+    if (anchor) {
+      var cells = shapeCells(et, anchor, cell), n = Math.min(cells.length, 40000), m = new THREE.Matrix4();
+      for (var i = 0; i < n; i++) { m.setPosition(cells[i][0] + 0.5, cells[i][1] + 0.5, cells[i][2] + 0.5); previewInst.setMatrixAt(i, m); }
+      previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
+      previewInst.material.color.copy(lastShift ? danger : accent);
+    }
+  }
+  requestRender();
+}
+function updateStatus() {
+  var t = hoverT, cell = t && (t.hit || t.place);
+  $('stPos').textContent = cell ? cell.join(', ') : '–';
+  var tb = t && t.hit ? BLOCKS[grid[idx(t.hit[0], t.hit[1], t.hit[2])] - 1] : null;
+  $('stBlock').textContent = (tb ? tb.name + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
+  var vox = bbox();
+  $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
+  $('stCount').textContent = blockCount;
+  if (anchor && t && t.place && isShape(effTool(lastShift))) {
+    var a = anchor, b2 = t.place;
+    $('stSize').textContent += '  |  forma ' + (Math.abs(a[0] - b2[0]) + 1) + ' × ' + (Math.abs(a[1] - b2[1]) + 1) + ' × ' + (Math.abs(a[2] - b2[2]) + 1);
+  }
+}
+function bbox() {
+  if (!blockCount) return null;
+  if (bboxVer === verCounter && bboxCache) return bboxCache;
+  var minX = 1e9, minY = 1e9, minZ = 1e9, maxX = -1, maxY = -1, maxZ = -1;
+  for (var y = 0; y < SY; y++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
+    if (!grid[(y * SZ + z) * SX + x]) continue;
+    if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z;
+    if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
+  }
+  bboxVer = verCounter;
+  bboxCache = { w: maxX - minX + 1, h: maxY - minY + 1, l: maxZ - minZ + 1 };
+  return bboxCache;
+}
+
+/* ---------- Ações ---------- */
+function placeAt(c) { if (c && c[1] <= layerMax()) editSet(c[0], c[1], c[2], curBlock() + 1); }
+function eraseAt(c) { if (c) editSet(c[0], c[1], c[2], 0); }
+function commitShape(kind, a, b, erase) {
+  var cells = shapeCells(kind, a, b);
+  beginBatch();
+  var v = erase ? 0 : curBlock() + 1;
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    if (!inB(c[0], c[1], c[2]) || c[1] > layerMax()) continue;
+    editSet(c[0], c[1], c[2], v);
+  }
+  endBatch();
+  toast((erase ? 'Apagados ' : 'Colocados ') + cells.length + ' blocos');
+}
+function pressAt(cx, cy, shift) {
+  var t = targetAt(cx, cy); hoverT = t; lastShift = shift;
+  var et = effTool(shift);
+  if (et === 'place' || et === 'erase') {
+    if (!t) return;
+    stroke = { mode: et, cells: new Set() };
+    beginBatch();
+    if (et === 'place') placeAt(t.place); else eraseAt(t.hit);
+    stroke.last = (et === 'place' ? t.place : t.hit);
+    stroke.on = true;
+  } else if (et === 'pick') {
+    if (t && t.hit) {
+      var v = grid[idx(t.hit[0], t.hit[1], t.hit[2])];
+      if (v) { chooseBlock(v - 1); toast('Bloco: ' + BLOCKS[v - 1].name); }
+    }
+  } else if (isShape(et)) {
+    if (!t || !t.place) return;
+    if (!anchor) { anchor = t.place.slice(); updateAnchorChip(); }
+    else { var a = anchor; anchor = null; updateAnchorChip(); commitShape(et, a, t.place, shift); }
+  }
+  updatePreview(); updateStatus();
+}
+function dragAt(cx, cy) {
+  if (!stroke || !stroke.on) return;
+  var t = targetAt(cx, cy); hoverT = t;
+  if (t) {
+    var c = stroke.mode === 'place' ? t.place : t.hit;
+    if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
+      if (stroke.mode === 'place') placeAt(c); else eraseAt(c);
+      stroke.last = c;
+    }
+  }
+  updatePreview(); updateStatus(); requestRender();
+}
+function releaseStroke() {
+  if (stroke) { stroke = null; endBatch(); }
+}
+
+/* ---------- Ponteiro ---------- */
+var ptrs = new Map(), mode = null, moved = 0, lastPinch = null, downInfo = null;
+var cv = null;
+function bindCanvas() {
+  cv = renderer.domElement;
+  cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  cv.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    cam.dist = Math.min(600, Math.max(3, cam.dist * Math.exp(e.deltaY * 0.0012)));
+    updateCamera(); requestRender();
+  }, { passive: false });
+  cv.addEventListener('pointerdown', function (e) {
+    cv.focus({ preventScroll: true });
+    try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    lastShift = e.shiftKey;
+    if (e.pointerType === 'touch') {
+      if (ptrs.size === 1) { mode = 'touch1'; moved = 0; downInfo = { x: e.clientX, y: e.clientY }; }
+      else { mode = 'pinch'; releaseStroke(); lastPinch = pinchState(); }
+      return;
+    }
+    moved = 0; downInfo = { x: e.clientX, y: e.clientY, b: e.button };
+    if (e.button === 0 && !e.altKey) { mode = 'act'; pressAt(e.clientX, e.clientY, e.shiftKey); }
+    else if (e.button === 1 || (e.button === 2 && e.shiftKey)) { mode = 'pan'; }
+    else { mode = 'orbit'; }
+  });
+  cv.addEventListener('pointermove', function (e) {
+    var p = ptrs.get(e.pointerId);
+    lastShift = e.shiftKey;
+    if (e.pointerType === 'touch') {
+      if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      p.x = e.clientX; p.y = e.clientY;
+      if (mode === 'touch1') {
+        moved += Math.abs(dx) + Math.abs(dy);
+        if (moved > 10) { orbit(dx, dy); }
+      } else if (mode === 'pinch' && ptrs.size >= 2) {
+        var ps = pinchState();
+        if (lastPinch) {
+          cam.dist = Math.min(600, Math.max(3, cam.dist * (lastPinch.d / Math.max(ps.d, 1))));
+          pan(ps.cx - lastPinch.cx, ps.cy - lastPinch.cy);
+          updateCamera(); requestRender();
+        }
+        lastPinch = ps;
+      }
+      return;
+    }
+    if (p) { p.x = e.clientX; p.y = e.clientY; }
+    if (!mode) { hoverXY = [e.clientX, e.clientY]; hoverT = targetAt(e.clientX, e.clientY); updatePreview(); updateStatus(); return; }
+    var mx = e.movementX || 0, my = e.movementY || 0;
+    moved += Math.abs(mx) + Math.abs(my);
+    if (mode === 'orbit') orbit(mx, my);
+    else if (mode === 'pan') pan(mx, my);
+    else if (mode === 'act') { hoverXY = [e.clientX, e.clientY]; if (stroke) dragAt(e.clientX, e.clientY); else { hoverT = targetAt(e.clientX, e.clientY); updatePreview(); updateStatus(); } }
+  });
+  function end(e) {
+    ptrs.delete(e.pointerId);
+    if (e.pointerType === 'touch') {
+      if (mode === 'touch1' && moved <= 10 && downInfo) { pressAt(downInfo.x, downInfo.y, false); releaseStroke(); }
+      if (!ptrs.size) { mode = null; lastPinch = null; }
+      else if (ptrs.size === 1) { mode = 'touch1'; moved = 99; }
+      return;
+    }
+    if (mode === 'act') releaseStroke();
+    if (mode === 'orbit' && downInfo && downInfo.b === 2 && moved < 5 && anchor) { anchor = null; updateAnchorChip(); updatePreview(); }
+    mode = null;
+  }
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch' && !mode) { hoverT = null; updatePreview(); updateStatus(); } });
+}
+function pinchState() {
+  var a = Array.from(ptrs.values());
+  var dx = a[0].x - a[1].x, dy = a[0].y - a[1].y;
+  return { d: Math.hypot(dx, dy), cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2 };
+}
+function orbit(dx, dy) {
+  cam.yaw -= dx * 0.0065; cam.pitch += dy * 0.0065;
+  cam.pitch = Math.max(-1.45, Math.min(1.5, cam.pitch));
+  updateCamera(); requestRender();
+}
+function pan(dx, dy) {
+  var s = cam.dist * 0.0016;
+  var m = camera.matrix.elements;
+  cam.tx += (-m[0] * dx + m[4] * dy) * s; cam.ty += (-m[1] * dx + m[5] * dy) * s; cam.tz += (-m[2] * dx + m[6] * dy) * s;
+  cam.tx = Math.max(-20, Math.min(SX + 20, cam.tx)); cam.tz = Math.max(-20, Math.min(SZ + 20, cam.tz)); cam.ty = Math.max(-5, Math.min(SY + 10, cam.ty));
+  updateCamera(); requestRender();
+}
+
+/* ---------- Camada ---------- */
+function syncLayerUI() {
+  $('layerBtn').setAttribute('aria-pressed', String(layerOn));
+  $('layerRange').disabled = !layerOn;
+  $('layerRange').max = String(SY - 1);
+  $('layerRange').value = String(layerY);
+  $('layerOut').textContent = layerOn ? 'Y ' + layerY : '–';
+}
+function setLayer(on, y) {
+  layerOn = on;
+  if (y != null) layerY = Math.max(0, Math.min(SY - 1, y));
+  if (on && y == null && !layerY) { var bb = topY(); layerY = Math.max(0, bb); }
+  syncLayerUI(); positionGrid(); dirtyAll(); hoverT = null; updatePreview(); requestRender(); updateStatus();
+}
+function topY() {
+  for (var y = SY - 1; y >= 0; y--) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) if (grid[idx(x, y, z)]) return y;
+  return 0;
+}
+$('layerBtn').addEventListener('click', function () { setLayer(!layerOn, layerOn ? null : (layerY || topY())); });
+$('layerRange').addEventListener('input', function (e) { setLayer(true, +e.target.value); });
+
+/* ---------- Projeto ---------- */
+var KEY = 'bloco-a-bloco-v1';
+function serialize() {
+  var used = {}, pal = [], rle = [];
+  var last = -1, run = 0;
+  for (var i = 0; i < grid.length; i++) {
+    var v = grid[i], m = 0;
+    if (v) { var j = BLOCKS[v - 1].java; if (!(j in used)) { used[j] = pal.length; pal.push(j); } m = used[j] + 1; }
+    if (m === last) run++; else { if (run) rle.push(last, run); last = m; run = 1; }
+  }
+  if (run) rle.push(last, run);
+  return { v: 1, size: [SX, SY, SZ], pal: pal, rle: rle, hotbar: hotbar.map(function (i) { return BLOCKS[i].java; }), slot: slot };
+}
+function loadProject(o) {
+  if (!o || !o.size || !o.rle) throw new Error('Arquivo de projeto inválido.');
+  var sx = Math.max(8, Math.min(128, o.size[0] | 0)), sy = Math.max(8, Math.min(128, o.size[1] | 0)), sz = Math.max(8, Math.min(128, o.size[2] | 0));
+  newWorld(sx, sy, sz);
+  var map = (o.pal || []).map(function (j) { return j in BY_JAVA ? BY_JAVA[j] + 1 : 0; });
+  var p = 0, miss = 0;
+  for (var k = 0; k < o.rle.length; k += 2) {
+    var m = o.rle[k], c = o.rle[k + 1];
+    var v = m ? map[m - 1] : 0;
+    if (m && !v) miss += c;
+    for (var q = 0; q < c && p < grid.length; q++, p++) if (v) { grid[p] = v; blockCount++; }
+  }
+  if (o.hotbar) hotbar = o.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
+  slot = o.slot | 0;
+  dirtyAll(); renderHotbar(); renderList(); changed();
+  return miss;
+}
+function newWorld(sx, sy, sz) {
+  SX = sx; SY = sy; SZ = sz;
+  grid = new Uint16Array(SX * SY * SZ); blockCount = 0;
+  undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip();
+  layerOn = false; layerY = 0; syncLayerUI();
+  clearChunks(); dirty.clear(); dirtyAll();
+  if (scene) { buildHelpers(); resetCamera(); }
+  hoverT = null;
+}
+function autosave() {
+  try { localStorage.setItem(KEY, JSON.stringify(serialize())); } catch (e) {}
+}
+function resizeWorld(sx, sy, sz) {
+  var old = grid, ox = SX, oy = SY, oz = SZ;
+  var data = [];
+  for (var y = 0; y < Math.min(oy, sy); y++) for (var z = 0; z < Math.min(oz, sz); z++) for (var x = 0; x < Math.min(ox, sx); x++) {
+    var v = old[(y * oz + z) * ox + x]; if (v) data.push([x, y, z, v]);
+  }
+  newWorld(sx, sy, sz);
+  for (var i = 0; i < data.length; i++) { grid[idx(data[i][0], data[i][1], data[i][2])] = data[i][3]; blockCount++; }
+  dirtyAll(); changed();
+}
+function buildSample() {
+  var ox = Math.floor((SX - 9) / 2), oz = Math.floor((SZ - 9) / 2);
+  function B(n) { return (n in BY_JAVA ? BY_JAVA[n] : 0) + 1; }
+  function put(x, y, z, n) { grid[idx(ox + x, y, oz + z)] = B(n); blockCount++; }
+  var x, y, z;
+  for (x = 0; x < 9; x++) for (z = 0; z < 9; z++) put(x, 0, z, 'cobblestone');
+  for (y = 1; y <= 3; y++) for (x = 0; x < 9; x++) for (z = 0; z < 9; z++) {
+    var edge = x === 0 || x === 8 || z === 0 || z === 8;
+    if (!edge) continue;
+    var corner = (x === 0 || x === 8) && (z === 0 || z === 8);
+    if (corner) put(x, y, z, 'oak_log');
+    else if (z === 0 && x === 4 && y <= 2) continue;
+    else if (y === 2 && ((z === 0 || z === 8) && (x === 2 || x === 6) || (x === 0 || x === 8) && (z === 3 || z === 5 || z === 4))) put(x, y, z, 'glass');
+    else put(x, y, z, 'oak_planks');
+  }
+  for (var k = 0; k < 5; k++) for (x = -1 + k; x <= 9 - k; x++) for (z = -1; z <= 9; z++) {
+    if (x === -1 + k || x === 9 - k) put(x, 4 + k, z, 'spruce_planks');
+    else if (k === 4) put(x, 4 + k, z, 'spruce_planks');
+  }
+  for (x = 1; x < 8; x++) for (z = 1; z < 8; z++) { /* piso interno */ grid[idx(ox + x, 0, oz + z)] = B('oak_planks'); }
+}
+$('undo').addEventListener('click', undo);
+$('redo').addEventListener('click', redo);
+
+/* ---------- Diálogos ---------- */
+var overlayRoot = $('overlayRoot');
+function closeDialog() { overlayRoot.innerHTML = ''; }
+function openDialog(html, onMount) {
+  overlayRoot.innerHTML = '<div class="overlay" id="ov"><div class="dialog" role="dialog" aria-modal="true">' + html + '</div></div>';
+  $('ov').addEventListener('mousedown', function (e) { if (e.target === $('ov')) closeDialog(); });
+  if (onMount) onMount();
+  var f = overlayRoot.querySelector('input,button.primary,button'); if (f) f.focus();
+}
+function toast(msg) {
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, 2600);
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function collectVoxels() {
+  var out = [];
+  for (var y = 0; y < SY; y++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
+    var v = grid[(y * SZ + z) * SX + x]; if (v) out.push([x, y, z, v - 1]);
+  }
+  return out;
+}
+function cleanName(s) { return (s || 'construcao').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'construcao'; }
+async function saveBytes(filename, bytes, mime) {
+  if (inArtifact) {
+    var dl = await window.claude.use('downloads');
+    if (!dl) throw { code: 'unavailable' };
+    var ext = filename.split('.').pop().toLowerCase(), fn = filename, data = bytes, zipped = false;
+    if (['json', 'txt', 'csv', 'md', 'zip'].indexOf(ext) < 0) { data = MCExport.makeZip([{ name: filename, data: bytes }]); fn = filename + '.zip'; zipped = true; }
+    await dl.save({ filename: fn, data: data });
+    return { zipped: zipped };
+  }
+  var blob = new Blob([bytes], { type: mime || 'application/octet-stream' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  return { zipped: false };
+}
+function reportSave(r, name) {
+  toast(r.zipped ? 'Salvo ' + name + ' dentro de um .zip. Extraia antes de importar.' : 'Arquivo ' + name + ' gerado.');
+}
+function reportErr(e) {
+  if (e && e.code === 'declined') return toast('Download cancelado.');
+  if (e && e.code === 'unavailable') return toast('Download indisponível nesta visualização. Use a versão em arquivo local.');
+  toast((e && e.message) || 'Não foi possível gerar o arquivo.');
+}
+
+function openExport() {
+  var vox = collectVoxels();
+  var bb = vox.length ? MCExport.bounds(vox) : null;
+  var dim = bb ? bb.w + ' × ' + bb.h + ' × ' + bb.l : 'vazia';
+  openDialog(
+    '<h3>Exportar construção</h3>' +
+    '<div class="info">Tamanho: ' + dim + '<br>Blocos: ' + vox.length + '</div>' +
+    '<label>Nome do arquivo<input type="text" id="exName" value="construcao" maxlength="40"></label>' +
+    '<label class="check"><input type="checkbox" id="exKeep" checked><span>Bedrock: deixar o terreno intacto onde a construção tem ar (usa blocos vazios de estrutura). Desmarque para a construção substituir tudo no retângulo por ar.</span></label>' +
+    '<div class="row"><button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button><button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
+    '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
+    '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
+    function () {
+      if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
+      $('exClose').onclick = closeDialog;
+      $('exBedrock').onclick = async function () {
+        try {
+          var bytes = await MCExport.exportMcstructure(vox, BLOCKS, { preserveTerrain: $('exKeep').checked });
+          var nm = cleanName($('exName').value) + '.mcstructure';
+          reportSave(await saveBytes(nm, bytes), nm);
+        } catch (e) { reportErr(e); }
+      };
+      $('exJava').onclick = async function () {
+        try {
+          var bytes = await MCExport.exportSchem(vox, BLOCKS, { name: cleanName($('exName').value) });
+          var nm = cleanName($('exName').value) + '.schem';
+          reportSave(await saveBytes(nm, bytes), nm);
+        } catch (e) { reportErr(e); }
+      };
+    });
+}
+$('exportBtn').addEventListener('click', openExport);
+
+function openMaterials() {
+  var counts = {};
+  for (var i = 0; i < grid.length; i++) if (grid[i]) counts[grid[i] - 1] = (counts[grid[i] - 1] || 0) + 1;
+  var rows = Object.keys(counts).map(function (k) { return [+k, counts[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+  var text = rows.map(function (r) { return BLOCKS[r[0]].name + ': ' + r[1] + ' (' + Math.floor(r[1] / 64) + ' pilhas + ' + (r[1] % 64) + ')'; }).join('\n');
+  var body = rows.length ? '<div class="mat"><table>' + rows.map(function (r) {
+    return '<tr><td><span class="sw" style="' + swatch(BLOCKS[r[0]]) + '"></span>' + esc(BLOCKS[r[0]].name) + '</td><td class="num">' + r[1] + '</td><td class="num">' + Math.floor(r[1] / 64) + ' × 64 + ' + (r[1] % 64) + '</td></tr>';
+  }).join('') + '</table></div>' : '<p>A construção está vazia.</p>';
+  openDialog('<h3>Lista de materiais</h3><p>' + blockCount + ' blocos de ' + rows.length + ' tipos.</p>' + body +
+    '<div class="row"><button class="btn primary" id="mCopy">Copiar lista</button><button class="btn" id="mClose">Fechar</button></div>',
+    function () {
+      $('mClose').onclick = closeDialog;
+      $('mCopy').onclick = function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Lista copiada.'); }, function () { toast('Não foi possível copiar.'); });
+        else toast('Não foi possível copiar.');
+      };
+    });
+}
+$('matBtn').addEventListener('click', openMaterials);
+
+function openSize() {
+  openDialog('<h3>Tamanho do espaço</h3><p>Área de trabalho em blocos (8 a 128 por lado). Ao diminuir, blocos fora do novo limite são removidos.</p>' +
+    '<div class="row"><label>Largura (X)<input type="number" id="szX" min="8" max="128" value="' + SX + '"></label><label>Altura (Y)<input type="number" id="szY" min="8" max="128" value="' + SY + '"></label><label>Profundidade (Z)<input type="number" id="szZ" min="8" max="128" value="' + SZ + '"></label></div>' +
+    '<div class="row"><button class="btn primary" id="szOk">Aplicar</button><button class="btn" id="szNo">Cancelar</button></div>',
+    function () {
+      $('szNo').onclick = closeDialog;
+      $('szOk').onclick = function () {
+        var f = function (id) { return Math.max(8, Math.min(128, parseInt($(id).value, 10) || 32)); };
+        resizeWorld(f('szX'), f('szY'), f('szZ')); closeDialog(); toast('Espaço: ' + SX + ' × ' + SY + ' × ' + SZ);
+      };
+    });
+}
+function openHelp() {
+  openDialog('<h3>Atalhos e ajuda</h3><div class="keys">' +
+    '<span><kbd>Clique esq.</kbd></span><span>Usar a ferramenta (arraste para pintar)</span>' +
+    '<span><kbd>Shift</kbd> + clique</span><span>Pincel apaga; nas formas, apaga a forma</span>' +
+    '<span><kbd>Botão dir.</kbd> arrastar</span><span>Girar a câmera (clique simples cancela a forma)</span>' +
+    '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
+    '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
+    '<span><kbd>B E I L R H S O</kbd></span><span>Pincel, borracha, conta-gotas, linha, caixa, caixa oca, esfera, esfera oca</span>' +
+    '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
+    '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
+    '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
+    '<span><kbd>Setas</kbd></span><span>Mover a câmera</span>' +
+    '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
+    '<span><kbd>G</kbd></span><span>Grade</span></div>' +
+    '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
+    '<div class="row"><button class="btn primary" id="hClose">Entendi</button></div>',
+    function () { $('hClose').onclick = closeDialog; });
+}
+
+var confirmTimer = 0;
+$('newBtn').addEventListener('click', function () {
+  var b = $('newBtn');
+  if (b.dataset.armed) { b.dataset.armed = ''; b.textContent = 'Novo (limpar tudo)'; newWorld(SX, SY, SZ); changed(); updateStatus(); toast('Construção limpa.'); $('menu').open = false; return; }
+  b.dataset.armed = '1'; b.textContent = 'Clique de novo para apagar tudo';
+  clearTimeout(confirmTimer); confirmTimer = setTimeout(function () { b.dataset.armed = ''; b.textContent = 'Novo (limpar tudo)'; }, 4000);
+});
+$('saveBtn').addEventListener('click', async function () {
+  $('menu').open = false;
+  try { var nm = 'projeto-bloco-a-bloco.json'; var r = await saveBytes(nm, new TextEncoder().encode(JSON.stringify(serialize())), 'application/json'); reportSave(r, nm); } catch (e) { reportErr(e); }
+});
+$('openBtn').addEventListener('click', function () { $('menu').open = false; $('fileIn').click(); });
+$('fileIn').addEventListener('change', function (e) {
+  var f = e.target.files && e.target.files[0]; if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    try { var miss = loadProject(JSON.parse(rd.result)); toast(miss ? 'Projeto aberto (' + miss + ' blocos desconhecidos ignorados).' : 'Projeto aberto.'); } catch (x) { toast(x.message || 'Não foi possível abrir o arquivo.'); }
+  };
+  rd.readAsText(f); e.target.value = '';
+});
+$('sizeBtn').addEventListener('click', function () { $('menu').open = false; openSize(); });
+$('gridBtn').addEventListener('click', function () { showGrid = !showGrid; positionGrid(); requestRender(); $('menu').open = false; });
+$('helpBtn').addEventListener('click', function () { $('menu').open = false; openHelp(); });
+var themeMode = 'auto';
+try { themeMode = localStorage.getItem('bloco-a-bloco-theme') || 'auto'; } catch (e) {}
+function applyTheme() {
+  if (themeMode === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', themeMode);
+  $('themeBtn').textContent = 'Tema: ' + (themeMode === 'auto' ? 'automático' : themeMode === 'light' ? 'claro' : 'escuro');
+  if (scene) { buildHelpers(); updatePreview(); requestRender(); }
+}
+$('themeBtn').addEventListener('click', function () {
+  themeMode = themeMode === 'auto' ? 'light' : themeMode === 'light' ? 'dark' : 'auto';
+  try { localStorage.setItem('bloco-a-bloco-theme', themeMode); } catch (e) {}
+  applyTheme();
+});
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (themeMode === 'auto' && scene) { buildHelpers(); requestRender(); } });
+
+/* ---------- Teclado ---------- */
+window.addEventListener('keydown', function (e) {
+  var tg = e.target, typing = tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable);
+  if (e.key === 'Shift') { lastShift = true; updatePreview(); }
+  if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } $('menu').open = false; return; }
+  if (typing || overlayRoot.firstChild || !camera) return;
+  var k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  var map = { b: 'place', e: 'erase', i: 'pick', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere' };
+  if (map[k]) { setTool(map[k]); return; }
+  if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
+  if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
+  if (k === ']') { setLayer(true, (layerOn ? layerY : topY()) + 1); return; }
+  if (k === 'g') { showGrid = !showGrid; positionGrid(); requestRender(); return; }
+  if (k === 'home') { resetCamera(); return; }
+  if (k === '?') { openHelp(); return; }
+  var m = camera.matrix.elements, st = cam.dist * 0.05;
+  if (k === 'arrowleft') { cam.tx -= m[0] * st; cam.tz -= m[2] * st; }
+  else if (k === 'arrowright') { cam.tx += m[0] * st; cam.tz += m[2] * st; }
+  else if (k === 'arrowup') { var fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw); cam.tx += fx * st; cam.tz += fz * st; }
+  else if (k === 'arrowdown') { var gx = Math.sin(cam.yaw), gz = Math.cos(cam.yaw); cam.tx += gx * st; cam.tz += gz * st; }
+  else return;
+  e.preventDefault(); updateCamera(); requestRender();
+});
+window.addEventListener('keyup', function (e) { if (e.key === 'Shift') { lastShift = false; updatePreview(); } });
+
+/* ---------- Loop ---------- */
+function frame() {
+  requestAnimationFrame(frame);
+  if (!needsRender || !renderer) return;
+  needsRender = false;
+  rebuildDirty();
+  renderer.render(scene, camera);
+}
+
+/* ---------- Início ---------- */
+applyTheme();
+renderChips(); renderList(); renderTools(); renderHotbar(); syncLayerUI();
+if (!THREE_OK) {
+  viewport.innerHTML = '<div class="empty" style="padding:32px">Não foi possível carregar a biblioteca 3D. Verifique a conexão com a internet e recarregue a página.</div>';
+} else {
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  initThree(); bindCanvas();
+  if (saved && saved.rle) { try { loadProject(saved); } catch (e) { buildSample(); } }
+  else { buildSample(); dirtyAll(); }
+  changed(); updateStatus();
+  if (!saved) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
+  requestAnimationFrame(frame);
+  window.__bab = { grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); } };
+}
+})();
+</script>
