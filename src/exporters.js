@@ -105,21 +105,25 @@
   }
 
   // Estados padrão extras (folhas não devem decair)
-  function javaState(blk) {
-    if (blk.jstate) return blk.jstate;
+  // ori: índice da direção em blk.ori.o (ausente = direção inicial)
+  function oriOf(blk, ori) { return blk.ori ? blk.ori.o[ori == null || !blk.ori.o[ori] ? blk.ori.d : ori] : null; }
+  function javaState(blk, ori) {
+    const o = oriOf(blk, ori);
+    if (o) return '[' + blk.ori.k + '=' + o[0] + ']';
     if (/_leaves$/.test(blk.java)) return '[persistent=true]';
     return '';
   }
 
   // ---------- .schem (Sponge Schematic v3, Java) ----------
-  // voxels: array de [x,y,z,idx]; BLOCKS[idx] = {java, bedrock}
+  // voxels: array de [x,y,z,idx,direção?]; BLOCKS[idx] = {java, bedrock, ori?, bst?}
   async function exportSchem(voxels, BLOCKS, opts) {
     opts = opts || {};
     if (!voxels.length) throw new Error('A construção está vazia.');
     const b = bounds(voxels);
-    const grid = new Int32Array(b.w * b.h * b.l).fill(-1);
-    for (const [x, y, z, idx] of voxels) {
-      grid[((y - b.minY) * b.l + (z - b.minZ)) * b.w + (x - b.minX)] = idx;
+    const grid = new Int32Array(b.w * b.h * b.l).fill(-1), oris = new Int32Array(grid.length);
+    for (const [x, y, z, idx, o] of voxels) {
+      const i = ((y - b.minY) * b.l + (z - b.minZ)) * b.w + (x - b.minX);
+      grid[i] = idx; oris[i] = o == null ? -1 : o;
     }
     const palette = { 'minecraft:air': 0 };
     let next = 1;
@@ -127,7 +131,7 @@
     for (let i = 0; i < grid.length; i++) {
       const idx = grid[i];
       if (idx < 0) { varint(data, 0); continue; }
-      const key = 'minecraft:' + BLOCKS[idx].java + javaState(BLOCKS[idx]);
+      const key = 'minecraft:' + BLOCKS[idx].java + javaState(BLOCKS[idx], oris[i] < 0 ? null : oris[i]);
       if (palette[key] === undefined) palette[key] = next++;
       varint(data, palette[key]);
     }
@@ -161,11 +165,13 @@
 
   // ---------- .mcstructure (Bedrock) ----------
   const BEDROCK_BLOCK_VERSION = 18090528; // 1.20.80: o jogo atualiza para a versão atual ao carregar
-  // Blocos com frente trazem o estado completo e a versão do esquema (blk.bst = [versão, {nome: [tipo, valor]}])
-  function bedrockStates(blk) {
+  // Blocos com direção trazem os estados padrão completos e a versão do esquema (blk.bst = [versão, {nome: [tipo, valor]}]);
+  // o estado da direção (blk.ori.bk) recebe o valor da direção escolhida.
+  function bedrockStates(blk, ori) {
     if (blk.bst) {
-      const st = {};
+      const st = {}, o = oriOf(blk, ori);
       for (const k of Object.keys(blk.bst[1])) st[k] = { t: blk.bst[1][k][0], v: blk.bst[1][k][1] };
+      if (o && st[blk.ori.bk]) st[blk.ori.bk].v = o[1];
       return st;
     }
     if (/_leaves$/.test(blk.bedrock)) return { persistent_bit: { t: 'byte', v: 1 }, update_bit: { t: 'byte', v: 0 } };
@@ -178,18 +184,20 @@
     const b = bounds(voxels);
     const sx = b.w, sy = b.h, sz = b.l;
     const total = sx * sy * sz;
-    const grid = new Int32Array(total).fill(-1);
-    for (const [x, y, z, idx] of voxels) {
-      grid[((x - b.minX) * sy + (y - b.minY)) * sz + (z - b.minZ)] = idx;
+    const grid = new Int32Array(total).fill(-1), oris = new Int32Array(total);
+    for (const [x, y, z, idx, o] of voxels) {
+      const i = ((x - b.minX) * sy + (y - b.minY)) * sz + (z - b.minZ);
+      grid[i] = idx; oris[i] = o == null ? -1 : o;
     }
     const emptyName = opts.preserveTerrain === false ? 'minecraft:air' : 'minecraft:structure_void';
     const pal = []; const palIndex = {};
     function getPal(name, states, version) {
-      if (palIndex[name] === undefined) {
-        palIndex[name] = pal.length;
+      const key = name + JSON.stringify(states);
+      if (palIndex[key] === undefined) {
+        palIndex[key] = pal.length;
         pal.push({ name: { t: 'string', v: name }, states: { t: 'compound', v: states }, version: { t: 'int', v: version || BEDROCK_BLOCK_VERSION } });
       }
-      return palIndex[name];
+      return palIndex[key];
     }
     const emptyIdx = getPal(emptyName, {});
     const layer0 = new Array(total);
@@ -197,7 +205,7 @@
       const idx = grid[i];
       if (idx < 0) { layer0[i] = emptyIdx; continue; }
       const blk = BLOCKS[idx];
-      layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk), blk.bst && blk.bst[0]);
+      layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk, oris[i] < 0 ? null : oris[i]), blk.bst && blk.bst[0]);
     }
     const layer1 = new Array(total).fill(-1);
     const root = {

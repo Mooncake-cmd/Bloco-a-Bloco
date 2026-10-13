@@ -34,7 +34,7 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{display:grid;grid-template-columns:minmax(0,1fr) 308px;height:100%}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0}
-#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
 .brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
 .brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
 .group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--panel-2);border-radius:8px}
@@ -189,13 +189,29 @@ function six(v) { return Array.isArray(v) ? v : [v, v, v, v, v, v]; }
 function tint6(v) { var t = Array.isArray(v) ? v : [v, v, v]; return [t[0], t[2], t[1], t[1], t[1], t[1]]; }
 /* Linha: [id java, nome, id bedrock, cor topo, cor lado, cor base, tipo (0 opaco, 1 translúcido, 2 recortado),
    texturas java e bedrock por face [cima, baixo, norte, sul, leste, oeste] (bedrock: nomes curtos do terrain_texture.json),
-   cor de bioma [topo, lado, base], estado java exportado, [versão, estados] bedrock exportados].
-   Os dois últimos só existem em blocos com frente, exportados com a frente para o sul como aparecem aqui. */
+   cor de bioma [topo, lado, base], direções, [versão, estados] bedrock padrão].
+   Texturas além das 6 primeiras só aparecem em algumas direções (dispensador virado para cima).
+   Direções: { k: propriedade Java, bk: estado Bedrock, d: índice inicial, o: [[valor Java, valor Bedrock, faces]] },
+   faces = para cada face do mundo, o par (textura de origem, giros de 90 graus no sentido horário), ou 0 se não gira. */
 var BLOCKS = BLOCKS_RAW.map(function (r) {
+  var jt = six(r[7]);
   return { java: r[0], name: r[1], bedrock: r[2], top: r[3], side: r[4], bottom: r[5], kind: r[6] | 0, glass: r[6] === 1,
-    jt: six(r[7]), bt: r[8] ? six(r[8]) : null, tint: tint6(r[9] || 0), jstate: r[10] || '', bst: r[11] || null,
-    tile: [-1, -1, -1, -1, -1, -1], solid: r[6] !== 1, icon: '' };
+    jt: jt, bt: r[8] ? six(r[8]) : null, tint: tint6(r[9] || 0), ori: r[10] || null, bst: r[11] || null,
+    tile: jt.map(function () { return -1; }), solid: r[6] !== 1, icon: '' };
 });
+/* Célula do mundo: bits 0-11 = índice do bloco + 1, bits 12-15 = direção (índice em ori.o) */
+var OSH = 12, IMASK = 4095;
+function cellBlock(v) { return (v & IMASK) - 1; }
+function cellOri(v) { return v >> OSH; }
+function mkCell(bi, o) { var b = BLOCKS[bi]; return (bi + 1) | ((b.ori ? (o == null || o < 0 ? b.ori.d : o) : 0) << OSH); }
+var DIR_PT = { north: 'norte', south: 'sul', east: 'leste', west: 'oeste', up: 'cima', down: 'baixo' };
+function oriLabel(b, o) {
+  if (!b.ori) return '';
+  var v = b.ori.o[o][0];
+  if (b.ori.k === 'axis') return v === 'y' ? 'de pé' : v === 'x' ? 'deitado (leste-oeste)' : 'deitado (norte-sul)';
+  v = v.replace('_up', '');
+  return v === 'up' || v === 'down' ? 'frente para ' + DIR_PT[v] : 'frente para o ' + DIR_PT[v];
+}
 var BY_JAVA = {};
 BLOCKS.forEach(function (b, i) { BY_JAVA[b.java] = i; });
 var inArtifact = !!(window.claude && window.claude.use);
@@ -362,6 +378,7 @@ var TOOLS = [
   ['place', 'Pincel', 'B', '<path class="f" d="M10 2l7 4v8l-7 4-7-4V6z"/><path d="M10 2l7 4v8l-7 4-7-4V6zM3 6l7 4 7-4M10 10v8"/>'],
   ['erase', 'Borracha', 'E', '<path class="f" d="M4 13l7-8 6 5-5 7H7z"/><path d="M4 13l7-8 6 5-5 7H7zM7 17h10M8 9l6 5"/>'],
   ['pick', 'Conta-gotas', 'I', '<path d="M13 3l4 4-3 3-4-4zM10 6L3 13v4h4l7-7"/>'],
+  ['rotate', 'Girar bloco (Shift gira ao contrário)', 'T', '<path d="M15.5 7.5A6 6 0 104 11"/><path d="M16 3v4.5h-4.5"/><path class="f" d="M8 9h4v4H8z"/>'],
   ['line', 'Linha', 'L', '<path d="M4 16L16 4"/><circle cx="4" cy="16" r="1.6" class="f"/><circle cx="16" cy="4" r="1.6" class="f"/>'],
   ['box', 'Caixa sólida', 'R', '<path class="f" d="M4 4h12v12H4z"/><path d="M4 4h12v12H4z"/>'],
   ['hbox', 'Caixa oca (paredes)', 'H', '<path d="M3 3h14v14H3zM7.5 7.5h5v5h-5z"/>'],
@@ -515,7 +532,7 @@ function vis(x, y, z) {
   if (y > layerMax()) return 0;
   return grid[(y * SZ + z) * SX + x];
 }
-function solidAt(x, y, z) { var v = vis(x, y, z); return v && !BLOCKS[v - 1].glass ? 1 : 0; }
+function solidAt(x, y, z) { var v = vis(x, y, z); return v && !BLOCKS[cellBlock(v)].glass ? 1 : 0; }
 function buildChunk(cx, cy, cz) {
   var key = cx + ',' + cy + ',' + cz;
   var old = chunks.get(key);
@@ -526,7 +543,8 @@ function buildChunk(cx, cy, cz) {
   for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
     var v = grid[(y * SZ + z) * SX + x];
     if (!v) continue;
-    var b = BLOCKS[v - 1], T = b.glass ? G : b.solid ? O : C;
+    var b = BLOCKS[cellBlock(v)], T = b.glass ? G : b.solid ? O : C;
+    var fm = b.ori ? b.ori.o[cellOri(v)] && b.ori.o[cellOri(v)][2] : 0;
     var h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; h = h - Math.floor(h);
     var jit = 0.965 + h * 0.07;
     for (var f = 0; f < 6; f++) {
@@ -534,10 +552,12 @@ function buildChunk(cx, cy, cz) {
       var nx = x + F.n[0], ny = y + F.n[1], nz = z + F.n[2];
       var nv = vis(nx, ny, nz);
       if (nv) {
-        var nb = BLOCKS[nv - 1];
-        if (nb.solid || (b.glass && nb.glass && nv === v)) continue;
+        var nb = BLOCKS[cellBlock(nv)];
+        if (nb.solid || (b.glass && nb.glass && cellBlock(nv) === cellBlock(v))) continue;
       }
-      var tl = b.tile[F.t], col = tl >= 0 ? WHITE : b[F.k], jj = tl >= 0 ? 1 : jit, ao = [];
+      // face de origem no modelo e giro da textura, conforme a direção do bloco
+      var src = fm ? fm[F.t * 2] : F.t, rk = fm ? fm[F.t * 2 + 1] : 0;
+      var tl = b.tile[src], col = tl >= 0 ? WHITE : src === 0 ? b.top : src === 1 ? b.bottom : b.side, jj = tl >= 0 ? 1 : jit, ao = [];
       if (tl < 0) tl = b.glass ? 1 : 0;
       var uv = tileUV[tl];
       var ax = F.n[0] ? 0 : F.n[1] ? 1 : 2;
@@ -556,7 +576,8 @@ function buildChunk(cx, cy, cz) {
         var p = F.v[q], l = F.s * jj * AO_L[ao[q]] / 255;
         T.p.push(x + p[0], y + p[1], z + p[2]);
         T.c.push(col[0] * l, col[1] * l, col[2] * l);
-        T.u.push(uv[UVS[q][0] * 2], uv[1 + UVS[q][1] * 2]);
+        var uq = UVS[(q + rk) % 4];
+        T.u.push(uv[uq[0] * 2], uv[1 + uq[1] * 2]);
       }
       if (ao[0] + ao[2] < ao[1] + ao[3]) T.i.push(bi + 1, bi + 2, bi + 3, bi + 1, bi + 3, bi);
       else T.i.push(bi, bi + 1, bi + 2, bi, bi + 2, bi + 3);
@@ -652,7 +673,7 @@ function planeY() { return layerOn ? layerY : 0; }
 function targetAt(cx, cy) {
   var r = rayFrom(cx, cy);
   var hit = castRay(r.o, r.d);
-  var res = { hit: null, place: null, normal: null };
+  var res = { hit: null, place: null, normal: null, d: r.d };
   if (hit) {
     res.hit = hit.cell; res.normal = hit.normal;
     res.place = [hit.cell[0] + hit.normal[0], hit.cell[1] + hit.normal[1], hit.cell[2] + hit.normal[2]];
@@ -689,7 +710,7 @@ function updatePreview() {
     ghostFill.material.color.setRGB(b.top[0] / 255, b.top[1] / 255, b.top[2] / 255);
     setBoxAt(ghostFill, cell); ghostFill.visible = true;
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
-  } else if (et === 'erase' || et === 'pick') {
+  } else if (et === 'erase' || et === 'pick' || et === 'rotate') {
     cell = t.hit; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(et === 'erase' ? danger : info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
   } else if (isShape(et)) {
@@ -707,8 +728,8 @@ function updatePreview() {
 function updateStatus() {
   var t = hoverT, cell = t && (t.hit || t.place);
   $('stPos').textContent = cell ? cell.join(', ') : '–';
-  var tb = t && t.hit ? BLOCKS[grid[idx(t.hit[0], t.hit[1], t.hit[2])] - 1] : null;
-  $('stBlock').textContent = (tb ? tb.name + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
+  var tv = t && t.hit ? grid[idx(t.hit[0], t.hit[1], t.hit[2])] : 0, tb = tv ? BLOCKS[cellBlock(tv)] : null;
+  $('stBlock').textContent = (tb ? tb.name + (tb.ori ? ', ' + oriLabel(tb, cellOri(tv)) : '') + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
@@ -732,12 +753,42 @@ function bbox() {
 }
 
 /* ---------- Ações ---------- */
-function placeAt(c) { if (c && c[1] <= layerMax()) editSet(c[0], c[1], c[2], curBlock() + 1); }
+/* Direção ao colocar, como no jogo: frente virada para quem coloca (o observador olha para longe),
+   troncos e colunas seguem o eixo da face clicada. */
+function nearestDir(d, vertical) {
+  var ax = Math.abs(d[0]), ay = vertical ? Math.abs(d[1]) : 0, az = Math.abs(d[2]);
+  if (ay > ax && ay > az) return d[1] > 0 ? 'up' : 'down';
+  return ax > az ? (d[0] > 0 ? 'east' : 'west') : (d[2] > 0 ? 'south' : 'north');
+}
+var OPP = { north: 'south', south: 'north', east: 'west', west: 'east', up: 'down', down: 'up' };
+function orientFor(bi, t) {
+  var b = BLOCKS[bi], O = b.ori;
+  if (!O || !t || !t.d) return -1;
+  var want;
+  if (O.k === 'axis') { var n = t.normal || [0, 1, 0]; want = n[0] ? 'x' : n[2] ? 'z' : 'y'; }
+  else {
+    var vert = O.o.some(function (e) { return e[0] === 'up'; });
+    var look = nearestDir(t.d, vert);
+    want = b.java === 'observer' ? look : OPP[look];
+    if (O.k === 'orientation') want = OPP[nearestDir(t.d, false)] + '_up';
+  }
+  for (var i = 0; i < O.o.length; i++) if (O.o[i][0] === want) return i;
+  return O.d;
+}
+function placeAt(c, t) { if (c && c[1] <= layerMax()) editSet(c[0], c[1], c[2], mkCell(curBlock(), orientFor(curBlock(), t))); }
+function rotateAt(c, back) {
+  var v = grid[idx(c[0], c[1], c[2])]; if (!v) return;
+  var b = BLOCKS[cellBlock(v)];
+  if (!b.ori) { toast(b.name + ' não tem direção para girar.'); return; }
+  var n = b.ori.o.length, o = (cellOri(v) + (back ? n - 1 : 1)) % n;
+  beginBatch(); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), o)); endBatch();
+  toast(b.name + ': ' + oriLabel(b, o));
+}
 function eraseAt(c) { if (c) editSet(c[0], c[1], c[2], 0); }
-function commitShape(kind, a, b, erase) {
+function commitShape(kind, a, b, erase, t) {
   var cells = shapeCells(kind, a, b);
   beginBatch();
-  var v = erase ? 0 : curBlock() + 1;
+  var v = erase ? 0 : mkCell(curBlock(), orientFor(curBlock(), t));
   for (var i = 0; i < cells.length; i++) {
     var c = cells[i];
     if (!inB(c[0], c[1], c[2]) || c[1] > layerMax()) continue;
@@ -753,18 +804,20 @@ function pressAt(cx, cy, shift) {
     if (!t) return;
     stroke = { mode: et, cells: new Set() };
     beginBatch();
-    if (et === 'place') placeAt(t.place); else eraseAt(t.hit);
+    if (et === 'place') placeAt(t.place, t); else eraseAt(t.hit);
     stroke.last = (et === 'place' ? t.place : t.hit);
     stroke.on = true;
   } else if (et === 'pick') {
     if (t && t.hit) {
       var v = grid[idx(t.hit[0], t.hit[1], t.hit[2])];
-      if (v) { chooseBlock(v - 1); toast('Bloco: ' + BLOCKS[v - 1].name); }
+      if (v) { chooseBlock(cellBlock(v)); toast('Bloco: ' + BLOCKS[cellBlock(v)].name); }
     }
+  } else if (et === 'rotate') {
+    if (t && t.hit) rotateAt(t.hit, shift);
   } else if (isShape(et)) {
     if (!t || !t.place) return;
     if (!anchor) { anchor = t.place.slice(); updateAnchorChip(); }
-    else { var a = anchor; anchor = null; updateAnchorChip(); commitShape(et, a, t.place, shift); }
+    else { var a = anchor; anchor = null; updateAnchorChip(); commitShape(et, a, t.place, shift, t); }
   }
   updatePreview(); updateStatus();
 }
@@ -774,7 +827,7 @@ function dragAt(cx, cy) {
   if (t) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
-      if (stroke.mode === 'place') placeAt(c); else eraseAt(c);
+      if (stroke.mode === 'place') placeAt(c, t); else eraseAt(c);
       stroke.last = c;
     }
   }
@@ -1086,7 +1139,7 @@ async function importPack(src, name, depth) {
     var shorts = {};
     BLOCKS.forEach(function (b) {
       // Blocos com frente usam o mapeamento embutido, que já está girado para o estado exportado
-      var e = !b.bst && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
+      var e = !b.ori && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
       if (e && e.textures) pack.bmap[b.java] = beFaces(e.textures);
       (pack.bmap[b.java] || b.bt || []).forEach(function (n) { if (n) shorts[n] = 1; });
     });
@@ -1159,13 +1212,13 @@ var texJob = 0;
 async function applyTextures() {
   if (!renderer) return;
   var job = ++texJob, active = texOn ? packs : [], tiles = [], seen = new Map(), cache = new Map();
-  var res = BLOCKS.map(function () { return [-1, -1, -1, -1, -1, -1]; });
+  var res = BLOCKS.map(function (b) { return b.jt.map(function () { return -1; }); });
   for (var bi = 0; bi < BLOCKS.length; bi++) {
     var b = BLOCKS[bi];
-    for (var f = 0; f < 6; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
+    for (var f = 0; f < b.jt.length; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
       var P = active[pi], key = packKeys(P, b)[f], t = key && P.tex[key];
       if (!t) continue;
-      var tint = t.ov ? GRASS_TINT : b.tint[f], id = pi + '|' + key + '|' + tint;
+      var tint = t.ov ? GRASS_TINT : b.tint[f] || 0, id = pi + '|' + key + '|' + tint;
       if (!seen.has(id)) {
         var img = cache.get(t);
         if (!img) { try { img = await decodeImage(t); } catch (e) { img = null; } cache.set(t, img); }
@@ -1181,7 +1234,9 @@ async function applyTextures() {
   BLOCKS.forEach(function (b, i) {
     b.tile = res[i];
     b.solid = !b.glass && !(b.kind === 2 && b.tile.some(function (t) { return t >= 0; }));
-    var s = b.tile[3] >= 0 ? b.tile[3] : b.tile[0]; // ícone: face sul (a frente dos blocos com frente)
+    // ícone: face sul na direção inicial (a frente dos blocos com frente)
+    var dm = b.ori && b.ori.o[b.ori.d][2], si = b.tile[dm ? dm[6] : 3];
+    var s = si >= 0 ? si : b.tile[0];
     if (s >= 0) texBlocks++;
     if (s >= 0 && !(s in icons)) {
       var c = document.createElement('canvas'); c.width = c.height = T;
@@ -1278,12 +1333,24 @@ $('packDirIn').addEventListener('change', async function (e) {
 
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
+/* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
+function cellName(v) {
+  var b = BLOCKS[cellBlock(v)], o = cellOri(v);
+  return b.ori && o !== b.ori.d ? b.java + '[' + b.ori.k + '=' + b.ori.o[o][0] + ']' : b.java;
+}
+function cellFromName(nm) {
+  var m = /^([^\[]+)(?:\[(\w+)=(\w+)\])?$/.exec(nm || '');
+  if (!m || !(m[1] in BY_JAVA)) return 0;
+  var bi = BY_JAVA[m[1]], b = BLOCKS[bi], o = -1;
+  if (m[3] && b.ori) for (var i = 0; i < b.ori.o.length; i++) if (b.ori.o[i][0] === m[3]) o = i;
+  return mkCell(bi, o);
+}
 function serialize() {
   var used = {}, pal = [], rle = [];
   var last = -1, run = 0;
   for (var i = 0; i < grid.length; i++) {
     var v = grid[i], m = 0;
-    if (v) { var j = BLOCKS[v - 1].java; if (!(j in used)) { used[j] = pal.length; pal.push(j); } m = used[j] + 1; }
+    if (v) { var j = cellName(v); if (!(j in used)) { used[j] = pal.length; pal.push(j); } m = used[j] + 1; }
     if (m === last) run++; else { if (run) rle.push(last, run); last = m; run = 1; }
   }
   if (run) rle.push(last, run);
@@ -1293,7 +1360,7 @@ function loadProject(o) {
   if (!o || !o.size || !o.rle) throw new Error('Arquivo de projeto inválido.');
   var sx = Math.max(8, Math.min(128, o.size[0] | 0)), sy = Math.max(8, Math.min(128, o.size[1] | 0)), sz = Math.max(8, Math.min(128, o.size[2] | 0));
   newWorld(sx, sy, sz);
-  var map = (o.pal || []).map(function (j) { return j in BY_JAVA ? BY_JAVA[j] + 1 : 0; });
+  var map = (o.pal || []).map(cellFromName);
   var p = 0, miss = 0;
   for (var k = 0; k < o.rle.length; k += 2) {
     var m = o.rle[k], c = o.rle[k + 1];
@@ -1330,7 +1397,7 @@ function resizeWorld(sx, sy, sz) {
 }
 function buildSample() {
   var ox = Math.floor((SX - 9) / 2), oz = Math.floor((SZ - 9) / 2);
-  function B(n) { return (n in BY_JAVA ? BY_JAVA[n] : 0) + 1; }
+  function B(n) { return mkCell(n in BY_JAVA ? BY_JAVA[n] : 0); }
   function put(x, y, z, n) { grid[idx(ox + x, y, oz + z)] = B(n); blockCount++; }
   var x, y, z;
   for (x = 0; x < 9; x++) for (z = 0; z < 9; z++) put(x, 0, z, 'cobblestone');
@@ -1369,7 +1436,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&
 function collectVoxels() {
   var out = [];
   for (var y = 0; y < SY; y++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
-    var v = grid[(y * SZ + z) * SX + x]; if (v) out.push([x, y, z, v - 1]);
+    var v = grid[(y * SZ + z) * SX + x]; if (v) out.push([x, y, z, cellBlock(v), cellOri(v)]);
   }
   return out;
 }
@@ -1433,7 +1500,7 @@ $('exportBtn').addEventListener('click', openExport);
 
 function openMaterials() {
   var counts = {};
-  for (var i = 0; i < grid.length; i++) if (grid[i]) counts[grid[i] - 1] = (counts[grid[i] - 1] || 0) + 1;
+  for (var i = 0; i < grid.length; i++) if (grid[i]) { var bi = cellBlock(grid[i]); counts[bi] = (counts[bi] || 0) + 1; }
   var rows = Object.keys(counts).map(function (k) { return [+k, counts[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
   var text = rows.map(function (r) { return BLOCKS[r[0]].name + ': ' + r[1] + ' (' + Math.floor(r[1] / 64) + ' pilhas + ' + (r[1] % 64) + ')'; }).join('\n');
   var body = rows.length ? '<div class="mat"><table>' + rows.map(function (r) {
@@ -1470,7 +1537,8 @@ function openHelp() {
     '<span><kbd>Botão dir.</kbd> arrastar</span><span>Girar a câmera (clique simples cancela a forma)</span>' +
     '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
-    '<span><kbd>B E I L R H S O</kbd></span><span>Pincel, borracha, conta-gotas, linha, caixa, caixa oca, esfera, esfera oca</span>' +
+    '<span><kbd>B E I T L R H S O</kbd></span><span>Pincel, borracha, conta-gotas, girar, linha, caixa, caixa oca, esfera, esfera oca</span>' +
+    '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
@@ -1529,7 +1597,7 @@ window.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }

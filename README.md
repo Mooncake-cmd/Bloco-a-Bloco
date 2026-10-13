@@ -6,7 +6,9 @@ O usuário joga **Minecraft Bedrock**, então o `.mcstructure` é o formato prin
 
 ## Como usar
 
-Abra `dist/bloco-a-bloco.html` no Chrome ou no Edge. Esse arquivo é autossuficiente (Three.js embutido). Só as fontes vêm do Google Fonts, com fallback do sistema.
+Site: https://mooncake-cmd.github.io/Bloco-a-Bloco/ (GitHub Pages, publicado pelo fluxo `.github/workflows/pages.yml` a cada envio para a `main`; precisa do repositório público e de Settings > Pages > Source: GitHub Actions). Cada navegador guarda a própria construção e o próprio pacote de texturas; para levar uma construção para outro aparelho, use Projeto > Salvar projeto e Abrir projeto.
+
+Também dá para abrir `dist/bloco-a-bloco.html` direto no Chrome ou no Edge. Esse arquivo é autossuficiente (Three.js embutido). Só as fontes vêm do Google Fonts, com fallback do sistema.
 
 ## Estrutura
 
@@ -39,7 +41,10 @@ npm test         # valida os exportadores
 - Desfazer e refazer guardam lotes de alterações `[índice, valorAntigo, valorNovo]`. Um traço de pincel é um lote.
 - Salvamento automático no `localStorage` (RLE + paleta por nome Java). Projeto também pode ser salvo e aberto em `.json`.
 - Texturas por face na ordem [cima, baixo, norte, sul, leste, oeste]. As do Java saem do modelo do bloco no estado exportado (cadeia de `parent`, rotação `x`/`y` do blockstate); as do Bedrock, do `blocks.json` vanilla.
-- Blocos com frente (fornalha, defumador, alto-forno, abóbora entalhada, lanterna de abóbora, dispensador, liberador, observador, crafter, tear, colmeia, ninho de abelha, estante entalhada) ficam com a frente para o sul, que é o lado que a câmera inicial mostra, e são exportados assim: `facing=south` no Java e o estado equivalente no Bedrock (`minecraft:cardinal_direction`, `direction` ou `facing_direction`), com todos os estados e a versão de esquema do minecraft-data. O barril fica de pé (`facing=up`). Tabela `DIR` em `scripts/gen_blocks.js`. Girar blocos ainda não existe.
+- Direção: o mundo guarda em cada célula o índice do bloco + 1 (bits 0 a 11) e a direção (bits 12 a 15, índice na lista `ori.o` do bloco). 78 blocos giram: os com frente (fornalha, defumador, alto-forno, abóbora entalhada, lanterna de abóbora, dispensador, liberador, observador, crafter, tear, colmeia, ninho de abelha, estante entalhada, barril, terracota esmaltada) e os com eixo (troncos, madeiras, caules, colunas, basalto, feno, osso, ardósia profunda, luzes de sapo, bloco de bambu). O gerador acha a propriedade Java (`facing`, `axis`, `orientation`) e o estado Bedrock equivalente (`minecraft:cardinal_direction`, `direction`, `facing_direction`, `minecraft:facing_direction`, `pillar_axis`, `orientation`).
+- Para cada direção, o gerador usa o blockstate Java (modelo, rotação `x`/`y`, `uvlock`) para saber de qual face do modelo vem cada face do mundo e quantos quartos de volta a textura gira nela (convenção do Minecraft: nas laterais o alto da imagem é +Y, no topo é o norte, embaixo é o sul; mais a `rotation` das faces do modelo, como na terracota esmaltada). As texturas Bedrock dos blocos com frente estão na tabela `DIR` na mesma posição do modelo Java (frente para o norte) e giram igual.
+- Ao colocar, a frente fica virada para quem coloca (o observador olha para longe, como no jogo; dispensador, liberador, barril e observador também apontam para cima e para baixo) e os blocos com eixo seguem a face clicada. A ferramenta Girar (T) passa para a próxima direção; com Shift, para a anterior. Direção inicial (sem pista de câmera, projetos antigos, exemplo): frente para o sul nos blocos com frente, barril de pé, o padrão do Java nos demais.
+- Exportação: `facing=…`/`axis=…`/`orientation=…` no `.schem`; no `.mcstructure`, os estados padrão completos do minecraft-data com o estado da direção trocado e a versão de esquema correspondente. No projeto salvo, a direção vai na paleta quando não é a inicial (ex.: `furnace[facing=east]`).
 - Tipo do bloco: 0 opaco, 1 translúcido (vidro, gelo, slime, mel), 2 recortado (folhas: buracos sem transparência parcial).
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
@@ -64,13 +69,13 @@ Menu Projeto > Texturas. O usuário escolhe um pacote de recursos e os blocos pa
 
 - Importar os arquivos dentro do jogo. Testar primeiro numa cópia criativa do mundo. Se o terreno for afetado de forma estranha, desmarcar "preservar terreno".
 - A versão com Three.js via CDN (`dist/artifact.html`) em um navegador com internet.
-- Blocos com frente no jogo, principalmente no Bedrock: conferir se a frente aparece mesmo para o sul. O observador é o mais duvidoso (no Bedrock, `minecraft:facing_direction` deveria ser o lado do rosto).
+- Direções no jogo, principalmente no Bedrock. Os mais duvidosos: observador (se `minecraft:facing_direction` é o lado do rosto, como o `facing` do Java), terracota esmaltada (se o padrão gira igual ao Java para o mesmo `facing_direction`) e crafter.
 - Texturas: testado com o pacote vanilla do Bedrock (bedrock-samples) e com as texturas vanilla do Java. Falta testar um pacote personalizado de verdade (HD, `.mcpack` baixado) e a escolha de pasta no Windows.
 
 ## Ideias para as próximas versões
 
-1. Blocos com estado: girar blocos com frente, troncos deitados, escadas, lajes, portas (hoje só cubos inteiros, cada um num estado fixo).
+1. Blocos que não são cubos inteiros: escadas, lajes, portas, alçapões, cercas.
 2. Importar `.schem` e `.mcstructure` existentes para editar.
 3. Selecionar, copiar, colar, espelhar e girar trechos.
 4. Preencher região, substituir um bloco por outro e cilindro.
-5. Rotação da textura dentro da face (ex.: setas do topo do observador, terracota esmaltada), que hoje é ignorada.
+5. Crafter apontando para cima e para baixo (hoje só as 4 direções horizontais).

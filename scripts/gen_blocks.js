@@ -55,6 +55,8 @@ function modelFaces(name){
   if(!full) return null;
   const res=v=>{ for(let i=0;i<10&&v&&v.startsWith('#');i++) v=tex[v.slice(1)]; return v&&!v.startsWith('#')?clean(v):null; };
   const f={}; for(const k of FACES6) f[k]=full.faces[k]?res(full.faces[k].texture):null;
+  // rotação da textura na própria face (ex.: terracota esmaltada), fica fora das 6 chaves
+  Object.defineProperty(f,'rot',{value:Object.fromEntries(FACES6.map(k=>[k,full.faces[k]&&full.faces[k].rotation||0]))});
   return f.up||f.north?f:null;
 }
 // Rotação do blockstate (x e depois y, em passos de 90 graus, como no jogo)
@@ -90,34 +92,83 @@ function javaFaces(n,props,front){
   for(const k of FACES6) f[k]=f[k]||f.east||f.up||f.north;
   return v?rotate(f,v.x,v.y):f;
 }
-// Blocos com frente: exportados com a frente para o sul (lado da câmera inicial), nos dois formatos.
-// j: propriedades Java; b: estados Bedrock; be: texturas Bedrock com a frente para o NORTE (giradas igual ao Java).
-const S='south';
-const FURN={j:{facing:S},b:{'minecraft:cardinal_direction':S}};
+// Blocos com frente. def: direção inicial (a frente para o sul, lado que a câmera inicial mostra; barril de pé).
+// be: texturas Bedrock com a frente para o NORTE, que é o espaço do modelo Java sem rotação.
 const DIR={
-  furnace:{...FURN,be:{front:'furnace_front_off',side:'furnace_side',up:'furnace_top',down:'furnace_top'}},
-  smoker:{...FURN,be:{front:'smoker_front_off',side:'smoker_side',up:'smoker_top',down:'smoker_bottom'}},
-  blast_furnace:{...FURN,be:{front:'blast_furnace_front_off',side:'blast_furnace_side',up:'blast_furnace_top',down:'blast_furnace_top'}},
-  carved_pumpkin:{...FURN,be:{front:'pumpkin_face',side:'pumpkin_side',up:'pumpkin_top',down:'pumpkin_top'}},
-  jack_o_lantern:{...FURN,be:{front:'pumpkin_face#1',side:'pumpkin_side',up:'pumpkin_top',down:'pumpkin_top'}},
-  loom:{j:{facing:S},b:{direction:0},be:{front:'loom_front',side:'loom_side',up:'loom_top',down:'loom_bottom'}},
-  beehive:{j:{facing:S},b:{direction:0},be:{front:'beehive_front',side:'beehive_side',up:'beehive_top',down:'beehive_top'}},
-  bee_nest:{j:{facing:S},b:{direction:0},be:{front:'bee_nest_front',side:'bee_nest_side',up:'bee_nest_top',down:'bee_nest_bottom'}},
-  chiseled_bookshelf:{j:{facing:S},jfront:'chiseled_bookshelf_empty',b:{direction:0},be:{front:'chiseled_bookshelf_front',side:'chiseled_bookshelf_side',up:'chiseled_bookshelf_top',down:'chiseled_bookshelf_top'}},
-  dispenser:{j:{facing:S},b:{facing_direction:3},be:{front:'dispenser_front_horizontal',side:'dispenser_side',up:'dispenser_top',down:'dispenser_top'}},
-  dropper:{j:{facing:S},b:{facing_direction:3},be:{front:'dropper_front_horizontal',side:'dropper_side',up:'dropper_top',down:'dropper_top'}},
-  observer:{j:{facing:S},b:{'minecraft:facing_direction':S},be:{front:'observer_north',back:'observer_south',side:'observer_east',up:'observer_top',down:'observer_bottom'}},
-  crafter:{j:{orientation:'south_up'},b:{orientation:'south_up'},be:{front:'crafter_north',back:'crafter_south',east:'crafter_east',west:'crafter_west',up:'crafter_top',down:'crafter_bottom'}},
-  // barril de pé (tampa para cima), como aparece no editor
-  barrel:{j:{facing:'up'},b:{facing_direction:1},noRot:1,be:{up:'barrel_top',down:'barrel_bottom',side:'barrel_side'}}
+  furnace:{def:'south',be:{front:'furnace_front_off',side:'furnace_side',up:'furnace_top',down:'furnace_top'}},
+  smoker:{def:'south',be:{front:'smoker_front_off',side:'smoker_side',up:'smoker_top',down:'smoker_bottom'}},
+  blast_furnace:{def:'south',be:{front:'blast_furnace_front_off',side:'blast_furnace_side',up:'blast_furnace_top',down:'blast_furnace_top'}},
+  carved_pumpkin:{def:'south',be:{front:'pumpkin_face',side:'pumpkin_side',up:'pumpkin_top',down:'pumpkin_top'}},
+  jack_o_lantern:{def:'south',be:{front:'pumpkin_face#1',side:'pumpkin_side',up:'pumpkin_top',down:'pumpkin_top'}},
+  loom:{def:'south',be:{front:'loom_front',side:'loom_side',up:'loom_top',down:'loom_bottom'}},
+  beehive:{def:'south',be:{front:'beehive_front',side:'beehive_side',up:'beehive_top',down:'beehive_top'}},
+  bee_nest:{def:'south',be:{front:'bee_nest_front',side:'bee_nest_side',up:'bee_nest_top',down:'bee_nest_bottom'}},
+  chiseled_bookshelf:{def:'south',jfront:'chiseled_bookshelf_empty',be:{front:'chiseled_bookshelf_front',side:'chiseled_bookshelf_side',up:'chiseled_bookshelf_top',down:'chiseled_bookshelf_top'}},
+  dispenser:{def:'south',be:{front:'dispenser_front_horizontal',side:'dispenser_side',up:'dispenser_top',down:'dispenser_top'}},
+  dropper:{def:'south',be:{front:'dropper_front_horizontal',side:'dropper_side',up:'dropper_top',down:'dropper_top'}},
+  observer:{def:'south',be:{front:'observer_north',back:'observer_south',side:'observer_east',up:'observer_top',down:'observer_bottom'}},
+  crafter:{def:'south_up',be:{front:'crafter_north',back:'crafter_south',east:'crafter_east',west:'crafter_west',up:'crafter_top',down:'crafter_bottom'}},
+  barrel:{def:'up',be:{up:'barrel_top',down:'barrel_bottom',side:'barrel_side'}}
 };
+function beDirFaces(d){
+  const e=d.be;
+  return {up:e.up,down:e.down,north:e.front||e.side,south:e.back||e.side,east:e.east||e.side,west:e.west||e.side};
+}
 // Modelos de dois cubos em que o de fora não representa o bloco (mel: casca com a textura de baixo em tudo)
 const JOVR={honey_block:{up:'honey_block_top',down:'honey_block_bottom',north:'honey_block_side',south:'honey_block_side',east:'honey_block_side',west:'honey_block_side'}};
 // O blocks.json do Bedrock põe o rosto (pumpkin_face) na abóbora inteira, mas ela aparece sem rosto no jogo
 const BEOVR={pumpkin:['pumpkin_top','pumpkin_top','pumpkin_side','pumpkin_side','pumpkin_side','pumpkin_side']};
-function beDirFaces(d){
-  const e=d.be, f={up:e.up,down:e.down,north:e.front||e.side,south:e.back||e.side,east:e.east||e.side,west:e.west||e.side};
-  return d.noRot?f:rotate(f,0,180);
+// Texturas que só aparecem em algumas direções (modelo diferente), com o nome Bedrock equivalente
+const JB_EXTRA={dispenser_front_vertical:'dispenser_front_vertical',dropper_front_vertical:'dropper_front_vertical'};
+
+// ---- Direções (rotação) ----
+// Estado Bedrock que guarda a direção e como converter o valor Java
+const BKEYS=[
+  ['minecraft:cardinal_direction',v=>['north','south','east','west'].includes(v)?v:undefined],
+  ['direction',v=>({south:0,west:1,north:2,east:3})[v]],
+  ['facing_direction',v=>({down:0,up:1,north:2,south:3,west:4,east:5})[v]],
+  ['minecraft:facing_direction',v=>v],
+  ['pillar_axis',v=>v],
+  ['orientation',v=>v]
+];
+const V={up:[0,1,0],down:[0,-1,0],north:[0,0,-1],south:[0,0,1],east:[1,0,0],west:[-1,0,0]};
+const neg=v=>v.map(x=>-x||0), eq=(a,b)=>a.every((x,i)=>x===b[i]);
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]].map(x=>x||0);
+const dirOf=v=>FACES6.find(k=>eq(V[k],v));
+// Convenção de textura do Minecraft: nas laterais o "alto" da imagem é +Y; no topo é o norte; embaixo, o sul.
+const canonUp=f=>f==='up'?V.north:f==='down'?V.south:V.up;
+const canonRight=f=>cross(neg(V[f]),canonUp(f));
+function rotVec(v,x,y){
+  for(let i=0;i<((x||0)/90)%4;i++) v=[v[0],v[2],-v[1]].map(q=>q||0);
+  for(let i=0;i<((y||0)/90)%4;i++) v=[-v[2],v[1],v[0]].map(q=>q||0);
+  return v;
+}
+// Para cada face do mundo: [face do modelo de origem, giros de 90 graus no sentido horário da textura]
+function faceMap(mf,x,y,uvlock){
+  const out={};
+  for(const k of FACES6){
+    let u=canonUp(k); const r=(mf.rot&&mf.rot[k]||0)/90;
+    for(let i=0;i<r;i++) u=cross(neg(V[k]),u);
+    const w=dirOf(rotVec(V[k],x,y));
+    let uw;
+    if(uvlock){ uw=canonUp(w); for(let i=0;i<r;i++) uw=cross(neg(V[w]),uw); }
+    else uw=rotVec(u,x,y);
+    const n=V[w], cu=canonUp(w), cr=canonRight(w);
+    const t=eq(uw,cu)?0:eq(uw,cr)?1:eq(uw,neg(cu))?2:3;
+    out[w]=[k,t];
+  }
+  return out;
+}
+function variantFor(n,props){
+  const st=STATES[n]; let v=null;
+  if(st&&st.variants){
+    const ok=k=>!k||k.split(',').every(pv=>{ const [p,val]=pv.split('='); return props[p]===val; });
+    const k=Object.keys(st.variants).find(ok); v=k!==undefined?st.variants[k]:null; if(Array.isArray(v)) v=v[0];
+  } else if(st&&st.multipart){
+    const part=st.multipart.find(p=>p.when&&Object.keys(p.when).length===1&&p.when.facing===props.facing)||st.multipart[0];
+    v=part.apply; if(Array.isArray(v)) v=v[0];
+  }
+  return v;
 }
 // java -> bedrock name overrides
 const alias={jack_o_lantern:'lit_pumpkin',bricks:'brick_block',magma_block:'magma',melon:'melon_block',stone_bricks:'stone_bricks',nether_bricks:'nether_brick',red_nether_bricks:'red_nether_brick',nether_wart_block:'nether_wart_block',mycelium:'mycelium',grass_block:'grass_block',dirt_path:'grass_path',smooth_quartz:'quartz_block',quartz_block:'quartz_block',snow_block:'snow',terracotta:'hardened_clay',bone_block:'bone_block',cut_copper:'cut_copper',moss_block:'moss_block',purpur_block:'purpur_block',end_stone_bricks:'end_bricks',lily_pad:'waterlily',cobweb:'web',note_block:'noteblock',nether_quartz_ore:'quartz_ore',slime_block:'slime',rooted_dirt:'dirt_with_roots',light_gray_glazed_terracotta:'silver_glazed_terracotta',waxed_copper_block:'waxed_copper'};
@@ -143,9 +194,42 @@ for(const b of keep){
   const bn=alias[n]||n;
   if(!bd.blocksByName[bn]){ missing.push(n+'→'+bn); continue; }
   const tn=n.startsWith('waxed_')?n.replace('waxed_',''):n;
-  const dir=DIR[n];
-  const props={...javaDefaults(b),...(dir&&dir.j||{})};
-  const jf=JOVR[n]||javaFaces(n,props,dir&&dir.jfront)||(tn!==n&&javaFaces(tn,props))||null;
+  const dir=DIR[n], defs=javaDefaults(b);
+  // Direções possíveis: propriedade Java facing/axis/orientation que tenha equivalente Bedrock
+  const bdef=bd.blockStates.find(x=>x.name===bn);
+  const jprop=(b.states||[]).find(s=>['facing','axis','orientation'].includes(s.name)&&s.values);
+  const bkey=jprop&&bdef&&BKEYS.find(k=>k[0] in bdef.states);
+  let ori=null, jf=null;
+  if(jprop&&bkey&&!JOVR[n]){
+    let vals=jprop.values.filter(v=>bkey[1](v)!==undefined);
+    if(jprop.name==='orientation') vals=vals.filter(v=>/^(north|south|east|west)_up$/.test(v));
+    const vs=vals.map(v=>({v,va:variantFor(n,{...defs,[jprop.name]:v})})).filter(o=>o.va);
+    // espaço do modelo: a direção cujo blockstate não gira o modelo
+    const base=vs.find(o=>!o.va.x&&!o.va.y)||vs[0];
+    jf=base&&modelFaces(base.va.model);
+    if(jf){
+      if(dir&&dir.jfront&&!jf.north) jf.north=dir.jfront;
+      for(const k of FACES6) jf[k]=jf[k]||jf.east||jf.up||jf.north;
+      const ext=FACES6.map(k=>jf[k]);
+      const list=[];
+      for(const o of vs){
+        let mf=o.va.model===base.va.model?jf:modelFaces(o.va.model);
+        if(!mf) continue;
+        const fm=faceMap(mf,o.va.x,o.va.y,o.va.uvlock);
+        const flat=[];
+        for(const w of FACES6){
+          const [k,t]=fm[w]; let src=FACES6.indexOf(k);
+          if(mf!==jf){ const tx=mf[k]||jf[k]; src=ext.indexOf(tx); if(src<0){ src=ext.length; ext.push(tx); } }
+          flat.push(src,t);
+        }
+        list.push([o.v,bkey[1](o.v),flat]);
+      }
+      const want=dir?dir.def:defs[jprop.name];
+      const di=Math.max(0,list.findIndex(l=>l[0]===want));
+      ori={k:jprop.name,bk:bkey[0],d:di,o:list,ext};
+    }
+  }
+  if(!jf) jf=JOVR[n]||javaFaces(n,defs,dir&&dir.jfront)||(tn!==n&&javaFaces(tn,defs))||null;
   let top=null,side=null,bottom=null;
   if(jf){top=avg(jf.up);side=avg(jf.east);bottom=avg(jf.down);}
   if(!jf||(!top&&!side&&!bottom)){
@@ -158,7 +242,7 @@ for(const b of keep){
   const kind=glassy||top.a<0.9?1:/leaves$/.test(n)?2:0;
   const ti=tintOf(n)||[0,0,0];
   // Texturas Java: nomes em assets/minecraft/textures/block/
-  const jt=jf?FACES6.map(k=>jf[k]):[tn,tn,tn,tn,tn,tn];
+  const jt=ori?ori.ext:jf?FACES6.map(k=>jf[k]):[tn,tn,tn,tn,tn,tn];
   // Texturas Bedrock: nomes curtos do terrain_texture.json
   const be=beBlocks[beTexAlias[n]||bn]||beBlocks[bn];
   let bt=null;
@@ -168,19 +252,22 @@ for(const b of keep){
     const any=beFace(be.textures,'side')||beFace(be.textures,'up');
     bt=FACES6.map(k=>beFace(be.textures,k)||(k==='up'||k==='down'?null:beFace(be.textures,'side'))||any);
   }
+  // texturas extras de algumas direções (dispensador virado para cima/baixo)
+  if(bt&&jt.length>6) for(let i=6;i<jt.length;i++){ if(!JB_EXTRA[jt[i]]) console.error('sem equivalente Bedrock:',n,jt[i]); bt.push(JB_EXTRA[jt[i]]||bt[3]); }
   if(bt) bt.forEach(k=>{ if(!beTerrain[k.split('#')[0]]) beMissing.push(n+':'+k); else beUsed[k]=1; });
   else beMissing.push(n);
-  const compact=a=>a.every(x=>x===a[0])?a[0]:a;
-  // Estado Bedrock completo (padrão do minecraft-data + o que DIR muda), com a versão do esquema de estados
-  let bst=0;
-  if(dir){
-    const def=bd.blockStates.find(x=>x.name===bn);
-    const st={}; for(const k in def.states) st[k]=[def.states[k].type,def.states[k].value];
-    for(const k in dir.b){ if(!st[k]) throw new Error(n+': estado Bedrock '+k+' não existe'); st[k][1]=dir.b[k]; }
-    bst=[def.version,st];
+  const compact=a=>a.length===6&&a.every(x=>x===a[0])?a[0]:a;
+  // Direções: {k: propriedade Java, bk: estado Bedrock, d: índice inicial, o: [[valor Java, valor Bedrock, faces]]}.
+  // faces: para cada face do mundo [cima, baixo, norte, sul, leste, oeste], o par (textura de origem, giros horários);
+  // 0 quando é a identidade. bst: [versão do esquema, estados Bedrock padrão completos].
+  let oriOut=0, bst=0;
+  if(ori&&ori.o.length>1){
+    const id=[0,0,1,0,2,0,3,0,4,0,5,0].join();
+    oriOut={k:ori.k,bk:ori.bk,d:ori.d,o:ori.o.map(([j,bv,f])=>[j,bv,f.join()===id?0:f])};
+    const st={}; for(const k in bdef.states) st[k]=[bdef.states[k].type,bdef.states[k].value];
+    bst=[bdef.version,st];
   }
-  const jst=dir?'['+Object.keys(dir.j).map(k=>k+'='+dir.j[k]).join(',')+']':0;
-  out.push([n,b.displayName,bn,mul(top.c,ti[0]),mul(side.c,ti[1]),mul(bottom.c,ti[2]),kind,compact(jt),bt?compact(bt):0,ti[0]||ti[1]||ti[2]?compact(ti):0,jst,bst]);
+  out.push([n,b.displayName,bn,mul(top.c,ti[0]),mul(side.c,ti[1]),mul(bottom.c,ti[2]),kind,compact(jt),bt?compact(bt):0,ti[0]||ti[1]||ti[2]?compact(ti):0,oriOut,bst]);
 }
 console.error('keep',keep.length,'out',out.length,'missing',missing.length);
 console.error(missing.join(', '));

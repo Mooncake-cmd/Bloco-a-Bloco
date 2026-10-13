@@ -1,0 +1,45 @@
+# Publica o editor no GitHub Pages a cada envio para a main.
+# O site é o dist/bloco-a-bloco.html (Three.js embutido) servido como index.html.
+name: Site (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Só o three é preciso para montar o HTML; minecraft-data/assets servem apenas para regerar a lista de blocos
+      - run: npm install --omit=dev --no-audit --no-fund
+      - run: node scripts/build.js
+      - run: |
+          mkdir -p _site
+          cp dist/bloco-a-bloco.html _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
