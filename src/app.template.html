@@ -102,6 +102,12 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 .dialog .check input{margin-top:3px;accent-color:var(--accent)}
 .btn{height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);font-weight:500}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+a.btn{display:inline-flex;align-items:center;color:var(--fg);text-decoration:none}
+.dialog .get{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.dialog .get b{font-size:13px}
+.dialog .get .row{align-items:center}
+.dialog .get small{color:var(--muted);font-size:12px}
+.dialog .get a:not(.btn){color:var(--accent)}
 .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
 .info{padding:10px 12px;border-radius:8px;background:var(--panel-2);font:12px/1.5 var(--font-mono)}
 .mat{max-height:44vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
@@ -1067,6 +1073,7 @@ $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.targe
    cinza usado pelos blocos sem textura (1 = versão translúcida, para vidros). */
 var BE_TEX = /*%%BETEX%%*/{};
 var GRASS_TINT = 0x91BD59;
+var BEDROCK_ZIP = 'https://github.com/Mojang/bedrock-samples/archive/refs/heads/main.zip';
 var PACK_V = 4; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
 var packs = [];
 var texOn = true;
@@ -1476,7 +1483,9 @@ function openTextures() {
     (packs.length ? '<div class="mat" id="texList"><table>' + list + '</table></div>' +
       '<label class="check"><input type="checkbox" id="txOn"' + (texOn ? ' checked' : '') + '><span>Mostrar texturas (' + texBlocks + ' de ' + BLOCKS.length + ' blocos). Se houver mais de um pacote, o de cima tem prioridade e os de baixo completam o que faltar.</span></label>'
       : '<div class="info" id="texList">Nenhum pacote carregado. Os blocos aparecem com a cor média de cada um.</div>') +
-    '<p>Sem pacote nenhum à mão? As texturas padrão do Bedrock estão no repositório Mojang/bedrock-samples no GitHub (botão Code, Download ZIP). Pode escolher o .zip inteiro: o editor acha a pasta de texturas sozinho e guarda só o que usa. No celular, ler um pacote grande pode levar um minuto; o andamento aparece no alto da tela.</p>' +
+    '<div class="get"><b>Não tem pacote? Use as texturas padrão do Minecraft</b>' +
+      '<div class="row"><a class="btn" id="txGet" href="' + BEDROCK_ZIP + '" target="_blank" rel="noopener" download>Baixar texturas padrão (Bedrock) ↓</a><small>ZIP oficial da Mojang no GitHub (Mojang/bedrock-samples), cerca de 170 MB</small></div>' +
+      '<small>1. Baixe o ZIP. 2. Volte aqui e toque em <b>Escolher arquivo…</b> 3. Escolha o ZIP baixado, sem descompactar: o editor acha a pasta de texturas sozinho e guarda só o que usa (fica salvo neste navegador). No celular, ler o arquivo pode levar um minuto; o andamento aparece no alto da tela. <a href="https://github.com/Mojang/bedrock-samples" target="_blank" rel="noopener">Página do repositório ↗</a></small></div>' +
     '<div class="row"><button class="btn" id="txClose">Fechar</button></div>',
     function () {
       $('txClose').onclick = closeDialog;

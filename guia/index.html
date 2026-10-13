@@ -174,7 +174,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p>O caminho mais comum, do primeiro acesso até a construção dentro do Minecraft Bedrock:</p>
   <ol class="steps">
     <li>Abra o site. Na primeira vez aparece uma casinha de exemplo; para começar do zero use <b>Projeto → Novo (limpar tudo)</b> e clique de novo para confirmar.</li>
-    <li>Carregue as texturas uma vez em <b>Projeto → Texturas…</b> (o pacote padrão do Bedrock, ou o seu). Sem isso os blocos aparecem com a cor média (cap. 10).</li>
+    <li>Carregue as texturas uma vez em <b>Projeto → Texturas…</b> (o botão <b>Baixar texturas padrão</b> da janela traz o pacote padrão do Bedrock; ou use o seu). Sem isso os blocos aparecem com a cor média (cap. 10).</li>
     <li>Ajuste o tamanho em <b>Projeto → Tamanho do espaço…</b> se 32 × 32 × 32 não bastar.</li>
     <li>Escolha blocos na paleta, ponha na hotbar e construa com o pincel e as formas.</li>
     <li>Ajuste portas, alavancas e direções com <b>Usar</b> (<kbd>U</kbd>) e <b>Girar</b> (<kbd>T</kbd>).</li>
@@ -395,15 +395,16 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 
 <section id="texturas">
   <h2><span class="n">10</span>Texturas</h2>
-  <p>O site não traz as texturas do Minecraft (são da Mojang). Você carrega um pacote de recursos uma vez e ele fica guardado no navegador daquele aparelho.</p>
+  <p>O site não traz as texturas do Minecraft (são da Mojang). Você carrega um pacote de recursos uma vez e ele fica guardado no navegador daquele aparelho. Para as texturas padrão, a própria janela tem o botão de download.</p>
   <div class="grid2">
     <figure><img src="img/sem-textura.jpg" alt="Casa sem pacote, com cores lisas" width="972" height="718" loading="lazy"><figcaption>Sem pacote: cada bloco com a cor média e um leve ruído.</figcaption></figure>
     <figure><img src="img/visao-geral.jpg" alt="Casa com o pacote do Bedrock" width="1280" height="800" loading="lazy"><figcaption>Com o pacote padrão do Bedrock.</figcaption></figure>
   </div>
   <div class="side">
-    <figure><img src="img/texturas.jpg" alt="Janela de Texturas com um pacote carregado" width="536" height="485" loading="lazy"><figcaption>Projeto → Texturas…</figcaption></figure>
+    <figure><img src="img/texturas.jpg" alt="Janela de Texturas com um pacote carregado e o botão Baixar texturas padrão" width="536" height="578" loading="lazy"><figcaption>Projeto → Texturas…</figcaption></figure>
     <ul class="plain">
-      <li><b>Escolher arquivo…</b>: aceita <code>.mcpack</code>, <code>.zip</code> e <code>.mcaddon</code> do Bedrock e <code>.zip</code> do Java. Pode ser o ZIP inteiro do repositório Mojang/bedrock-samples (botão Code → Download ZIP): o editor acha a pasta de texturas sozinho.</li>
+      <li><b>Escolher arquivo…</b>: aceita <code>.mcpack</code>, <code>.zip</code> e <code>.mcaddon</code> do Bedrock e <code>.zip</code> do Java. Pode ser o ZIP inteiro do repositório Mojang/bedrock-samples: o editor acha a pasta de texturas sozinho.</li>
+      <li><b>Baixar texturas padrão (Bedrock)</b>: baixa direto o ZIP oficial da Mojang no GitHub (<a href="https://github.com/Mojang/bedrock-samples/archive/refs/heads/main.zip">link direto</a>, cerca de 170 MB). Depois de baixar, toque em <b>Escolher arquivo…</b> e escolha o ZIP como veio, sem descompactar. Só precisa baixar uma vez por aparelho; o arquivo pode ser apagado depois de carregado.</li>
       <li><b>Escolher pasta…</b>: a pasta de um pacote já descompactado (só no computador).</li>
       <li><b>Vários pacotes</b>: o de cima tem prioridade; os de baixo completam as texturas que faltarem. Ex.: o padrão do Bedrock embaixo e o seu pacote personalizado em cima.</li>
       <li><b>Remover</b> tira um pacote; <b>Mostrar texturas</b> desliga todos sem apagar.</li>
