@@ -18,7 +18,7 @@ async function loadShapes() {
     if (d.ti) avg = [avg[0] * (d.tint >> 16 & 255) / 255, avg[1] * (d.tint >> 8 & 255) / 255, avg[2] * (d.tint & 255) / 255].map(Math.round);
     var b = { java: d.n, name: d.d, bedrock: d.n, top: avg, side: avg, bottom: avg, kind: d.k, glass: false, solid: false,
       shape: d, jt: d.t, bt: d.t.map(function (t) { return SH.beTex[t] ? '@' + SH.beTex[t] : null; }), tint: [], ori: null, bst: null,
-      tile: d.t.map(function () { return -1; }), icon: '', hide: !!d.hide };
+      tile: d.t.map(function () { return -1; }), icon: '', hide: !!d.hide, bo: !!d.bo };
     b.texIdx = {}; d.t.forEach(function (t, k) { b.texIdx[t] = k; });
     b.ptIdx = d.pt in b.texIdx ? b.texIdx[d.pt] : 0;
     // propriedades guardadas na célula: base mista na ordem de d.p
@@ -229,6 +229,7 @@ function shapeGeom(b, o) {
       var f = e.from, t = e.to, A = [f[0] / 16, f[1] / 16, f[2] / 16], B = [t[0] / 16, t[1] / 16, t[2] / 16], R = e.rotation;
       for (var d in e.faces) {
         var fc = e.faces[d], tn = mdl.res(fc.texture);
+        if (tn && b.shape.tm && b.shape.tm[tn]) tn = b.shape.tm[tn]; // blocos só do Bedrock: mesma forma, outra textura
         if (!tn || !(tn in b.texIdx)) continue;
         var pts = faceCorners(d, A, B);
         if (R && R.angle) {

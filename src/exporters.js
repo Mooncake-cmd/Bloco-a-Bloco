@@ -119,6 +119,9 @@
   async function exportSchem(voxels, BLOCKS, opts) {
     opts = opts || {};
     if (!voxels.length) throw new Error('A construção está vazia.');
+    // blocos que só existem no Bedrock (bo) não têm equivalente no Java: ficam de fora
+    voxels = voxels.filter(v => !BLOCKS[v[3]].bo);
+    if (!voxels.length) throw new Error('A construção só tem blocos que não existem no Java.');
     const b = bounds(voxels);
     const grid = new Int32Array(b.w * b.h * b.l).fill(-1), oris = new Int32Array(grid.length), extra = [];
     for (const [x, y, z, idx, o, ex] of voxels) {

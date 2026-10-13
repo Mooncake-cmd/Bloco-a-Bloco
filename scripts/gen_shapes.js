@@ -21,7 +21,7 @@ const TRANSLUCENT = new Set();
 for (const n in M) { const t = M[n].textures || {}; for (const k in t) if (t[k] && typeof t[k] === 'object') { if (t[k].force_translucent) TRANSLUCENT.add(clean(t[k].sprite)); t[k] = t[k].sprite; } }
 
 // ---------- Quais blocos ----------
-const SKIP = /^(air|cave_air|void_air|water|lava|bubble_column|moving_piston|piston_head|structure_void|structure_block|jigsaw|barrier|light|command_block|chain_command_block|repeating_command_block|test_block|test_instance_block|frosted_ice|bedrock|infested_.*|budding_amethyst|reinforced_deepslate|spawner|trial_spawner|vault|petrified_oak_slab|sculk_sensor_x)$/;
+const SKIP = /^(air|cave_air|void_air|bubble_column|moving_piston|barrier|test_block|test_instance_block|frosted_ice|bedrock|infested_.*|budding_amethyst|reinforced_deepslate|spawner|trial_spawner|vault|petrified_oak_slab|sculk_sensor_x)$/;
 
 // ---------- Propriedades ----------
 function jprops(b) {
@@ -170,6 +170,15 @@ function entityGeometry(n) {
     const t = (m[1] ? m[1] + '_' : '') + 'shulker_box';
     return { model: { textures: { s: 'block/' + t, particle: 'block/' + t }, elements: [box([0, 0, 0], [16, 16, 16], 's')] }, states: { variants: { '': { model: 'bab:' + n } } } };
   }
+  // marcadores e líquidos: no jogo não têm modelo de bloco
+  const marker = (t, a, b2) => ({ model: { textures: { m: 'block/' + t, particle: 'block/' + t }, elements: [box(a, b2, 'm')] }, states: { variants: { '': { model: 'bab:' + n } } } });
+  if (n === 'light') return marker('yellow_stained_glass', [5, 5, 5], [11, 11, 11]);
+  if (n === 'structure_void') return marker('light_blue_stained_glass', [6, 6, 6], [10, 10, 10]);
+  if (n === 'water' || n === 'lava') {
+    const m = marker(n + '_still', [0, 0, 0], [16, 14, 16]);
+    if (n === 'water') for (const f of Object.values(m.model.elements[0].faces)) f.tintindex = 0;
+    return m;
+  }
   if (n === 'end_portal') return { model: { textures: { e: 'entity/end_portal', particle: 'entity/end_portal' }, elements: [box([0, 6, 0], [16, 12, 16], 'e')] }, states: { variants: { '': { model: 'bab:' + n } } } };
   if (n === 'end_gateway') return { model: { textures: { e: 'entity/end_portal', particle: 'entity/end_portal' }, elements: [box([0, 0, 0], [16, 16, 16], 'e')] }, states: { variants: { '': { model: 'bab:' + n } } } };
   if (n === 'conduit') return { model: { textures: { c: 'block/conduit', particle: 'block/conduit' }, elements: [box([5, 5, 5], [11, 11, 11], 'c')] }, states: { variants: { '': { model: 'bab:' + n } } } };
@@ -186,8 +195,8 @@ function readPng(name) {
   }
   return null;
 }
-function avgOf(name) {
-  const png = readPng(name); if (!png) return null;
+function avgOf(name) { const png = readPng(name); return png ? avgPng(png) : null; }
+function avgPng(png) {
   let r = 0, g = 0, b = 0, a = 0, n = 0; const h = Math.min(png.height, png.width);
   for (let y = 0; y < h; y++) for (let x = 0; x < png.width; x++) {
     const i = (y * png.width + x) * 4, al = png.data[i + 3]; if (al < 10) continue;
@@ -202,6 +211,8 @@ async function fetchJson(u) {
 const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 // Equivalências de nome Java -> Bedrock que nem o nome nem a lista de cubos resolvem
 const BE_SYN = {
+  furnace_front: 'furnace_front_off', smoker_front: 'smoker_front_off', blast_furnace_front: 'blast_furnace_front_off',
+  redstone_lamp: 'redstone_lamp_off', water_still: 'water_still_grey', lava_still: 'lava_still',
   oak_door_top: 'door_wood_upper', oak_door_bottom: 'door_wood_lower', iron_door_top: 'door_iron_upper', iron_door_bottom: 'door_iron_lower',
   spruce_door_top: 'door_spruce_upper', spruce_door_bottom: 'door_spruce_lower', birch_door_top: 'door_birch_upper', birch_door_bottom: 'door_birch_lower',
   jungle_door_top: 'door_jungle_upper', jungle_door_bottom: 'door_jungle_lower', acacia_door_top: 'door_acacia_upper', acacia_door_bottom: 'door_acacia_lower',
@@ -262,6 +273,7 @@ const BE_SYN = {
   function bePattern(j) {
     let m;
     if ((m = /^(\w+)_stained_glass_pane_top$/.exec(j))) return 'glass_pane_top_' + COLOR_BE(m[1]);
+    if (j === 'water_still' || j === 'water_flow') return j + '_grey'; // a tinta azul é aplicada no editor
     if (j === 'shulker_box') return 'shulker_top_undyed';
     if ((m = /^(\w+)_shulker_box$/.exec(j))) return 'shulker_top_' + COLOR_BE(m[1]);
     if ((m = /^(dead_)?(tube|brain|bubble|fire|horn)_coral(_fan)?$/.exec(j))) return (m[3] ? 'coral_fan_' : 'coral_plant_') + CORAL_BE[m[2]] + (m[1] ? '_dead' : '');
@@ -377,6 +389,7 @@ const BE_SYN = {
     // tinta (tintindex): grama, folhagem, redstone...
     let tint = 0;
     if (n === 'redstone_wire') tint = 0x4C0000;
+    else if (n === 'water') tint = 0x3F76E4;
     else if (n === 'lily_pad') tint = 0x208030;
     else if (/^attached_(melon|pumpkin)_stem$/.test(n)) tint = 0xE0C71C;
     else if (/^(melon|pumpkin)_stem$/.test(n)) tint = 0x8DB127;
@@ -393,11 +406,59 @@ const BE_SYN = {
       if (!(t in texAvg)) texAvg[t] = avgOf(t) || [128, 128, 128];
       if (!(t in beTex)) beTex[t] = bePathFor(t);
     }
-    const kind = texList.some(t => TRANSLUCENT.has(t)) || /^(ice|slime_block|honey_block)$/.test(n) ? 1 : 2;
+    const kind = texList.some(t => TRANSLUCENT.has(t)) || /^(ice|slime_block|honey_block|water|light|structure_void)$/.test(n) ? 1 : 2;
     // ícone com a cor de bioma/redstone quando a textura do ícone é pintada no jogo (pó de redstone, grama...)
     const ti = particle && tinted.has(particle) ? 1 : 0;
     blocks.push({ n, d: b.displayName, k: kind, ti, p: P, fam: fam[0], tog, ori, multi, tint, t: texList, pt: particle, be, ent: ent ? 1 : 0 });
   }
+  // ---- Blocos que só existem no Bedrock (bo: ficam de fora do .schem) ----
+  const BE_RAW = BEDROCK_SAMPLES + 'textures/blocks/';
+  async function beAvg(file) {
+    try { const r = await fetch(BE_RAW + file + '.png'); if (!r.ok) return null; return avgPng(PNG.sync.read(Buffer.from(await r.arrayBuffer()))); } catch (e) { return null; }
+  }
+  const byN = {}; blocks.forEach(b => byN[b.n] = b);
+  async function beTexture(key, file, fallback) {
+    beTex[key] = file ? 'textures/blocks/' + file : null;
+    texAvg[key] = (file && await beAvg(file)) || fallback;
+  }
+  function cubeOnly(n, d, faces, bn, k) { // faces: {up,down,north,south,east,west} -> nome de textura
+    const tx = {}, el = { from: [0, 0, 0], to: [16, 16, 16], faces: {} };
+    for (const f in faces) { tx[f] = 'block/' + faces[f]; el.faces[f] = { texture: '#' + f }; }
+    tx.particle = 'block/' + faces.north;
+    models['bab:' + n] = { textures: tx, elements: [el] };
+    states[n] = { variants: { '': { model: 'bab:' + n } } };
+    const t = [...new Set(Object.values(faces))];
+    blocks.push({ n, d: d + ' (só Bedrock)', k: k || 0, ti: 0, p: [], fam: null, tog: [], ori: [], multi: null, tint: 0, t, pt: faces.north, be: { '#name': [[], { '': bn }] }, ent: 1, bo: 1 });
+  }
+  function cloneOnly(n, d, from, bn, tm) { // mesma forma de um bloco Java parecido, com outras texturas e outro nome Bedrock
+    const c = JSON.parse(JSON.stringify(byN[from]));
+    c.n = n; c.d = d + (/_wall_/.test(n) ? '' : ' (só Bedrock)'); c.bo = 1; delete c.wall; delete c.hide;
+    if (tm) { c.tm = tm; c.t = c.t.map(t => tm[t] || t); c.pt = tm[c.pt] || c.pt; }
+    c.be['#name'] = [[], { '': bn }];
+    states[n] = states[from];
+    blocks.push(c);
+  }
+  const all6 = t => ({ up: t, down: t, north: t, south: t, east: t, west: t });
+  await beTexture('be:build_allow', 'build_allow', [90, 160, 70]); cubeOnly('allow', 'Allow', all6('be:build_allow'), 'allow');
+  await beTexture('be:build_deny', 'build_deny', [170, 60, 60]); cubeOnly('deny', 'Deny', all6('be:build_deny'), 'deny');
+  for (const f of ['top', 'side', 'back', 'front']) await beTexture('be:camera_' + f, 'camera_' + f, [90, 90, 90]);
+  cubeOnly('camera', 'Camera', { up: 'be:camera_top', down: 'be:camera_top', north: 'be:camera_back', south: 'be:camera_front', east: 'be:camera_side', west: 'be:camera_side' }, 'camera');
+  await beTexture('be:glowing_obsidian', 'glowing_obsidian', [70, 20, 40]); cubeOnly('glowingobsidian', 'Glowing Obsidian', all6('be:glowing_obsidian'), 'glowingobsidian');
+  await beTexture('be:reactor_core', 'reactor_core_stage_0', [120, 120, 140]); cubeOnly('netherreactor', 'Nether Reactor Core', all6('be:reactor_core'), 'netherreactor');
+  // da Education Edition: sem textura no pacote vanilla (cor média aproximada)
+  await beTexture('be:chemical_heat', null, [190, 80, 40]); cubeOnly('chemical_heat', 'Heat Block', all6('be:chemical_heat'), 'chemical_heat');
+  cubeOnly('hard_glass', 'Hardened Glass', all6('glass'), 'hard_glass', 2);
+  await beTexture('be:invisible_bedrock', null, [170, 180, 200]);
+  models['bab:invisible_bedrock'] = { textures: { m: 'block/be:invisible_bedrock', particle: 'block/be:invisible_bedrock' }, elements: [box([6, 6, 6], [10, 10, 10], 'm')] };
+  states.invisible_bedrock = { variants: { '': { model: 'bab:invisible_bedrock' } } };
+  blocks.push({ n: 'invisible_bedrock', d: 'Invisible Bedrock (só Bedrock)', k: 1, ti: 0, p: [], fam: null, tog: [], ori: [], multi: null, tint: 0, t: ['be:invisible_bedrock'], pt: 'be:invisible_bedrock', be: { '#name': [[], { '': 'invisible_bedrock' }] }, ent: 1, bo: 1 });
+  await beTexture('be:border', 'border', [200, 60, 60]); cloneOnly('border_block', 'Border', 'cobblestone_wall', 'border_block', { cobblestone: 'be:border' });
+  cloneOnly('hard_glass_pane', 'Hardened Glass Pane', 'glass_pane', 'hard_glass_pane');
+  cloneOnly('underwater_torch', 'Underwater Torch', 'torch', 'underwater_torch');
+  cloneOnly('underwater_wall_torch', 'Underwater Wall Torch', 'wall_torch', 'underwater_torch');
+  for (const n of ['allow', 'deny', 'border_block', 'camera', 'chemical_heat', 'hard_glass', 'hard_glass_pane', 'underwater_torch', 'netherreactor', 'glowingobsidian', 'invisible_bedrock'])
+    if (!beStates[n] && beDef[n]) { const d = beDef[n], s0 = {}; for (const k in d.states) s0[k] = [d.states[k].type, d.states[k].value]; beStates[n] = [d.version, s0]; }
+
   // variantes de parede (tocha de parede, placa de parede...): escondidas da paleta, usadas ao clicar na lateral
   const byName = {}; blocks.forEach(b => byName[b.n] = b);
   for (const b of blocks) {

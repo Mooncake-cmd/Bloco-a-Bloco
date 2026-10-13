@@ -301,11 +301,12 @@ function changed() {
 /* ---------- Paleta ---------- */
 var CATS = [
   ['all', 'Todos'], ['fav', '★ Favoritos'], ['pedra', 'Pedra'], ['madeira', 'Madeira'], ['cor', 'Cores'],
-  ['minerio', 'Minérios'], ['natureza', 'Natureza'], ['vidro', 'Vidro'], ['formas', 'Formas'], ['redstone', 'Redstone'], ['plantas', 'Plantas'], ['deco', 'Decoração'], ['outros', 'Outros']
+  ['minerio', 'Minérios'], ['natureza', 'Natureza'], ['vidro', 'Vidro'], ['formas', 'Formas'], ['redstone', 'Redstone'], ['plantas', 'Plantas'], ['deco', 'Decoração'], ['tecnico', 'Técnicos e só Bedrock'], ['outros', 'Outros']
 ];
 function catOf(b) {
   var n = b.java;
   if (b.shape) {
+    if (b.bo || /^(command_block|chain_command_block|repeating_command_block|structure_block|structure_void|jigsaw|light|water|lava|piston_head)$/.test(n)) return 'tecnico';
     if (/redstone|repeater|comparator|lever|_button|pressure_plate|tripwire|rail$|piston|daylight|target|hopper|lightning_rod|sculk_sensor|lectern|tnt/.test(n)) return 'redstone';
     if (/(_stairs|_slab|_wall|_fence|_fence_gate|_door|_trapdoor|_pane|_bars|_carpet|ladder|scaffolding|chain)$/.test(n)) return 'formas';
     if (/sapling|flower|tulip|rose|orchid|allium|bluet|daisy|dandelion|poppy|cornflower|lily|fern|grass|bush|mushroom|wheat|carrots|potatoes|beetroots|stem|vine|kelp|seagrass|coral|cactus|sugar_cane|bamboo|dripleaf|azalea|petals|propagule|roots|fungus|sprouts|berr|cocoa|nether_wart|pickle|chorus|moss|lichen|eyeblossom|torchflower|pitcher|litter|lilac|peony|leaves/.test(n)) return 'plantas';
@@ -1030,7 +1031,7 @@ $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.targe
    cinza usado pelos blocos sem textura (1 = versão translúcida, para vidros). */
 var BE_TEX = /*%%BETEX%%*/{};
 var GRASS_TINT = 0x91BD59;
-var PACK_V = 3; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
+var PACK_V = 4; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
 var packs = [];
 var texOn = true;
 try { texOn = localStorage.getItem('bloco-a-bloco-tex') !== '0'; } catch (e) {}
@@ -1629,12 +1630,17 @@ function openExport() {
   var vox = collectVoxels();
   var bb = vox.length ? MCExport.bounds(vox) : null;
   var dim = bb ? bb.w + ' × ' + bb.h + ' × ' + bb.l : 'vazia';
+  // blocos que só existem no Bedrock: ficam de fora do .schem
+  var bo = {}, boN = 0;
+  vox.forEach(function (v) { var b = BLOCKS[v[3]]; if (b.bo) { var nm = b.name.replace(' (só Bedrock)', ''); bo[nm] = (bo[nm] || 0) + 1; boN++; } });
+  var boTxt = Object.keys(bo).map(function (k) { return esc(k) + ' (' + bo[k] + ')'; }).join(', ');
   openDialog(
     '<h3>Exportar construção</h3>' +
     '<div class="info">Tamanho: ' + dim + '<br>Blocos: ' + vox.length + '</div>' +
     '<label>Nome do arquivo<input type="text" id="exName" value="construcao" maxlength="40"></label>' +
     '<label class="check"><input type="checkbox" id="exKeep" checked><span>Bedrock: deixar o terreno intacto onde a construção tem ar (usa blocos vazios de estrutura). Desmarque para a construção substituir tudo no retângulo por ar.</span></label>' +
     '<div class="row"><button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button><button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
+    (boN ? '<div class="info">Só existem no Bedrock e ficam de fora do .schem (Java): ' + boTxt + '. No .mcstructure vão normalmente.</div>' : '') +
     '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
     '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
     function () {
@@ -1652,6 +1658,7 @@ function openExport() {
           var bytes = await MCExport.exportSchem(vox, BLOCKS, { name: cleanName($('exName').value) });
           var nm = cleanName($('exName').value) + '.schem';
           reportSave(await saveBytes(nm, bytes), nm);
+          if (boN) setTimeout(function () { toast(boN + ' blocos só do Bedrock ficaram de fora do .schem: ' + Object.keys(bo).join(', ') + '.', 7000); }, 2700);
         } catch (e) { reportErr(e); }
       };
     });
