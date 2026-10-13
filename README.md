@@ -39,7 +39,7 @@ npm test         # valida os exportadores
 
 ## Como o editor funciona
 
-- O mundo é um `Uint16Array` (0 = vazio, n = índice do bloco + 1), indexado por `(y * SZ + z) * SX + x`. Tamanho padrão 32 x 32 x 32, até 128 por lado.
+- O mundo é um `Uint32Array` (0 = vazio; bits 0 a 11 = índice do bloco + 1; acima, o estado), indexado por `(y * SZ + z) * SX + x`. Tamanho padrão 32 x 32 x 32. Sem limite por lado (até 2048); o limite é de 64 milhões de células (256 MB), ex.: 400 x 400 x 400. Em espaços grandes, os pedaços da malha são refeitos aos poucos (até 25 ms por quadro), e o salvamento automático avisa se a construção não couber no armazenamento do navegador.
 - Renderização em chunks de 16 x 16 x 16 com remoção de faces ocultas, oclusão ambiente por vértice e textura de ruído. Só os chunks alterados são refeitos.
 - Alvo do mouse: varredura de voxels (DDA) mais interseção com o plano do chão ou da camada ativa.
 - Desfazer e refazer guardam lotes de alterações `[índice, valorAntigo, valorNovo]`. Um traço de pincel é um lote.
@@ -83,7 +83,7 @@ Projeto > Abrir projeto ou estrutura… aceita `.json` (projeto), `.mcstructure`
 - **.schem**: cada entrada da paleta (`minecraft:oak_stairs[facing=east,...]`) vira o bloco do editor com as propriedades guardadas; as calculadas pelos vizinhos são recalculadas.
 - **.mcstructure**: para cada entrada da paleta, os blocos do editor com o mesmo nome Bedrock são testados em todos os estados guardados, usando a mesma tabela da exportação; ganha o que bate com mais estados e, no empate (o Bedrock não guarda tudo, ex.: botão no chão), o mais perto do padrão. `structure_void` vira vazio. A cor da cama vem de `block_position_data` (a exportação agora grava esse dado).
 - Ida e volta (exportar e importar de novo) testada: idêntica nos dois formatos, com escadas, portas, redstone, cercas, camas e cubos girados.
-- Limites: estruturas acima de 128 em algum lado são cortadas; nomes antigos (antes da 1.13 no Java, ou nomes Bedrock antigos como `wool` com estado de cor) ficam de fora, com aviso; conteúdo de baús, texto de placas e comandos não são importados; a segunda camada do `.mcstructure` (água dentro do bloco) é ignorada.
+- O espaço passa a ter o tamanho da estrutura (sem cortar), respeitando o limite de células. Limites: nomes antigos (antes da 1.13 no Java, ou nomes Bedrock antigos como `wool` com estado de cor) ficam de fora, com aviso; conteúdo de baús, texto de placas e comandos não são importados; a segunda camada do `.mcstructure` (água dentro do bloco) é ignorada.
 
 ## Exportação
 

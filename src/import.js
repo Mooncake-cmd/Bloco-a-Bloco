@@ -84,18 +84,20 @@ function cellFromJava(key) {
 
 /* Monta o mundo: dims e get(x, y, z) -> célula (0 = vazio); desconhecidos contados por nome */
 function fillWorld(w, h, l, get) {
-  var sx = Math.max(8, Math.min(128, w)), sy = Math.max(8, Math.min(128, h)), sz = Math.max(8, Math.min(128, l));
+  // o espaço passa a ter o tamanho da estrutura (no mínimo 8 por lado), sem cortar
+  var sx = Math.max(8, w), sy = Math.max(8, h), sz = Math.max(8, l);
+  var se = sizeError(sx, sy, sz); if (se) throw new Error('Estrutura grande demais para abrir: ' + se);
   newWorld(sx, sy, sz);
-  for (var y = 0; y < Math.min(h, 128); y++) for (var z = 0; z < Math.min(l, 128); z++) for (var x = 0; x < Math.min(w, 128); x++) {
+  for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
     var v = get(x, y, z); if (v) { grid[idx(x, y, z)] = v; blockCount++; }
   }
-  dirtyAll(); changed(); renderList();
-  return w > 128 || h > 128 || l > 128;
+  verCounter++; dirtyAll(); changed(); renderList();
+  return false;
 }
 function importReport(kind, cut, unknown) {
   var names = Object.keys(unknown), n = names.reduce(function (a, k) { return a + unknown[k]; }, 0);
   var msg = kind + ' importado: ' + blockCount + ' blocos.';
-  if (cut) msg += ' A estrutura passava de 128 blocos em algum lado e foi cortada.';
+  msg += ' Espaço: ' + SX + ' × ' + SY + ' × ' + SZ + '.';
   if (n) msg += ' ' + n + ' blocos desconhecidos ficaram de fora: ' + names.slice(0, 6).map(function (k) { return k.replace('minecraft:', ''); }).join(', ') + (names.length > 6 ? '…' : '') + '.';
   toast(msg, n || cut ? 10000 : 4000);
 }

@@ -565,6 +565,14 @@ var $ = function (id) { return document.getElementById(id); };
 
 /* ---------- Estado do mundo ---------- */
 var SX = 32, SY = 32, SZ = 32;
+/* Sem limite fixo por lado: o que limita é a memória (4 bytes por célula, mesmo vazia).
+   64 milhões de células = 256 MB, ex.: 400 x 400 x 400. */
+var MAX_SIDE = 2048, MAX_CELLS = 64 * 1024 * 1024;
+function sizeError(sx, sy, sz) {
+  if (sx > MAX_SIDE || sy > MAX_SIDE || sz > MAX_SIDE) return 'Máximo de ' + MAX_SIDE + ' blocos por lado.';
+  if (sx * sy * sz > MAX_CELLS) return sx + ' × ' + sy + ' × ' + sz + ' passa do limite de ' + (MAX_CELLS / 1048576) + ' milhões de blocos de espaço (a memória do navegador não aguenta).';
+  return '';
+}
 var grid = new Uint32Array(SX * SY * SZ);
 var blockCount = 0;
 var CS = 16;
@@ -864,7 +872,9 @@ function buildHelpers() {
   var vol = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(SX, SY, SZ)), new THREE.LineBasicMaterial({ color: edgeC, transparent: true, opacity: 0.35 }));
   vol.position.set(SX / 2, SY / 2, SZ / 2); scene.add(vol); helpers.push(vol);
   [['N', SX / 2, -2.2], ['S', SX / 2, SZ + 2.2], ['L', SX + 2.2, SZ / 2], ['O', -2.2, SZ / 2]].forEach(function (l) {
-    var s = labelSprite(l[0], fg); s.position.set(l[1], 0.2, l[2]); scene.add(s); helpers.push(s);
+    // letras da bússola crescem com o espaço, para continuarem legíveis de longe
+    var ls = Math.max(3, Math.max(SX, SZ) / 12), s = labelSprite(l[0], fg);
+    s.scale.set(ls, ls, 1); s.position.set(l[1] + Math.sign(l[1] - SX / 2) * (ls - 3) * 0.6, 0.2, l[2] + Math.sign(l[2] - SZ / 2) * (ls - 3) * 0.6); scene.add(s); helpers.push(s);
   });
   positionGrid();
 }
@@ -954,10 +964,14 @@ function buildChunk(cx, cy, cz) {
   });
   if (meshes.length) chunks.set(key, meshes);
 }
+/* Refaz os pedaços alterados; em espaços grandes, aos poucos (até ~25 ms por quadro) para a tela não travar */
 function rebuildDirty() {
   if (!dirty.size) return;
-  dirty.forEach(function (k) { var p = k.split(','); buildChunk(+p[0], +p[1], +p[2]); });
-  dirty.clear();
+  var t0 = performance.now();
+  for (var k of dirty) {
+    var p = k.split(','); buildChunk(+p[0], +p[1], +p[2]); dirty.delete(k);
+    if (performance.now() - t0 > 25) { requestRender(); break; }
+  }
 }
 function dirtyAll() {
   for (var cx = 0; cx * CS < SX; cx++) for (var cy = 0; cy * CS < SY; cy++) for (var cz = 0; cz * CS < SZ; cz++) dirty.add(cx + ',' + cy + ',' + cz);
@@ -974,7 +988,9 @@ function updateCamera() {
   camera.lookAt(cam.tx, cam.ty, cam.tz);
   camera.updateMatrixWorld(true);
 }
+function maxDist() { return Math.max(600, (SX + SY + SZ) * 2); }
 function resetCamera() {
+  camera.far = Math.max(1500, (SX + SY + SZ) * 4); camera.updateProjectionMatrix();
   cam.yaw = 0.8; cam.pitch = 0.62; cam.dist = Math.max(SX, SZ) * 1.35 + 6;
   cam.tx = SX / 2; cam.ty = Math.min(6, SY / 4); cam.tz = SZ / 2;
   updateCamera(); requestRender();
@@ -1016,12 +1032,13 @@ function castRay(o, d) {
     else tm[a] = d[a] > 0 ? (c[a] + 1 - o[a]) / d[a] : (o[a] - c[a]) / -d[a];
   }
   var face = [0, 0, 0], t = 0;
-  for (var n = 0; n < 1600; n++) {
+  var maxN = (SX + SY + SZ) * 2 + 64, maxT = (SX + SY + SZ) * 2 + cam.dist * 2;
+  for (var n = 0; n < maxN; n++) {
     if (n > 0 && solidForRay(c[0], c[1], c[2])) return { cell: [c[0], c[1], c[2]], normal: face.slice(), t: t };
     var ax = tm[0] < tm[1] ? (tm[0] < tm[2] ? 0 : 2) : (tm[1] < tm[2] ? 1 : 2);
     t = tm[ax]; c[ax] += st[ax]; tm[ax] += td[ax];
     face = [0, 0, 0]; face[ax] = -st[ax];
-    if (t > 700) break;
+    if (t > maxT) break;
   }
   return null;
 }
@@ -1256,7 +1273,7 @@ function bindCanvas() {
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   cv.addEventListener('wheel', function (e) {
     e.preventDefault();
-    cam.dist = Math.min(600, Math.max(3, cam.dist * Math.exp(e.deltaY * 0.0012)));
+    cam.dist = Math.min(maxDist(), Math.max(3, cam.dist * Math.exp(e.deltaY * 0.0012)));
     updateCamera(); requestRender();
   }, { passive: false });
   cv.addEventListener('pointerdown', function (e) {
@@ -1287,7 +1304,7 @@ function bindCanvas() {
       } else if (mode === 'pinch' && ptrs.size >= 2) {
         var ps = pinchState();
         if (lastPinch) {
-          cam.dist = Math.min(600, Math.max(3, cam.dist * (lastPinch.d / Math.max(ps.d, 1))));
+          cam.dist = Math.min(maxDist(), Math.max(3, cam.dist * (lastPinch.d / Math.max(ps.d, 1))));
           pan(ps.cx - lastPinch.cx, ps.cy - lastPinch.cy);
           updateCamera(); requestRender();
         }
@@ -2289,18 +2306,20 @@ function cellFromJava(key) {
 
 /* Monta o mundo: dims e get(x, y, z) -> célula (0 = vazio); desconhecidos contados por nome */
 function fillWorld(w, h, l, get) {
-  var sx = Math.max(8, Math.min(128, w)), sy = Math.max(8, Math.min(128, h)), sz = Math.max(8, Math.min(128, l));
+  // o espaço passa a ter o tamanho da estrutura (no mínimo 8 por lado), sem cortar
+  var sx = Math.max(8, w), sy = Math.max(8, h), sz = Math.max(8, l);
+  var se = sizeError(sx, sy, sz); if (se) throw new Error('Estrutura grande demais para abrir: ' + se);
   newWorld(sx, sy, sz);
-  for (var y = 0; y < Math.min(h, 128); y++) for (var z = 0; z < Math.min(l, 128); z++) for (var x = 0; x < Math.min(w, 128); x++) {
+  for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
     var v = get(x, y, z); if (v) { grid[idx(x, y, z)] = v; blockCount++; }
   }
-  dirtyAll(); changed(); renderList();
-  return w > 128 || h > 128 || l > 128;
+  verCounter++; dirtyAll(); changed(); renderList();
+  return false;
 }
 function importReport(kind, cut, unknown) {
   var names = Object.keys(unknown), n = names.reduce(function (a, k) { return a + unknown[k]; }, 0);
   var msg = kind + ' importado: ' + blockCount + ' blocos.';
-  if (cut) msg += ' A estrutura passava de 128 blocos em algum lado e foi cortada.';
+  msg += ' Espaço: ' + SX + ' × ' + SY + ' × ' + SZ + '.';
   if (n) msg += ' ' + n + ' blocos desconhecidos ficaram de fora: ' + names.slice(0, 6).map(function (k) { return k.replace('minecraft:', ''); }).join(', ') + (names.length > 6 ? '…' : '') + '.';
   toast(msg, n || cut ? 10000 : 4000);
 }
@@ -2394,7 +2413,8 @@ function serialize() {
 }
 function loadProject(o) {
   if (!o || !o.size || !o.rle) throw new Error('Arquivo de projeto inválido.');
-  var sx = Math.max(8, Math.min(128, o.size[0] | 0)), sy = Math.max(8, Math.min(128, o.size[1] | 0)), sz = Math.max(8, Math.min(128, o.size[2] | 0));
+  var sx = Math.max(8, o.size[0] | 0), sy = Math.max(8, o.size[1] | 0), sz = Math.max(8, o.size[2] | 0);
+  var se = sizeError(sx, sy, sz); if (se) throw new Error(se);
   newWorld(sx, sy, sz);
   var map = (o.pal || []).map(cellFromName);
   var p = 0, miss = 0;
@@ -2406,20 +2426,27 @@ function loadProject(o) {
   }
   if (o.hotbar) hotbar = o.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
   slot = o.slot | 0;
-  dirtyAll(); renderHotbar(); renderList(); changed();
+  verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
 }
 function newWorld(sx, sy, sz) {
+  var g;
+  try { g = new Uint32Array(sx * sy * sz); } catch (e) { throw new Error('Sem memória para um espaço de ' + sx + ' × ' + sy + ' × ' + sz + '. Tente um tamanho menor.'); }
   SX = sx; SY = sy; SZ = sz;
-  grid = new Uint32Array(SX * SY * SZ); blockCount = 0;
+  grid = g; blockCount = 0; verCounter++;
   undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip();
   layerOn = false; layerY = 0; syncLayerUI();
   clearChunks(); dirty.clear(); dirtyAll();
   if (scene) { buildHelpers(); resetCamera(); }
   hoverT = null;
 }
+var autosaveWarned = false;
 function autosave() {
-  try { localStorage.setItem(KEY, JSON.stringify(serialize())); } catch (e) {}
+  try { localStorage.setItem(KEY, JSON.stringify(serialize())); autosaveWarned = false; }
+  catch (e) {
+    // construção grande demais para o armazenamento do navegador (alguns MB)
+    if (!autosaveWarned) { autosaveWarned = true; toast('A construção ficou grande demais para o salvamento automático. Use Projeto > Salvar projeto para não perder o trabalho.', 9000); }
+  }
 }
 function resizeWorld(sx, sy, sz) {
   var old = grid, ox = SX, oy = SY, oz = SZ;
@@ -2577,13 +2604,14 @@ function openMaterials() {
 $('matBtn').addEventListener('click', openMaterials);
 
 function openSize() {
-  openDialog('<h3>Tamanho do espaço</h3><p>Área de trabalho em blocos (8 a 128 por lado). Ao diminuir, blocos fora do novo limite são removidos.</p>' +
-    '<div class="row"><label>Largura (X)<input type="number" id="szX" min="8" max="128" value="' + SX + '"></label><label>Altura (Y)<input type="number" id="szY" min="8" max="128" value="' + SY + '"></label><label>Profundidade (Z)<input type="number" id="szZ" min="8" max="128" value="' + SZ + '"></label></div>' +
+  openDialog('<h3>Tamanho do espaço</h3><p>Área de trabalho em blocos (mínimo 8 por lado). Ao diminuir, blocos fora do novo limite são removidos. Espaços muito grandes pesam: cada bloco de espaço ocupa memória mesmo vazio, e o limite é ' + (MAX_CELLS / 1048576) + ' milhões (ex.: 400 × 400 × 400).</p>' +
+    '<div class="row"><label>Largura (X)<input type="number" id="szX" min="8" value="' + SX + '"></label><label>Altura (Y)<input type="number" id="szY" min="8" value="' + SY + '"></label><label>Profundidade (Z)<input type="number" id="szZ" min="8" value="' + SZ + '"></label></div>' +
     '<div class="row"><button class="btn primary" id="szOk">Aplicar</button><button class="btn" id="szNo">Cancelar</button></div>',
     function () {
       $('szNo').onclick = closeDialog;
       $('szOk').onclick = function () {
-        var f = function (id) { return Math.max(8, Math.min(128, parseInt($(id).value, 10) || 32)); };
+        var f = function (id) { return Math.max(8, parseInt($(id).value, 10) || 32); };
+        var se = sizeError(f('szX'), f('szY'), f('szZ')); if (se) { toast(se, 7000); return; }
         resizeWorld(f('szX'), f('szY'), f('szZ')); closeDialog(); toast('Espaço: ' + SX + ' × ' + SY + ' × ' + SZ);
       };
     });
