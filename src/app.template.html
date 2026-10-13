@@ -54,8 +54,8 @@ button{cursor:pointer}
 details.menu{position:relative}
 details.menu summary{list-style:none}
 details.menu summary::-webkit-details-marker{display:none}
-details.menu .pop{position:absolute;right:0;top:40px;z-index:30;min-width:200px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column}
-details.menu .pop button{justify-content:flex-start;height:36px;width:100%}
+details.menu .pop{position:absolute;right:0;top:40px;z-index:30;min-width:240px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column}
+details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:36px;width:100%;text-decoration:none;text-align:left;white-space:nowrap}
 #viewport{position:relative;flex:1 1 auto;min-height:0;background:var(--scene-bg);overflow:hidden}
 #viewport canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
 #hotbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px;padding:5px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
@@ -153,6 +153,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
           <button class="tbtn txt" id="helpBtn">Atalhos e ajuda</button>
+          <a class="tbtn txt" id="guideLink" href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">Guia de uso completo ↗</a>
         </div>
       </details>
       <input type="file" id="fileIn" accept=".json,.mcstructure,.schem,application/json" hidden>
@@ -1741,6 +1742,7 @@ function openHelp() {
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
+    '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
     '<div class="row"><button class="btn primary" id="hClose">Entendi</button></div>',
     function () { $('hClose').onclick = closeDialog; });
 }

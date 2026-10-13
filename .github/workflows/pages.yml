@@ -30,6 +30,7 @@ jobs:
       - run: |
           mkdir -p _site
           cp dist/bloco-a-bloco.html _site/index.html
+          cp -r guia _site/guia
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

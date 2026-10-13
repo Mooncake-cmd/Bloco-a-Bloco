@@ -18,3 +18,6 @@ let body=t.replace(titleM,'').replace('%%THREE%%','<script>'+three.replace(/<\/s
 const local='<!doctype html>\n<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+titleM+'</head><body>\n'+body+'\n</body></html>\n';
 fs.writeFileSync(root+'/dist/bloco-a-bloco.html',local);
 console.log('artifact',art.length,'local',local.length);
+// guia de uso: guia/guia.html é o conteúdo (o mesmo publicado como artefato); o site serve guia/index.html
+const guia=fs.readFileSync(root+'/guia/guia.html','utf8');
+fs.writeFileSync(root+'/guia/index.html','<!doctype html>\n<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>\n'+guia+'\n</body></html>\n');

@@ -6,6 +6,8 @@ O usuário joga **Minecraft Bedrock**, então o `.mcstructure` é o formato prin
 
 ## Como usar
 
+Guia de uso com imagens: https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/ (fonte em `guia/guia.html`; manter atualizado a cada implementação, ver `CLAUDE.md`).
+
 Site: https://mooncake-cmd.github.io/Bloco-a-Bloco/ (GitHub Pages, publicado pelo fluxo `.github/workflows/pages.yml` a cada envio para a `main`; precisa do repositório público e de Settings > Pages > Source: GitHub Actions). Cada navegador guarda a própria construção e o próprio pacote de texturas; para levar uma construção para outro aparelho, use Projeto > Salvar projeto e Abrir projeto.
 
 Também dá para abrir `dist/bloco-a-bloco.html` direto no Chrome ou no Edge. Esse arquivo é autossuficiente (Three.js embutido). Só as fontes vêm do Google Fonts, com fallback do sistema.

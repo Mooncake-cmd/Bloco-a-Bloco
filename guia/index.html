@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Guia do Bloco a Bloco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: manual de oficina. Índice fixo à esquerda no computador, capítulos numerados (são a ordem de leitura), capturas reais do site com marcadores. */
+:root{
+  --bg:#eef1ee; --paper:#fbfcfb; --panel:#e6ebe7; --fg:#18221d; --muted:#586861; --line:#cdd6d0;
+  --accent:#b4530a; --accent-fg:#ffffff; --info:#1d6fa5; --warn:#8a5a00; --warn-bg:#fbf1dc;
+  --display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1412; --paper:#161d1a; --panel:#1f2924; --fg:#e5ebe7; --muted:#8c9d94; --line:#2a3631;
+    --accent:#f0a23b; --accent-fg:#1a1204; --info:#6cb6e8; --warn:#f0c46a; --warn-bg:#2a2414; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1412; --paper:#161d1a; --panel:#1f2924; --fg:#e5ebe7; --muted:#8c9d94; --line:#2a3631;
+  --accent:#f0a23b; --accent-fg:#1a1204; --info:#6cb6e8; --warn:#f0c46a; --warn-bg:#2a2414; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);margin:0}
+.wrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:40px;max-width:1240px;margin:0 auto;padding-inline:24px;padding-block:32px 80px}
+nav.toc{position:sticky;top:calc(16px + env(safe-area-inset-top,0px));align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:14px}
+nav.toc .brand{font:700 20px/1.1 var(--display);letter-spacing:-.02em;margin-bottom:12px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;counter-reset:t}
+nav.toc a{display:flex;gap:8px;padding:5px 8px;border-radius:6px;color:var(--fg);text-decoration:none}
+nav.toc a:hover{background:var(--panel)}
+nav.toc a span{font:500 12px var(--mono);color:var(--muted);min-width:22px;padding-top:2px}
+main{min-width:0;display:flex;flex-direction:column;gap:56px}
+header.cover{display:flex;flex-direction:column;gap:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(32px,5vw,52px)/1.05 var(--display);letter-spacing:-.03em;margin:0;text-wrap:balance}
+h2{font:700 28px/1.15 var(--display);letter-spacing:-.02em;margin:0;text-wrap:balance;display:flex;gap:12px;align-items:baseline}
+h2 .n{font:500 14px var(--mono);color:var(--accent);min-width:28px}
+h3{font:700 19px/1.25 var(--display);margin:8px 0 0;letter-spacing:-.01em}
+p{margin:0;max-width:68ch}
+.lead{font-size:18px;color:var(--muted);max-width:62ch}
+section{display:flex;flex-direction:column;gap:16px;scroll-margin-top:16px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.fact{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.fact b{display:block;font:700 26px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+a{color:var(--info)}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+figcaption{font-size:14px;color:var(--muted);max-width:70ch}
+.shot{position:relative}
+.shot img{border-radius:10px}
+.pin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font:600 13px/26px var(--mono);text-align:center;box-shadow:0 0 0 3px var(--paper),0 2px 8px rgba(0,0,0,.35)}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 24px;margin:0;padding:0;list-style:none}
+.legend li{display:flex;gap:10px;align-items:flex-start}
+.legend .pin{position:static;transform:none;flex:none;width:24px;height:24px;line-height:24px;font-size:12px;box-shadow:none}
+.strip-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.strip{min-width:760px;position:relative}
+.strip img{display:block;width:100%;border:0;border-radius:0}
+.strip .marks{position:relative;height:30px;border-top:1px solid var(--line)}
+.strip .marks .pin{top:15px;width:22px;height:22px;line-height:22px;font-size:11px;box-shadow:none}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px;align-items:start}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font:600 12px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--panel)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+kbd{font:500 12px var(--mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel);white-space:nowrap}
+code{font:13.5px var(--mono);background:var(--panel);padding:1px 5px;border-radius:4px}
+ul.plain,ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
+.note{border:1px solid var(--line);border-left:4px solid var(--warn);background:var(--warn-bg);border-radius:8px;padding:12px 14px;max-width:72ch;font-size:15px}
+.note b{color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:13px;background:var(--paper)}
+@media (max-width:980px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:24px;padding-inline:16px}
+  nav.toc{position:static;max-height:none}
+  nav.toc ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+}
+@media (max-width:640px){
+  .grid2,.side{grid-template-columns:minmax(0,1fr)}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  h2{font-size:24px}
+  .pin{width:20px;height:20px;line-height:20px;font-size:10px}
+}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Capítulos">
+  <div class="brand">Bloco a Bloco</div>
+  <ol>
+    <li><a href="#tela"><span>01</span>A tela</a></li>
+    <li><a href="#comecar"><span>02</span>Do zero ao jogo</a></li>
+    <li><a href="#ferramentas"><span>03</span>Ferramentas</a></li>
+    <li><a href="#camera"><span>04</span>Câmera e navegação</a></li>
+    <li><a href="#camada"><span>05</span>Camada</a></li>
+    <li><a href="#paleta"><span>06</span>Paleta e hotbar</a></li>
+    <li><a href="#blocos"><span>07</span>Os blocos</a></li>
+    <li><a href="#status"><span>08</span>Barra de status</a></li>
+    <li><a href="#projeto"><span>09</span>Menu Projeto</a></li>
+    <li><a href="#texturas"><span>10</span>Texturas</a></li>
+    <li><a href="#exportar"><span>11</span>Exportar</a></li>
+    <li><a href="#importar"><span>12</span>Importar</a></li>
+    <li><a href="#materiais"><span>13</span>Materiais</a></li>
+    <li><a href="#tamanho"><span>14</span>Tamanho do espaço</a></li>
+    <li><a href="#salvar"><span>15</span>Salvar e aparelhos</a></li>
+    <li><a href="#tema"><span>16</span>Tema e celular</a></li>
+    <li><a href="#atalhos"><span>17</span>Atalhos</a></li>
+    <li><a href="#limites"><span>18</span>Limites conhecidos</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="cover">
+  <div class="eyebrow">Manual de uso · outubro de 2026 · <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/">abrir o editor</a></div>
+  <h1>Guia do Bloco a Bloco</h1>
+  <p class="lead">O editor 3D de construções de Minecraft que roda no navegador: monte bloco a bloco, veja com as texturas do seu pacote e leve para o jogo como <code>.mcstructure</code> (Bedrock) ou <code>.schem</code> (Java). Este guia passa por todas as funções do site, com capturas da própria tela.</p>
+  <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
+  <div class="facts">
+    <div class="fact"><b>1.088</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
+    <div class="fact"><b>10</b><span>ferramentas de construção</span></div>
+    <div class="fact"><b>13</b><span>categorias de blocos</span></div>
+    <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
+    <div class="fact"><b>64 mi</b><span>blocos de espaço no máximo (ex.: 400 × 400 × 400)</span></div>
+  </div>
+</header>
+
+<section id="tela">
+  <h2><span class="n">01</span>A tela</h2>
+  <p>Tudo acontece numa tela só. A área 3D ocupa o centro; a paleta de blocos fica à direita no computador (embaixo, no celular).</p>
+  <figure>
+    <div class="shot">
+      <img src="img/visao-geral.jpg" alt="Tela do Bloco a Bloco com uma casa de madeira, cerca, árvore e redstone, e a paleta de blocos à direita" width="1280" height="800">
+      <span class="pin" style="left:14.3%;top:6%">1</span>
+      <span class="pin" style="left:31%;top:6%">2</span>
+      <span class="pin" style="left:37%;top:6%">3</span>
+      <span class="pin" style="left:57.9%;top:6%">4</span>
+      <span class="pin" style="left:64.9%;top:6%">5</span>
+      <span class="pin" style="left:71.8%;top:6%">6</span>
+      <span class="pin" style="left:38%;top:44%">7</span>
+      <span class="pin" style="left:20.4%;top:91.5%">8</span>
+      <span class="pin" style="left:3%;top:96.5%">9</span>
+      <span class="pin" style="left:77.3%;top:10.7%">10</span>
+      <span class="pin" style="left:77.3%;top:21%">11</span>
+      <span class="pin" style="left:76%;top:50%">12</span>
+    </div>
+    <figcaption>A casa de exemplo deste guia, com o pacote de texturas padrão do Bedrock carregado.</figcaption>
+  </figure>
+  <ol class="legend">
+    <li><span class="pin">1</span><span><b>Ferramentas</b>: pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera e esfera oca (cap. 03).</span></li>
+    <li><span class="pin">2</span><span><b>Desfazer e refazer</b> (<kbd>Ctrl</kbd>+<kbd>Z</kbd> e <kbd>Ctrl</kbd>+<kbd>Y</kbd>), até 300 passos.</span></li>
+    <li><span class="pin">3</span><span><b>Camada</b>: mostra só até uma altura, para enxergar dentro da construção (cap. 05).</span></li>
+    <li><span class="pin">4</span><span><b>Materiais</b>: lista de blocos usados, em pilhas de 64 (cap. 13).</span></li>
+    <li><span class="pin">5</span><span><b>Exportar</b> para .mcstructure ou .schem (cap. 11).</span></li>
+    <li><span class="pin">6</span><span><b>Projeto</b>: novo, salvar, abrir e importar, tamanho, grade, texturas, tema e ajuda (cap. 09).</span></li>
+    <li><span class="pin">7</span><span><b>Área 3D</b>: onde se constrói. A grade marca o chão; as letras N, S, L e O são a bússola.</span></li>
+    <li><span class="pin">8</span><span><b>Hotbar</b>: 9 blocos à mão, teclas <kbd>1</kbd> a <kbd>9</kbd> (cap. 06).</span></li>
+    <li><span class="pin">9</span><span><b>Barra de status</b>: posição do alvo, bloco e estado, tamanho e total de blocos (cap. 08).</span></li>
+    <li><span class="pin">10</span><span><b>Busca</b> de blocos por nome em inglês ou id (ex.: <code>oak</code>, <code>glass</code>).</span></li>
+    <li><span class="pin">11</span><span><b>Categorias</b>: Todos, Favoritos, Pedra, Madeira, Cores, Minérios, Natureza, Vidro, Formas, Redstone, Plantas, Decoração, Técnicos e só Bedrock, Outros.</span></li>
+    <li><span class="pin">12</span><span><b>Lista de blocos</b>: toque para pôr no espaço ativo da hotbar; a estrela marca favorito.</span></li>
+  </ol>
+</section>
+
+<section id="comecar">
+  <h2><span class="n">02</span>Do zero ao jogo</h2>
+  <p>O caminho mais comum, do primeiro acesso até a construção dentro do Minecraft Bedrock:</p>
+  <ol class="steps">
+    <li>Abra o site. Na primeira vez aparece uma casinha de exemplo; para começar do zero use <b>Projeto → Novo (limpar tudo)</b> e clique de novo para confirmar.</li>
+    <li>Carregue as texturas uma vez em <b>Projeto → Texturas…</b> (o pacote padrão do Bedrock, ou o seu). Sem isso os blocos aparecem com a cor média (cap. 10).</li>
+    <li>Ajuste o tamanho em <b>Projeto → Tamanho do espaço…</b> se 32 × 32 × 32 não bastar.</li>
+    <li>Escolha blocos na paleta, ponha na hotbar e construa com o pincel e as formas.</li>
+    <li>Ajuste portas, alavancas e direções com <b>Usar</b> (<kbd>U</kbd>) e <b>Girar</b> (<kbd>T</kbd>).</li>
+    <li>Confira a <b>lista de materiais</b> se for construir no modo sobrevivência.</li>
+    <li><b>Exportar → Baixar .mcstructure</b>. No jogo, um bloco de estrutura no modo Carregar, botão Importar, escolhe o arquivo.</li>
+    <li>Guarde o projeto com <b>Projeto → Salvar projeto (.json)</b> para continuar em outro aparelho.</li>
+  </ol>
+</section>
+
+<section id="ferramentas">
+  <h2><span class="n">03</span>Ferramentas</h2>
+  <p>A barra do topo, da esquerda para a direita. Cada ferramenta tem uma tecla; no celular basta tocar no ícone.</p>
+  <div class="strip-wrap"><div class="strip">
+    <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
+    <div class="marks">
+      <span class="pin" style="left:3.1%">1</span><span class="pin" style="left:6.6%">2</span><span class="pin" style="left:10.1%">3</span><span class="pin" style="left:13.6%">4</span><span class="pin" style="left:17.1%">5</span><span class="pin" style="left:20.6%">6</span><span class="pin" style="left:24.1%">7</span><span class="pin" style="left:27.6%">8</span><span class="pin" style="left:31.1%">9</span><span class="pin" style="left:34.6%">10</span><span class="pin" style="left:39.1%">11</span><span class="pin" style="left:42.6%">12</span><span class="pin" style="left:48.8%">13</span><span class="pin" style="left:57.5%">14</span>
+    </div>
+  </div></div>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Ferramenta</th><th>Tecla</th><th>Clique</th><th>Com Shift</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
+      <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
+      <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
+      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor, carga da âncora, nível da água.</td><td>Muda a segunda opção do bloco, quando existe.</td></tr>
+      <tr><td>5</td><td><b>Girar</b></td><td><kbd>T</kbd></td><td>Passa para a próxima direção: frente, eixo do tronco, escada de cabeça para baixo, laje em cima/embaixo/dupla.</td><td>Gira ao contrário.</td></tr>
+      <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="5">Dois cliques: o primeiro marca o ponto inicial, o segundo o final. Entre os dois, uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto mostra o ponto inicial e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No segundo clique, apaga a forma em vez de construir.</td></tr>
+      <tr><td>7</td><td><b>Caixa sólida</b></td><td><kbd>R</kbd></td></tr>
+      <tr><td>8</td><td><b>Caixa oca</b> (paredes)</td><td><kbd>H</kbd></td></tr>
+      <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td></tr>
+      <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
+      <tr><td>11–12</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
+      <tr><td>13–14</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Pincel e a mira</h3>
+  <div class="side">
+    <figure><img src="img/mira.jpg" alt="Prévia translúcida do bloco onde o pincel vai colocar" width="640" height="480" loading="lazy"><figcaption>Ao passar o mouse, um bloco translúcido mostra onde o pincel vai colocar. Na borracha e no conta-gotas, só o contorno aparece.</figcaption></figure>
+    <ul class="plain">
+      <li>O bloco vai para o lado da face apontada; no chão vazio, para a grade.</li>
+      <li>Ao colocar, o bloco já fica como no jogo: frente virada para você, tronco seguindo a face clicada, laje e alçapão em cima ou embaixo conforme a metade clicada, tocha e placa presas na parede se clicadas na lateral (cap. 07).</li>
+      <li>Laje sobre laje igual vira laje dupla.</li>
+      <li>Porta, cama, girassol e outras plantas altas ocupam dois blocos; se não couber, aparece um aviso.</li>
+    </ul>
+  </div>
+
+  <h3>Formas com dois cliques</h3>
+  <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida entre o primeiro e o segundo clique, com o aviso do ponto inicial no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida depois do primeiro clique: a prévia laranja mostra a área, e o aviso no canto superior esquerdo mostra o ponto inicial com o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
+
+  <h3>Usar e Girar</h3>
+  <div class="grid2">
+    <figure><img src="img/porta-fechada.jpg" alt="Porta de carvalho fechada na frente da casa" width="600" height="500" loading="lazy"><figcaption>Antes: porta fechada. A barra de status mostra o estado do bloco apontado.</figcaption></figure>
+    <figure><img src="img/porta-aberta.jpg" alt="Mesma porta aberta depois de usar a ferramenta Usar, com o aviso Oak Door: open = true" width="600" height="650" loading="lazy"><figcaption>Depois de <b>Usar</b>: as duas metades abrem juntas e o aviso confirma <code>open = true</code>.</figcaption></figure>
+  </div>
+  <figure><img src="img/girados.jpg" alt="Troncos de pé, deitados de leste a oeste e de norte a sul, coluna de quartzo e fornalhas viradas" width="972" height="600" loading="lazy"><figcaption><b>Girar</b> em blocos com eixo e com frente: troncos de pé e deitados (os anéis e a casca acompanham), fornalhas com a frente para lados diferentes.</figcaption></figure>
+</section>
+
+<section id="camera">
+  <h2><span class="n">04</span>Câmera e navegação</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Ação</th><th>Mouse</th><th>Teclado</th><th>Toque</th></tr></thead>
+    <tbody>
+      <tr><td>Girar a vista</td><td>Arrastar com o botão direito</td><td>—</td><td>Arrastar com um dedo</td></tr>
+      <tr><td>Mover a vista</td><td>Botão do meio, ou <kbd>Shift</kbd> + botão direito</td><td>Setas</td><td>Dois dedos</td></tr>
+      <tr><td>Zoom</td><td>Roda</td><td>—</td><td>Pinça com dois dedos</td></tr>
+      <tr><td>Recentralizar</td><td>—</td><td><kbd>Home</kbd></td><td>—</td></tr>
+      <tr><td>Grade do chão</td><td>Projeto → Mostrar/ocultar grade</td><td><kbd>G</kbd></td><td>Menu Projeto</td></tr>
+    </tbody>
+  </table></div>
+  <p>Um clique simples com o botão direito (sem arrastar) cancela uma forma em andamento. A bússola no chão mostra <b>N</b>orte, <b>S</b>ul, <b>L</b>este e <b>O</b>este; elas são as mesmas direções do jogo, então uma porta virada para o norte aqui fica virada para o norte no mundo (em relação à posição em que a estrutura é carregada). Em espaços grandes, as letras crescem e o zoom afasta mais.</p>
+</section>
+
+<section id="camada">
+  <h2><span class="n">05</span>Camada</h2>
+  <div class="side">
+    <figure><img src="img/camada.jpg" alt="Casa cortada na altura 2, mostrando o interior com baús" width="1280" height="800" loading="lazy"><figcaption>Camada ligada na altura 2: o telhado e a parte de cima das paredes somem, e a grade sobe para essa altura.</figcaption></figure>
+    <ul class="plain">
+      <li>O botão <b>Camada</b> liga o corte; o controle ao lado escolhe a altura, mostrada em número.</li>
+      <li><kbd>[</kbd> desce e <kbd>]</kbd> sobe uma camada (ligando o corte se estiver desligado).</li>
+      <li>Com o corte ligado, as ferramentas só agem até essa altura, e o chão de colocação passa a ser a camada. Serve para fazer andares, pisos e interiores sem o telhado atrapalhar.</li>
+      <li>Nada é apagado: desligar o corte mostra tudo de novo.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="paleta">
+  <h2><span class="n">06</span>Paleta e hotbar</h2>
+  <div class="grid4">
+    <figure><img src="img/paleta.jpg" alt="Paleta em Todos" width="308" height="800" loading="lazy"><figcaption>Todos (1.088)</figcaption></figure>
+    <figure><img src="img/paleta-formas.jpg" alt="Paleta na categoria Formas" width="308" height="800" loading="lazy"><figcaption>Formas (267)</figcaption></figure>
+    <figure><img src="img/paleta-busca.jpg" alt="Busca por stairs" width="308" height="800" loading="lazy"><figcaption>Busca “stairs”</figcaption></figure>
+    <figure><img src="img/paleta-tecnicos.jpg" alt="Categoria Técnicos e só Bedrock" width="308" height="800" loading="lazy"><figcaption>Técnicos e só Bedrock (21)</figcaption></figure>
+  </div>
+  <ul class="plain">
+    <li><b>Busca</b>: por nome em inglês ou id do Minecraft, com várias palavras (ex.: <code>oak stairs</code>). Combina com a categoria escolhida.</li>
+    <li><b>Escolher</b>: clicar (ou <kbd>Enter</kbd> com o item em foco) põe o bloco no espaço ativo da hotbar.</li>
+    <li><b>Favoritos</b>: a estrela marca; a categoria ★ Favoritos mostra só os marcados. Ficam guardados no navegador.</li>
+    <li><b>Amostras</b>: com pacote carregado, cada bloco mostra a textura (a frente, nos blocos com frente); sem pacote, a cor média.</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>Categoria</th><th>O que tem</th><th class="num">Blocos</th></tr></thead>
+    <tbody>
+      <tr><td>Pedra</td><td>Pedras, tijolos, ardósia, quartzo, prismarinho, cobre…</td><td class="num">110</td></tr>
+      <tr><td>Madeira</td><td>Tábuas, troncos, madeiras, caules, bambu</td><td class="num">55</td></tr>
+      <tr><td>Cores</td><td>Lã, concreto, terracota e terracota esmaltada</td><td class="num">81</td></tr>
+      <tr><td>Minérios</td><td>Minérios e blocos de metal e gema</td><td class="num">32</td></tr>
+      <tr><td>Natureza</td><td>Terra, grama, areia, cascalho, folhas, gelo, musgo…</td><td class="num">42</td></tr>
+      <tr><td>Vidro</td><td>Vidros, gelo translúcido, slime, mel</td><td class="num">21</td></tr>
+      <tr><td>Formas</td><td>Escadas, lajes, muros, cercas, portões, portas, alçapões, vidraças, barras, tapetes, escada de mão, andaime, correntes</td><td class="num">267</td></tr>
+      <tr><td>Redstone</td><td>Pó, repetidor, comparador, alavanca, botões, placas de pressão, trilhos, pistões, linha de armadilha, TNT…</td><td class="num">58</td></tr>
+      <tr><td>Plantas</td><td>Flores, mudas, plantações, cogumelos, corais, cipós, folhagens</td><td class="num">160</td></tr>
+      <tr><td>Decoração</td><td>Camas, baús, placas, estandartes, cabeças, lanternas, bolo, bigorna, caldeirão, velas, moldura do portal do Fim…</td><td class="num">197</td></tr>
+      <tr><td>Técnicos e só Bedrock</td><td>Blocos de comando, estrutura, quebra-cabeça, luz, água, lava e os 11 blocos que só existem no Bedrock</td><td class="num">21</td></tr>
+      <tr><td>Outros</td><td>O que não se encaixa acima (estantes, mesas de trabalho, blocos especiais)</td><td class="num">44</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Hotbar</h3>
+  <figure><img src="img/hotbar.jpg" alt="Hotbar com nove blocos" width="460" height="76" loading="lazy" style="max-width:460px"><figcaption>Nove espaços, como no jogo. <kbd>1</kbd>–<kbd>9</kbd> ou um toque escolhem o espaço ativo (contorno laranja); a paleta troca o bloco desse espaço. A hotbar é salva junto com o projeto.</figcaption></figure>
+</section>
+
+<section id="blocos">
+  <h2><span class="n">07</span>Os blocos</h2>
+  <p>São 1.150 blocos ao todo: 385 cubos inteiros e 765 formas (dos quais 62 são variantes de parede que o editor usa sozinho). Os nomes aparecem em inglês, como no jogo em inglês e nos comandos.</p>
+  <figure><img src="img/formas.jpg" alt="Vitrine com escadas, lajes, portas, cercas, muros, vidraças, redstone, baús, cama, portal do Fim, flores e mais" width="972" height="640" loading="lazy"><figcaption>Algumas formas com o pacote do Bedrock: escadas em L, lajes, portas, alçapões, cercas e muros conectados, vidraças, redstone ligada ao repetidor e à alavanca, linha de armadilha, trilhos, baú duplo, placas, tochas, cama, molduras do portal do Fim, bolo, bigorna e plantas.</figcaption></figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Comportamento</th><th>Como funciona</th></tr></thead>
+    <tbody>
+      <tr><td>Direção ao colocar</td><td>Escada, porta, portão e cama ficam virados para onde você olha. Baú, fornalha, abóbora entalhada, repetidor, comparador e afins ficam de frente para você. Dispensador, liberador, barril e pistão também apontam para cima ou para baixo; o observador olha para longe de você. Troncos e colunas seguem o eixo da face clicada.</td></tr>
+      <tr><td>Metade clicada</td><td>Laje, escada e alçapão ficam em cima ou embaixo conforme a metade da face clicada (ou se você clicou embaixo de um bloco).</td></tr>
+      <tr><td>Variante de parede</td><td>Tocha, tocha de redstone, placa, placa pendurada, estandarte, cabeça e leque de coral clicados na lateral de um bloco viram a versão de parede.</td></tr>
+      <tr><td>Chão, teto e parede</td><td>Botão, alavanca, rebolo e sino mudam conforme a face: chão, teto ou parede. Lanterna clicada embaixo fica pendurada.</td></tr>
+      <tr><td>Placas em 16 posições</td><td>Placa, estandarte e cabeça no chão giram em passos de 22,5°, de frente para você.</td></tr>
+      <tr><td>Conexões automáticas</td><td>Cercas, muros, vidraças e barras se ligam aos vizinhos e aos blocos sólidos; portões encaixam no muro. O pó de redstone se liga a componentes e sobe degraus; sozinho, vira cruz. Escadas fazem cantos em L. Dois baús iguais lado a lado viram baú duplo. A linha de armadilha prende nos ganchos.</td></tr>
+      <tr><td>Dois blocos</td><td>Porta, cama e plantas altas (girassol, roseira, lilás, peônia, capim alto) são colocadas, giradas, usadas e apagadas como uma peça só.</td></tr>
+      <tr><td>Laje dupla</td><td>Pôr a mesma laje sobre a face de cima de uma laje de baixo (ou embaixo de uma de cima) junta as duas.</td></tr>
+      <tr><td>Blocos que mudam com Usar</td><td>Aberto/fechado, ligado/desligado, aceso/apagado, idade das plantações, pedaços do bolo, número de velas, picles do mar, camadas de neve, atraso do repetidor, modo do comparador, olho na moldura do portal do Fim, carga da âncora, nível de água, lava e luz.</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Técnicos e só Bedrock</h3>
+  <figure><img src="img/inventario.jpg" alt="Os 32 itens do inventário de teste, incluindo blocos de comando, portais, fogo, água e blocos só do Bedrock" width="972" height="640" loading="lazy"><figcaption>Blocos técnicos e só do Bedrock no editor.</figcaption></figure>
+  <ul class="plain">
+    <li><b>Técnicos</b> (existem nos dois jogos): bloco de comando (normal, em cadeia, repetidor), bloco de estrutura, quebra-cabeça, vazio de estrutura, bloco de luz (níveis 0 a 15), rocha-mãe, água, lava, cabeça de pistão. Saem sem comando e sem configuração.</li>
+    <li><b>Só Bedrock</b> (marcados “só Bedrock” no nome): allow, deny, border, camera, obsidiana brilhante, núcleo do reator do Nether, rocha-mãe invisível e, da Education Edition, calor químico, vidro reforçado, painel de vidro reforçado e tocha subaquática. Vão no .mcstructure; ficam de fora do .schem, com aviso.</li>
+    <li>Luz, vazio de estrutura e rocha-mãe invisível são invisíveis no jogo; aqui aparecem como cubinhos translúcidos. Água e lava aparecem como blocos translúcidos e escorrem no jogo.</li>
+  </ul>
+</section>
+
+<section id="status">
+  <h2><span class="n">08</span>Barra de status</h2>
+  <figure><img src="img/status.jpg" alt="Barra de status mostrando o alvo, a porta com seu estado e o tamanho da construção" width="972" height="28" loading="lazy"><figcaption>Com o mouse sobre a porta.</figcaption></figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Campo</th><th>Mostra</th></tr></thead>
+    <tbody>
+      <tr><td>Alvo</td><td>Coordenadas x, y, z do bloco apontado (ou de onde o próximo bloco vai).</td></tr>
+      <tr><td>Bloco</td><td>O bloco apontado com o estado (ex.: <code>Oak Door [facing=north, hinge=left, open=false]</code> ou <code>Oak Log, deitado (leste-oeste)</code>) e, depois, o bloco ativo da hotbar.</td></tr>
+      <tr><td>Construção</td><td>Largura × altura × profundidade da parte construída; durante uma forma, também o tamanho da forma.</td></tr>
+      <tr><td>Blocos</td><td>Total de blocos colocados.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="projeto">
+  <h2><span class="n">09</span>Menu Projeto</h2>
+  <div class="side">
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="400" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <div class="tbl"><table>
+      <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
+      <tbody>
+        <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar.</td></tr>
+        <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
+        <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
+        <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
+        <tr><td>Texturas…</td><td>Carrega e organiza pacotes de recursos (cap. 10).</td></tr>
+        <tr><td>Tema</td><td>Alterna automático (segue o sistema), claro e escuro.</td></tr>
+        <tr><td>Atalhos e ajuda</td><td>Resumo dos atalhos (também com <kbd>?</kbd>).</td></tr>
+        <tr><td>Guia de uso completo ↗</td><td>Abre este guia numa aba nova. A janela de ajuda também tem o link.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="texturas">
+  <h2><span class="n">10</span>Texturas</h2>
+  <p>O site não traz as texturas do Minecraft (são da Mojang). Você carrega um pacote de recursos uma vez e ele fica guardado no navegador daquele aparelho.</p>
+  <div class="grid2">
+    <figure><img src="img/sem-textura.jpg" alt="Casa sem pacote, com cores lisas" width="972" height="718" loading="lazy"><figcaption>Sem pacote: cada bloco com a cor média e um leve ruído.</figcaption></figure>
+    <figure><img src="img/visao-geral.jpg" alt="Casa com o pacote do Bedrock" width="1280" height="800" loading="lazy"><figcaption>Com o pacote padrão do Bedrock.</figcaption></figure>
+  </div>
+  <div class="side">
+    <figure><img src="img/texturas.jpg" alt="Janela de Texturas com um pacote carregado" width="536" height="485" loading="lazy"><figcaption>Projeto → Texturas…</figcaption></figure>
+    <ul class="plain">
+      <li><b>Escolher arquivo…</b>: aceita <code>.mcpack</code>, <code>.zip</code> e <code>.mcaddon</code> do Bedrock e <code>.zip</code> do Java. Pode ser o ZIP inteiro do repositório Mojang/bedrock-samples (botão Code → Download ZIP): o editor acha a pasta de texturas sozinho.</li>
+      <li><b>Escolher pasta…</b>: a pasta de um pacote já descompactado (só no computador).</li>
+      <li><b>Vários pacotes</b>: o de cima tem prioridade; os de baixo completam as texturas que faltarem. Ex.: o padrão do Bedrock embaixo e o seu pacote personalizado em cima.</li>
+      <li><b>Remover</b> tira um pacote; <b>Mostrar texturas</b> desliga todos sem apagar.</li>
+      <li>O contador mostra quantos blocos ficaram com textura.</li>
+      <li>Grama e folhas recebem o verde do bioma de planícies; o pó de redstone, o vermelho.</li>
+    </ul>
+  </div>
+  <figure><img src="img/carregando.jpg" alt="Painel de andamento: Lendo texturas, 33 de 1138" width="600" height="160" loading="lazy" style="max-width:600px"><figcaption>Durante a leitura, um painel no alto mostra a etapa e o andamento (abrindo, lendo, preparando, guardando). No celular, um pacote grande pode levar um minuto.</figcaption></figure>
+  <div class="note"><b>Depois de atualizações do site</b> que trazem blocos novos, o editor avisa para escolher o pacote de novo, porque o pacote guardado não tem as texturas novas.</div>
+</section>
+
+<section id="exportar">
+  <h2><span class="n">11</span>Exportar</h2>
+  <div class="side">
+    <figure><img src="img/exportar.jpg" alt="Janela Exportar construção com tamanho, nome do arquivo, opção de terreno e aviso de blocos só do Bedrock" width="536" height="538" loading="lazy"><figcaption>A janela mostra o tamanho e o total de blocos. Aqui, com um bloco <code>allow</code> na construção, aparece o aviso de que ele fica de fora do .schem.</figcaption></figure>
+    <ul class="plain">
+      <li><b>Nome do arquivo</b>: acentos e espaços são trocados por letras simples e hífens.</li>
+      <li><b>Deixar o terreno intacto</b> (Bedrock, ligado por padrão): onde a construção tem ar, o arquivo usa vazio de estrutura, então o terreno do mundo continua lá. Desligado, tudo no retângulo vira ar.</li>
+      <li><b>Baixar .mcstructure (Bedrock)</b>: no jogo, ponha um bloco de estrutura, modo <b>Carregar</b>, botão <b>Importar</b>, escolha o arquivo e carregue.</li>
+      <li><b>Baixar .schem (Java)</b>: coloque na pasta de schematics do WorldEdit e use <code>//schem load</code> e <code>//paste</code>.</li>
+      <li>Só a parte construída é exportada (o menor retângulo que contém os blocos), não o espaço inteiro.</li>
+      <li>Cada bloco sai com o estado completo: direção, aberto, conexões, metade… No Bedrock, a tradução usa a tabela oficial Java → Bedrock do minecraft-data, e a cor das camas vai junto.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="importar">
+  <h2><span class="n">12</span>Importar</h2>
+  <figure><img src="img/importado.jpg" alt="Estrutura de 300 por 59 por 300 importada de um .schem" width="1280" height="800" loading="lazy"><figcaption>Um .schem de 300 × 59 × 300 com 107 mil blocos, aberto inteiro em menos de um segundo no computador de teste.</figcaption></figure>
+  <ul class="plain">
+    <li><b>Projeto → Abrir projeto ou estrutura…</b> aceita <code>.json</code> (projeto), <code>.mcstructure</code> e <code>.schem</code> (Sponge v2 e v3).</li>
+    <li>O espaço passa a ter o tamanho da estrutura. A construção atual é substituída; salve antes se quiser guardá-la.</li>
+    <li>O aviso no final diz quantos blocos entraram, o tamanho e quais blocos desconhecidos ficaram de fora.</li>
+    <li>Conexões (cercas, muros, redstone, escadas) são recalculadas pelos vizinhos.</li>
+    <li>No .mcstructure, o vazio de estrutura vira espaço vazio, e o editor escolhe o estado que mais combina com o do arquivo. Quando o Bedrock não guarda um detalhe (ex.: para onde um botão no chão está virado), fica o padrão do jogo.</li>
+    <li>Exportar e importar de volta foi testado e devolve a construção idêntica, nos dois formatos.</li>
+  </ul>
+</section>
+
+<section id="materiais">
+  <h2><span class="n">13</span>Materiais</h2>
+  <div class="side">
+    <figure><img src="img/materiais.jpg" alt="Lista de materiais da casa de exemplo" width="536" height="534" loading="lazy"><figcaption>Lista de materiais da casa de exemplo.</figcaption></figure>
+    <ul class="plain">
+      <li>Mostra cada tipo de bloco, do mais usado ao menos usado, com a quantidade e quanto isso dá em pilhas de 64.</li>
+      <li><b>Copiar lista</b> copia em texto, uma linha por bloco, para colar no bloco de notas ou numa conversa.</li>
+      <li>Porta, cama e plantas altas contam as duas partes.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="tamanho">
+  <h2><span class="n">14</span>Tamanho do espaço</h2>
+  <div class="side">
+    <figure><img src="img/tamanho.jpg" alt="Janela Tamanho do espaço com largura, altura e profundidade" width="536" height="362" loading="lazy"><figcaption>Projeto → Tamanho do espaço…</figcaption></figure>
+    <ul class="plain">
+      <li>Padrão de 32 × 32 × 32; mínimo de 8 por lado; máximo de 2.048 por lado e 64 milhões de blocos de espaço no total (ex.: 400 × 400 × 400 ou 1.000 × 64 × 1.000).</li>
+      <li>Ao diminuir, os blocos que ficarem de fora são apagados. Ao aumentar, a construção fica no canto de origem.</li>
+      <li>Espaços grandes usam mais memória mesmo vazios (4 bytes por bloco de espaço). No celular, algo como 200 × 100 × 200 vai bem; os maiores, prefira no computador.</li>
+      <li>Em espaços grandes a cena é montada aos poucos, para a tela não travar.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="salvar">
+  <h2><span class="n">15</span>Salvar e aparelhos</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>O quê</th><th>Onde fica</th><th>Observação</th></tr></thead>
+    <tbody>
+      <tr><td>Construção atual</td><td>Salva sozinha no navegador, logo depois de cada mudança</td><td>Só no aparelho e navegador em que foi feita. Se ficar grande demais para o navegador, aparece um aviso pedindo para salvar o projeto.</td></tr>
+      <tr><td>Projeto .json</td><td>Arquivo que você baixa</td><td>O jeito de levar a construção para outro aparelho, guardar versões ou mandar para alguém.</td></tr>
+      <tr><td>Pacotes de textura</td><td>Guardados no navegador (só as texturas usadas)</td><td>Carregue uma vez em cada aparelho.</td></tr>
+      <tr><td>Favoritos, tema e textura ligada/desligada</td><td>Navegador</td><td>Por aparelho.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>Limpar os dados do site</b> no navegador apaga a construção salva sozinha e os pacotes. O projeto .json baixado continua seguro.</div>
+</section>
+
+<section id="tema">
+  <h2><span class="n">16</span>Tema e celular</h2>
+  <div class="side">
+    <figure><img src="img/celular.jpg" alt="Site num celular: barra em três linhas, área 3D, hotbar, status e paleta embaixo" width="390" height="844" loading="lazy" style="max-width:320px"><figcaption>No celular, a barra quebra em linhas e a paleta vai para baixo da área 3D.</figcaption></figure>
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <figure><img src="img/escuro.jpg" alt="Site no tema escuro" width="1280" height="800" loading="lazy"><figcaption>Tema escuro (Projeto → Tema).</figcaption></figure>
+      <ul class="plain">
+        <li><b>Tema</b>: automático segue o sistema; claro e escuro fixam.</li>
+        <li><b>Toque</b>: um toque usa a ferramenta; arrastar com um dedo gira; dois dedos movem e dão zoom. Formas usam dois toques.</li>
+        <li><b>Texturas no celular</b>: use Escolher arquivo com o .zip (Escolher pasta não funciona em celular).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="atalhos">
+  <h2><span class="n">17</span>Atalhos</h2>
+  <div class="side">
+    <figure><img src="img/ajuda.jpg" alt="Janela Atalhos e ajuda do site" width="536" height="750" loading="lazy" style="max-width:420px"><figcaption>Projeto → Atalhos e ajuda, ou <kbd>?</kbd>.</figcaption></figure>
+    <div class="tbl"><table>
+      <thead><tr><th>Tecla</th><th>Ação</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>B</kbd> <kbd>E</kbd> <kbd>I</kbd> <kbd>U</kbd> <kbd>T</kbd></td><td>Pincel, borracha, conta-gotas, usar, girar</td></tr>
+        <tr><td><kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>O</kbd></td><td>Linha, caixa, caixa oca, esfera, esfera oca</td></tr>
+        <tr><td><kbd>Shift</kbd></td><td>Pincel apaga; formas apagam; usar muda a segunda opção; girar volta</td></tr>
+        <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Espaço da hotbar</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Desfazer / refazer</td></tr>
+        <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Descer e subir a camada</td></tr>
+        <tr><td>Setas</td><td>Mover a câmera</td></tr>
+        <tr><td><kbd>Home</kbd></td><td>Recentralizar</td></tr>
+        <tr><td><kbd>G</kbd></td><td>Grade</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Fecha janela, cancela forma, fecha menu</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Atalhos e ajuda</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="limites">
+  <h2><span class="n">18</span>Limites conhecidos</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Assunto</th><th>Situação</th></tr></thead>
+    <tbody>
+      <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados como caixas simples (o jogo os desenha de um jeito especial). O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
+      <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
+      <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
+      <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
+      <tr><td>Importação</td><td>Nomes de versões antigas (Java antes da 1.13, nomes antigos do Bedrock) e o .schematic do MCEdit não abrem. A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
+      <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>
+      <tr><td>Crafter</td><td>Gira só nas quatro direções horizontais.</td></tr>
+      <tr><td>Fornalhas e âncoras de projetos antigos</td><td>Voltam com a frente para o norte; gire de novo com <kbd>T</kbd>.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+</main>
+</div>
+
+</body></html>
