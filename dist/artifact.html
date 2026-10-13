@@ -111,13 +111,19 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
 #toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:60;padding:8px 14px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:13px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.show{opacity:1}
+#busy{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:70;width:min(360px,calc(100% - 32px));padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px;font-size:13px}
+#busy .bl{display:flex;align-items:center;gap:10px}
+#busy .sp{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+#busy .bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
+#busy .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+@keyframes spin{to{transform:rotate(360deg)}}
 @media (max-width:820px){
   #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 40%}
   #sidebar{border-left:0;border-top:1px solid var(--line)}
   .layer input[type=range]{width:80px}
   .slot{width:36px;height:36px}
 }
-@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media (prefers-reduced-motion:reduce){#toast,#busy .bar i{transition:none}#busy .sp{animation:none}}
 </style>
 
 <div id="app">
@@ -175,6 +181,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
   </aside>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="busy" role="status" aria-live="polite" hidden><div class="bl"><span class="sp"></span><span id="busyTxt"></span></div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="overlayRoot"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1280,7 +1287,11 @@ var tileUV = [], texBlocks = 0;
 function stripJson(txt) { return JSON.parse(txt.replace(/^﻿/, '').replace(/^\s*\/\/.*$/mg, '')); }
 
 /* ZIP: lê só o diretório central e as entradas pedidas (um pacote vanilla inteiro pode ter centenas de MB). */
+function zipSupported() {
+  try { new DecompressionStream('deflate-raw'); return true; } catch (e) { return false; }
+}
 async function openZip(blob) {
+  if (!zipSupported()) throw new Error('Este navegador não consegue abrir arquivos .zip. Atualize o Chrome (ou use o Chrome em vez de outro navegador) e tente de novo.');
   var size = blob.size, tail = Math.min(size, 65557);
   var dv = new DataView(await blob.slice(size - tail).arrayBuffer()), e = -1, i;
   for (i = tail - 22; i >= 0; i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; }
@@ -1425,7 +1436,8 @@ function beFaces(t) {
   var any = t.side || t.up;
   return FACE_NAMES.map(function (k) { return t[k] || (k === 'up' || k === 'down' ? null : t.side) || any; });
 }
-async function importPack(src, name, depth) {
+async function importPack(src, name, depth, prog) {
+  prog = prog || function () {};
   var low = new Map(), score = {};
   src.paths.forEach(function (p) {
     low.set(p.toLowerCase(), p);
@@ -1439,17 +1451,17 @@ async function importPack(src, name, depth) {
     // .mcaddon ou .zip com pacotes dentro: tenta o maior pacote interno
     var inner = (depth ? [] : src.paths.filter(function (p) { return /\.(mcpack|zip)$/i.test(p); }));
     for (var i = 0; i < inner.length; i++) {
-      try { var r = await importPack(await openZip(new Blob([await src.read(inner[i])])), name, 1); if (r) return r; } catch (e) {}
+      try { var r = await importPack(await openZip(new Blob([await src.read(inner[i])])), name, 1, prog); if (r) return r; } catch (e) {}
     }
     return null;
   }
   var kind = best.split('|')[0], root = best.slice(kind.length + 1).toLowerCase();
   async function file(rel) { var p = low.get((root + rel).toLowerCase()); return p ? src.read(p) : null; }
-  var pack = { name: name, kind: kind, v: PACK_V, tex: {}, bmap: {} }, d, k;
+  var pack = { name: name, kind: kind, v: PACK_V, tex: {}, bmap: {} }, k, jobs = [];
   if (kind === 'java') {
     var names = {};
     BLOCKS.forEach(function (b) { b.jt.forEach(function (n) { names[n] = 1; }); });
-    for (k in names) if ((d = await file('assets/minecraft/textures/block/' + k + '.png'))) pack.tex[k] = { d: d, ext: 'png', ov: 0 };
+    for (k in names) jobs.push([k, 'assets/minecraft/textures/block/' + k, 0]);
   } else {
     var terr = {}, blk = {};
     try { terr = (stripJson(new TextDecoder().decode(await file('textures/terrain_texture.json'))).texture_data) || {}; } catch (e) {}
@@ -1464,11 +1476,17 @@ async function importPack(src, name, depth) {
     for (k in shorts) {
       var base = k.split('#')[0];
       var pp = terr[base] ? bePath(terr[base], k) : BE_TEX[k] ? (Array.isArray(BE_TEX[k]) ? BE_TEX[k] : [BE_TEX[k], 0]) : null;
-      if (!pp) continue;
-      if ((d = await file(pp[0] + '.png'))) pack.tex[k] = { d: d, ext: 'png', ov: pp[1] };
-      else if ((d = await file(pp[0] + '.tga'))) pack.tex[k] = { d: d, ext: 'tga', ov: pp[1] };
+      if (pp) jobs.push([k, pp[0], pp[1]]);
     }
   }
+  // Lê várias texturas ao mesmo tempo: num pacote grande, uma por vez demora muito no celular
+  var done = 0;
+  await pool(jobs, 8, async function (j) {
+    var d = await file(j[1] + '.png'), ext = 'png';
+    if (!d && kind !== 'java') { d = await file(j[1] + '.tga'); ext = 'tga'; }
+    if (d) pack.tex[j[0]] = { d: d, ext: ext, ov: j[2] };
+    prog(++done, jobs.length);
+  });
   return Object.keys(pack.tex).length ? pack : null;
 }
 function packKeys(P, b) { return P.kind === 'java' ? b.jt : (P.bmap && P.bmap[b.java]) || b.bt || []; }
@@ -1526,11 +1544,26 @@ function buildAtlas(tiles) {
   [matOpaque, matCutout, matGlass].forEach(function (m) { m.map = atlasTex; m.needsUpdate = true; });
   return px;
 }
-var texJob = 0;
+var texJob = 0, onTexProgress = null;
 async function applyTextures() {
   if (!renderer) return;
   var job = ++texJob, active = texOn ? packs : [], tiles = [], seen = new Map(), cache = new Map();
   var res = BLOCKS.map(function (b) { return b.jt.map(function () { return -1; }); });
+  // decodifica antes, em paralelo, só as texturas que algum bloco vai usar
+  var need = new Set();
+  BLOCKS.forEach(function (b) {
+    for (var f = 0; f < b.jt.length; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
+      var t = packKeys(active[pi], b)[f]; t = t && active[pi].tex[t];
+      if (t) { need.add(t); break; }
+    }
+  });
+  var nd = 0, needL = Array.from(need);
+  await pool(needL, 6, async function (t) {
+    var img = null;
+    try { img = await decodeImage(t); } catch (e) {}
+    cache.set(t, img);
+    if (onTexProgress) onTexProgress(++nd, needL.length);
+  });
   for (var bi = 0; bi < BLOCKS.length; bi++) {
     var b = BLOCKS[bi];
     for (var f = 0; f < b.jt.length; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
@@ -1539,7 +1572,6 @@ async function applyTextures() {
       var tint = t.ov ? GRASS_TINT : b.tint[f] || 0, id = pi + '|' + key + '|' + tint;
       if (!seen.has(id)) {
         var img = cache.get(t);
-        if (!img) { try { img = await decodeImage(t); } catch (e) { img = null; } cache.set(t, img); }
         if (!img) continue;
         seen.set(id, tiles.length + 2); tiles.push({ img: img, tint: tint, ov: t.ov });
       }
@@ -1601,14 +1633,22 @@ function loadPacks() {
 
 /* Diálogo */
 async function addPackFrom(src, name) {
-  toast('Lendo o pacote…');
-  var P = await importPack(src, name, 0);
+  busy('Procurando as texturas no pacote…', null);
+  var P = await importPack(src, name, 0, function (i, n) { busy('Lendo texturas: ' + i + ' de ' + n, i / n); });
   if (!P) throw new Error('Não achei texturas de blocos nesse arquivo. Escolha um pacote de recursos (Bedrock ou Java).');
   packs = packs.filter(function (q) { return q.name !== P.name; }).concat([P]);
   texOn = true; try { localStorage.setItem('bloco-a-bloco-tex', '1'); } catch (e) {}
-  await applyTextures(); savePacks();
-  toast(P.name + ': ' + packBlocks(P) + ' de ' + BLOCKS.length + ' blocos com textura.');
+  onTexProgress = function (i, n) { busy('Preparando texturas: ' + i + ' de ' + n, i / n); };
+  try { await applyTextures(); } finally { onTexProgress = null; }
+  busy('Guardando o pacote neste navegador…', null);
+  await savePacks();
+  busyEnd();
+  toast(P.name + ': ' + packBlocks(P) + ' de ' + BLOCKS.length + ' blocos com textura.', 6000);
   if ($('texList')) openTextures();
+}
+function packError(x, what) {
+  busyEnd();
+  toast((x && x.message) || 'Não foi possível ler ' + what + '.', 10000);
 }
 function openTextures() {
   var list = packs.slice().reverse().map(function (P, i) {
@@ -1621,7 +1661,7 @@ function openTextures() {
     (packs.length ? '<div class="mat" id="texList"><table>' + list + '</table></div>' +
       '<label class="check"><input type="checkbox" id="txOn"' + (texOn ? ' checked' : '') + '><span>Mostrar texturas (' + texBlocks + ' de ' + BLOCKS.length + ' blocos). Se houver mais de um pacote, o de cima tem prioridade e os de baixo completam o que faltar.</span></label>'
       : '<div class="info" id="texList">Nenhum pacote carregado. Os blocos aparecem com a cor média de cada um.</div>') +
-    '<p>Sem pacote nenhum à mão? As texturas padrão do Bedrock estão no repositório Mojang/bedrock-samples no GitHub (botão Code, Download ZIP). Pode escolher o .zip inteiro: o editor acha a pasta de texturas sozinho e guarda só o que usa.</p>' +
+    '<p>Sem pacote nenhum à mão? As texturas padrão do Bedrock estão no repositório Mojang/bedrock-samples no GitHub (botão Code, Download ZIP). Pode escolher o .zip inteiro: o editor acha a pasta de texturas sozinho e guarda só o que usa. No celular, ler um pacote grande pode levar um minuto; o andamento aparece no alto da tela.</p>' +
     '<div class="row"><button class="btn" id="txClose">Fechar</button></div>',
     function () {
       $('txClose').onclick = closeDialog;
@@ -1640,13 +1680,14 @@ $('texBtn').addEventListener('click', function () { $('menu').open = false; open
 $('packIn').addEventListener('change', async function (e) {
   var f = e.target.files && e.target.files[0]; e.target.value = '';
   if (!f) return;
-  try { await addPackFrom(await openZip(f), f.name.replace(/\.(zip|mcpack|mcaddon)$/i, '')); } catch (x) { toast(x.message || 'Não foi possível ler o pacote.'); }
+  busy('Abrindo ' + f.name + '…', null);
+  try { await addPackFrom(await openZip(f), f.name.replace(/\.(zip|mcpack|mcaddon)$/i, '')); } catch (x) { packError(x, 'o pacote'); }
 });
 $('packDirIn').addEventListener('change', async function (e) {
   var fs = e.target.files; e.target.value = '';
   if (!fs || !fs.length) return;
   var nm = (fs[0].webkitRelativePath || fs[0].name).split('/')[0];
-  try { await addPackFrom(openDir(fs), nm); } catch (x) { toast(x.message || 'Não foi possível ler a pasta.'); }
+  try { await addPackFrom(openDir(fs), nm); } catch (x) { packError(x, 'a pasta'); }
 });
 
 /* ---------- Projeto ---------- */
@@ -1746,9 +1787,23 @@ function openDialog(html, onMount) {
   if (onMount) onMount();
   var f = overlayRoot.querySelector('input,button.primary,button'); if (f) f.focus();
 }
-function toast(msg) {
+function toast(msg, ms) {
   var t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, 2600);
+  clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, ms || 2600);
+}
+/* Aviso que fica na tela enquanto uma tarefa longa roda (frac entre 0 e 1, ou null sem barra) */
+function busy(msg, frac) {
+  $('busy').hidden = false; $('busyTxt').textContent = msg;
+  $('busyBar').parentNode.hidden = frac == null;
+  if (frac != null) $('busyBar').style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%';
+}
+function busyEnd() { $('busy').hidden = true; }
+/* Roda fn em todos os itens, até n ao mesmo tempo */
+async function pool(items, n, fn) {
+  var i = 0;
+  async function worker() { while (i < items.length) { var k = i++; await fn(items[k], k); } }
+  var ws = []; for (var w = 0; w < Math.min(n, items.length); w++) ws.push(worker());
+  await Promise.all(ws);
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 function collectVoxels() {
