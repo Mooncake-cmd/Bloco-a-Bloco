@@ -185,12 +185,16 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 (function () {
 'use strict';
 var BLOCKS_RAW = /*%%BLOCKS%%*/[];
-function trio(v) { return Array.isArray(v) ? v : [v, v, v]; }
+function six(v) { return Array.isArray(v) ? v : [v, v, v, v, v, v]; }
+function tint6(v) { var t = Array.isArray(v) ? v : [v, v, v]; return [t[0], t[2], t[1], t[1], t[1], t[1]]; }
 /* Linha: [id java, nome, id bedrock, cor topo, cor lado, cor base, tipo (0 opaco, 1 translúcido, 2 recortado),
-   texturas java [topo, lado, base], texturas bedrock (nomes curtos do terrain_texture.json), cor de bioma por face] */
+   texturas java e bedrock por face [cima, baixo, norte, sul, leste, oeste] (bedrock: nomes curtos do terrain_texture.json),
+   cor de bioma [topo, lado, base], estado java exportado, [versão, estados] bedrock exportados].
+   Os dois últimos só existem em blocos com frente, exportados com a frente para o sul como aparecem aqui. */
 var BLOCKS = BLOCKS_RAW.map(function (r) {
   return { java: r[0], name: r[1], bedrock: r[2], top: r[3], side: r[4], bottom: r[5], kind: r[6] | 0, glass: r[6] === 1,
-    jt: trio(r[7]), bt: r[8] ? trio(r[8]) : null, tint: trio(r[9] || 0), tile: [-1, -1, -1], solid: r[6] !== 1, icon: '' };
+    jt: six(r[7]), bt: r[8] ? six(r[8]) : null, tint: tint6(r[9] || 0), jstate: r[10] || '', bst: r[11] || null,
+    tile: [-1, -1, -1, -1, -1, -1], solid: r[6] !== 1, icon: '' };
 });
 var BY_JAVA = {};
 BLOCKS.forEach(function (b, i) { BY_JAVA[b.java] = i; });
@@ -496,12 +500,12 @@ function positionGrid() { if (gridObj) { gridObj.position.y = (layerOn ? layerY 
 
 /* Malha dos chunks */
 var FACES = [
-  { n: [1, 0, 0], v: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 'side', t: 1 },
-  { n: [-1, 0, 0], v: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 'side', t: 1 },
+  { n: [1, 0, 0], v: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], s: 0.8, k: 'side', t: 4 },
+  { n: [-1, 0, 0], v: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], s: 0.8, k: 'side', t: 5 },
   { n: [0, 1, 0], v: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], s: 1.0, k: 'top', t: 0 },
-  { n: [0, -1, 0], v: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.55, k: 'bottom', t: 2 },
-  { n: [0, 0, 1], v: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.9, k: 'side', t: 1 },
-  { n: [0, 0, -1], v: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.9, k: 'side', t: 1 }
+  { n: [0, -1, 0], v: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], s: 0.55, k: 'bottom', t: 1 },
+  { n: [0, 0, 1], v: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], s: 0.9, k: 'side', t: 3 },
+  { n: [0, 0, -1], v: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], s: 0.9, k: 'side', t: 2 }
 ];
 var UVS = [[0, 0], [1, 0], [1, 1], [0, 1]];
 var WHITE = [255, 255, 255];
@@ -896,6 +900,7 @@ $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.targe
    cinza usado pelos blocos sem textura (1 = versão translúcida, para vidros). */
 var BE_TEX = /*%%BETEX%%*/{};
 var GRASS_TINT = 0x91BD59;
+var PACK_V = 2; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
 var packs = [];
 var texOn = true;
 try { texOn = localStorage.getItem('bloco-a-bloco-tex') !== '0'; } catch (e) {}
@@ -1034,18 +1039,20 @@ async function decodeImage(t) {
 
 /* Importação: acha a pasta do pacote dentro do arquivo e copia só as texturas que a lista de blocos usa. */
 function bePath(e, k) {
-  var t = e && e.textures;
-  if (Array.isArray(t)) {
+  var t = e && e.textures, vi = +(k.split('#')[1] || 0);
+  if (Array.isArray(t) && vi) t = t[vi] || t[0];
+  else if (Array.isArray(t)) {
     var want = /^mushroom_brown/.test(k) ? 'skin_brown' : /^mushroom_red/.test(k) ? 'skin_red' : null;
     t = (want && t.filter(function (x) { return (typeof x === 'string' ? x : x.path || '').indexOf(want) >= 0; })[0]) || t[0];
   }
   if (t && typeof t === 'object') { if (t.variations) t = t.variations[0]; return t.path ? [t.path, t.overlay_color || t.tint_color ? 1 : 0] : null; }
   return typeof t === 'string' ? [t, 0] : null;
 }
-function beFace(t, k) {
-  if (typeof t === 'string') return t;
-  if (k === 'side') return t.side || t.north || t.east || t.west || t.south || null;
-  return t[k] || null;
+var FACE_NAMES = ['up', 'down', 'north', 'south', 'east', 'west'];
+function beFaces(t) {
+  if (typeof t === 'string') return six(t);
+  var any = t.side || t.up;
+  return FACE_NAMES.map(function (k) { return t[k] || (k === 'up' || k === 'down' ? null : t.side) || any; });
 }
 async function importPack(src, name, depth) {
   var low = new Map(), score = {};
@@ -1067,7 +1074,7 @@ async function importPack(src, name, depth) {
   }
   var kind = best.split('|')[0], root = best.slice(kind.length + 1).toLowerCase();
   async function file(rel) { var p = low.get((root + rel).toLowerCase()); return p ? src.read(p) : null; }
-  var pack = { name: name, kind: kind, tex: {}, bmap: {} }, d, k;
+  var pack = { name: name, kind: kind, v: PACK_V, tex: {}, bmap: {} }, d, k;
   if (kind === 'java') {
     var names = {};
     BLOCKS.forEach(function (b) { b.jt.forEach(function (n) { names[n] = 1; }); });
@@ -1078,15 +1085,14 @@ async function importPack(src, name, depth) {
     try { blk = stripJson(new TextDecoder().decode(await file('blocks.json'))) || {}; } catch (e) {}
     var shorts = {};
     BLOCKS.forEach(function (b) {
-      var e = blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock];
-      if (e && e.textures) {
-        var u = beFace(e.textures, 'up'), s = beFace(e.textures, 'side'), dn = beFace(e.textures, 'down');
-        pack.bmap[b.java] = [u || s || dn, s || u || dn, dn || s || u];
-      }
+      // Blocos com frente usam o mapeamento embutido, que já está girado para o estado exportado
+      var e = !b.bst && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
+      if (e && e.textures) pack.bmap[b.java] = beFaces(e.textures);
       (pack.bmap[b.java] || b.bt || []).forEach(function (n) { if (n) shorts[n] = 1; });
     });
     for (k in shorts) {
-      var pp = terr[k] ? bePath(terr[k], k) : BE_TEX[k] ? (Array.isArray(BE_TEX[k]) ? BE_TEX[k] : [BE_TEX[k], 0]) : null;
+      var base = k.split('#')[0];
+      var pp = terr[base] ? bePath(terr[base], k) : BE_TEX[k] ? (Array.isArray(BE_TEX[k]) ? BE_TEX[k] : [BE_TEX[k], 0]) : null;
       if (!pp) continue;
       if ((d = await file(pp[0] + '.png'))) pack.tex[k] = { d: d, ext: 'png', ov: pp[1] };
       else if ((d = await file(pp[0] + '.tga'))) pack.tex[k] = { d: d, ext: 'tga', ov: pp[1] };
@@ -1153,10 +1159,10 @@ var texJob = 0;
 async function applyTextures() {
   if (!renderer) return;
   var job = ++texJob, active = texOn ? packs : [], tiles = [], seen = new Map(), cache = new Map();
-  var res = BLOCKS.map(function () { return [-1, -1, -1]; });
+  var res = BLOCKS.map(function () { return [-1, -1, -1, -1, -1, -1]; });
   for (var bi = 0; bi < BLOCKS.length; bi++) {
     var b = BLOCKS[bi];
-    for (var f = 0; f < 3; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
+    for (var f = 0; f < 6; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
       var P = active[pi], key = packKeys(P, b)[f], t = key && P.tex[key];
       if (!t) continue;
       var tint = t.ov ? GRASS_TINT : b.tint[f], id = pi + '|' + key + '|' + tint;
@@ -1174,8 +1180,8 @@ async function applyTextures() {
   texBlocks = 0;
   BLOCKS.forEach(function (b, i) {
     b.tile = res[i];
-    b.solid = !b.glass && !(b.kind === 2 && b.tile[1] >= 0);
-    var s = b.tile[1] >= 0 ? b.tile[1] : b.tile[0];
+    b.solid = !b.glass && !(b.kind === 2 && b.tile.some(function (t) { return t >= 0; }));
+    var s = b.tile[3] >= 0 ? b.tile[3] : b.tile[0]; // ícone: face sul (a frente dos blocos com frente)
     if (s >= 0) texBlocks++;
     if (s >= 0 && !(s in icons)) {
       var c = document.createElement('canvas'); c.width = c.height = T;
@@ -1213,7 +1219,11 @@ function savePacks() {
     .then(function () { return true; }, function () { toast('Não foi possível guardar o pacote neste navegador. Ele vale até recarregar a página.'); return false; });
 }
 function loadPacks() {
-  return idbDo('readonly', function (s) { return s.get('packs'); }).then(function (v) { if (Array.isArray(v)) packs = v; }, function () {});
+  return idbDo('readonly', function (s) { return s.get('packs'); }).then(function (v) {
+    if (!Array.isArray(v)) return;
+    packs = v;
+    if (packs.some(function (P) { return P.v !== PACK_V; })) setTimeout(function () { toast('A lista de blocos mudou. Escolha o pacote de novo em Projeto > Texturas para ver as texturas novas.'); }, 900);
+  }, function () {});
 }
 
 /* Diálogo */

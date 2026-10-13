@@ -37,36 +37,98 @@ function avg(tex){
   if(!n)return null;
   return {c:[Math.round(r/n),Math.round(g/n),Math.round(b/n)],a:a/n/255};
 }
-function resolveTextures(name){
-  const m=assets.blocksModels[name];
-  if(!m||!m.textures) return null;
-  let t=m.textures, p=m.parent||'';
-  let T={};
-  for(const k in t) T[k]=t[k].replace('minecraft:','').replace('block/','');
-  const par=p.replace('minecraft:','').replace('block/','');
-  const g=k=>T[k]&&!T[k].startsWith('#')?T[k]:null;
-  if(par==='cube_all') return {top:g('all'),side:g('all'),bottom:g('all')};
-  if(par==='cube_column') return {top:g('end'),side:g('side'),bottom:g('end')};
-  if(par==='cube_bottom_top') return {top:g('top'),side:g('side'),bottom:g('bottom')};
-  if(par==='cube') return {top:g('up'),side:g('north'),bottom:g('down')};
-  if(par==='cube_mirrored_all') return {top:g('all'),side:g('all'),bottom:g('all')};
-  if(par==='cube_top') return {top:g('top'),side:g('side'),bottom:g('top')};
-  if(par==='cube_directional') return {top:g('up'),side:g('north'),bottom:g('down')};
-  if(m.elements){ // custom full cube like grass_block
-    return {top:g('top')||g('up')||g('all'),side:g('side')||g('north')||g('all'),bottom:g('bottom')||g('down')||g('all')};
+// Faces em ordem [cima, baixo, norte, sul, leste, oeste]
+const FACES6=['up','down','north','south','east','west'];
+const MODELS=assets.blocksModels, STATES=assets.blocksStates;
+const clean=s=>s.replace('minecraft:','').replace(/^block\//,'');
+// Textura de cada face do modelo, seguindo a cadeia de "parent" (variáveis #nome e elementos herdados).
+// Só vale para modelos com um elemento de cubo inteiro.
+function modelFaces(name){
+  let m=MODELS[clean(name)]; if(!m) return null;
+  const tex={}; let elements=null;
+  for(let d=0;m&&d<20;d++){
+    for(const k in (m.textures||{})) if(!(k in tex)) tex[k]=m.textures[k];
+    if(!elements&&m.elements) elements=m.elements;
+    m=m.parent?MODELS[clean(m.parent)]:null;
   }
-  return null;
+  const full=elements&&elements.find(e=>e.from.every(v=>v===0)&&e.to.every(v=>v===16));
+  if(!full) return null;
+  const res=v=>{ for(let i=0;i<10&&v&&v.startsWith('#');i++) v=tex[v.slice(1)]; return v&&!v.startsWith('#')?clean(v):null; };
+  const f={}; for(const k of FACES6) f[k]=full.faces[k]?res(full.faces[k].texture):null;
+  return f.up||f.north?f:null;
+}
+// Rotação do blockstate (x e depois y, em passos de 90 graus, como no jogo)
+function rotate(f,x,y){
+  const step=(r,m)=>{ const o={}; for(const k in m) o[m[k]]=r[k]; return o; };
+  const X90={up:'north',north:'down',down:'south',south:'up',east:'east',west:'west'};
+  const Y90={north:'east',east:'south',south:'west',west:'north',up:'up',down:'down'};
+  for(let i=0;i<((x||0)/90)%4;i++) f=step(f,X90);
+  for(let i=0;i<((y||0)/90)%4;i++) f=step(f,Y90);
+  return f;
+}
+// Valores padrão das propriedades do bloco Java (estado padrão do minecraft-data)
+function javaDefaults(b){
+  let i=b.defaultState-b.minStateId; const props={}; const st=b.states||[];
+  for(let k=st.length-1;k>=0;k--){
+    const s=st[k], n=s.num_values, idx=i%n; i=Math.floor(i/n);
+    props[s.name]=s.type==='bool'?(idx===0?'true':'false'):s.values?s.values[idx]:String(idx);
+  }
+  return props;
+}
+// Faces Java do bloco no estado que vai ser exportado (padrão + o que DIR muda)
+function javaFaces(n,props,front){
+  const st=STATES[n]; let v=null;
+  if(st&&st.variants){
+    const ok=k=>!k||k.split(',').every(pv=>{ const [p,val]=pv.split('='); return props[p]===val; });
+    const k=Object.keys(st.variants).find(ok); v=k!==undefined?st.variants[k]:null; if(Array.isArray(v)) v=v[0];
+  } else if(st&&st.multipart){
+    const part=st.multipart.find(p=>p.when&&Object.keys(p.when).length===1&&p.when.facing===props.facing)||st.multipart[0];
+    v=part.apply; if(Array.isArray(v)) v=v[0];
+  }
+  const f=(v&&modelFaces(v.model))||modelFaces(n); if(!f) return null;
+  if(front&&!f.north) f.north=front;
+  for(const k of FACES6) f[k]=f[k]||f.east||f.up||f.north;
+  return v?rotate(f,v.x,v.y):f;
+}
+// Blocos com frente: exportados com a frente para o sul (lado da câmera inicial), nos dois formatos.
+// j: propriedades Java; b: estados Bedrock; be: texturas Bedrock com a frente para o NORTE (giradas igual ao Java).
+const S='south';
+const FURN={j:{facing:S},b:{'minecraft:cardinal_direction':S}};
+const DIR={
+  furnace:{...FURN,be:{front:'furnace_front_off',side:'furnace_side',up:'furnace_top',down:'furnace_top'}},
+  smoker:{...FURN,be:{front:'smoker_front_off',side:'smoker_side',up:'smoker_top',down:'smoker_bottom'}},
+  blast_furnace:{...FURN,be:{front:'blast_furnace_front_off',side:'blast_furnace_side',up:'blast_furnace_top',down:'blast_furnace_top'}},
+  carved_pumpkin:{...FURN,be:{front:'pumpkin_face',side:'pumpkin_side',up:'pumpkin_top',down:'pumpkin_top'}},
+  jack_o_lantern:{...FURN,be:{front:'pumpkin_face#1',side:'pumpkin_side',up:'pumpkin_top',down:'pumpkin_top'}},
+  loom:{j:{facing:S},b:{direction:0},be:{front:'loom_front',side:'loom_side',up:'loom_top',down:'loom_bottom'}},
+  beehive:{j:{facing:S},b:{direction:0},be:{front:'beehive_front',side:'beehive_side',up:'beehive_top',down:'beehive_top'}},
+  bee_nest:{j:{facing:S},b:{direction:0},be:{front:'bee_nest_front',side:'bee_nest_side',up:'bee_nest_top',down:'bee_nest_bottom'}},
+  chiseled_bookshelf:{j:{facing:S},jfront:'chiseled_bookshelf_empty',b:{direction:0},be:{front:'chiseled_bookshelf_front',side:'chiseled_bookshelf_side',up:'chiseled_bookshelf_top',down:'chiseled_bookshelf_top'}},
+  dispenser:{j:{facing:S},b:{facing_direction:3},be:{front:'dispenser_front_horizontal',side:'dispenser_side',up:'dispenser_top',down:'dispenser_top'}},
+  dropper:{j:{facing:S},b:{facing_direction:3},be:{front:'dropper_front_horizontal',side:'dropper_side',up:'dropper_top',down:'dropper_top'}},
+  observer:{j:{facing:S},b:{'minecraft:facing_direction':S},be:{front:'observer_north',back:'observer_south',side:'observer_east',up:'observer_top',down:'observer_bottom'}},
+  crafter:{j:{orientation:'south_up'},b:{orientation:'south_up'},be:{front:'crafter_north',back:'crafter_south',east:'crafter_east',west:'crafter_west',up:'crafter_top',down:'crafter_bottom'}},
+  // barril de pé (tampa para cima), como aparece no editor
+  barrel:{j:{facing:'up'},b:{facing_direction:1},noRot:1,be:{up:'barrel_top',down:'barrel_bottom',side:'barrel_side'}}
+};
+// Modelos de dois cubos em que o de fora não representa o bloco (mel: casca com a textura de baixo em tudo)
+const JOVR={honey_block:{up:'honey_block_top',down:'honey_block_bottom',north:'honey_block_side',south:'honey_block_side',east:'honey_block_side',west:'honey_block_side'}};
+// O blocks.json do Bedrock põe o rosto (pumpkin_face) na abóbora inteira, mas ela aparece sem rosto no jogo
+const BEOVR={pumpkin:['pumpkin_top','pumpkin_top','pumpkin_side','pumpkin_side','pumpkin_side','pumpkin_side']};
+function beDirFaces(d){
+  const e=d.be, f={up:e.up,down:e.down,north:e.front||e.side,south:e.back||e.side,east:e.east||e.side,west:e.west||e.side};
+  return d.noRot?f:rotate(f,0,180);
 }
 // java -> bedrock name overrides
-const alias={bricks:'brick_block',magma_block:'magma',melon:'melon_block',stone_bricks:'stone_bricks',nether_bricks:'nether_brick',red_nether_bricks:'red_nether_brick',nether_wart_block:'nether_wart_block',mycelium:'mycelium',grass_block:'grass_block',dirt_path:'grass_path',smooth_quartz:'quartz_block',quartz_block:'quartz_block',snow_block:'snow',terracotta:'hardened_clay',bone_block:'bone_block',cut_copper:'cut_copper',moss_block:'moss_block',purpur_block:'purpur_block',end_stone_bricks:'end_bricks',lily_pad:'waterlily',cobweb:'web',note_block:'noteblock',nether_quartz_ore:'quartz_ore',slime_block:'slime',rooted_dirt:'dirt_with_roots',light_gray_glazed_terracotta:'silver_glazed_terracotta',waxed_copper_block:'waxed_copper'};
+const alias={jack_o_lantern:'lit_pumpkin',bricks:'brick_block',magma_block:'magma',melon:'melon_block',stone_bricks:'stone_bricks',nether_bricks:'nether_brick',red_nether_bricks:'red_nether_brick',nether_wart_block:'nether_wart_block',mycelium:'mycelium',grass_block:'grass_block',dirt_path:'grass_path',smooth_quartz:'quartz_block',quartz_block:'quartz_block',snow_block:'snow',terracotta:'hardened_clay',bone_block:'bone_block',cut_copper:'cut_copper',moss_block:'moss_block',purpur_block:'purpur_block',end_stone_bricks:'end_bricks',lily_pad:'waterlily',cobweb:'web',note_block:'noteblock',nether_quartz_ore:'quartz_ore',slime_block:'slime',rooted_dirt:'dirt_with_roots',light_gray_glazed_terracotta:'silver_glazed_terracotta',waxed_copper_block:'waxed_copper'};
 // Java blocks we want: full cubes (boundingBox block), skip technical ones
-const skip=/^(air|cave_air|void_air|barrier|light|structure_void|structure_block|jigsaw|command_block|chain_command_block|repeating_command_block|bedrock|spawner|trial_spawner|vault|test_block|test_instance_block|piston_head|moving_piston|farmland|dirt_path|water|lava|fire|soul_fire|end_portal|end_portal_frame|nether_portal|end_gateway|frosted_ice|budding_amethyst|reinforced_deepslate|infested_.*|.*_head|.*_skull|.*_banner|.*_bed|.*_shulker_box|.*_sign|.*_hanging_sign|.*_chest|.*_door|.*trapdoor|.*_stairs|.*_slab|.*_wall|.*_fence|.*_fence_gate|.*_button|.*_pressure_plate|.*_pane|.*_carpet|.*_candle|.*_sapling|.*_leaves_.*|.*_cauldron|bamboo|.*_coral$|.*_coral_fan|.*_coral_wall_fan|conduit|beacon|enchanting_table|brewing_stand|lectern|grindstone|stonecutter|bell|campfire|soul_campfire|lantern|soul_lantern|chain|.*rod|hopper|cake|composter|cauldron|anvil|chipped_anvil|damaged_anvil|dragon_egg|decorated_pot|sniffer_egg|turtle_egg|frogspawn|.*_torch|torch|ladder|vine|glow_lichen|sculk_vein|scaffold.*|snow|powder_snow|tripwire.*|redstone_wire|repeater|comparator|lever|daylight_detector|.*_crop|wheat|carrots|potatoes|beetroots|sweet_berry_bush|cactus|sugar_cane|kelp|kelp_plant|seagrass|tall_seagrass|nether_wart|.*_roots|.*_fungus|.*_stem|.*_stem$|attached_.*|.*_plant|flower_pot|potted_.*|.*mushroom$|.*_tulip|.*)$/;
+const skip=/^(piston|sticky_piston|air|cave_air|void_air|barrier|light|structure_void|structure_block|jigsaw|command_block|chain_command_block|repeating_command_block|bedrock|spawner|trial_spawner|vault|test_block|test_instance_block|piston_head|moving_piston|farmland|dirt_path|water|lava|fire|soul_fire|end_portal|end_portal_frame|nether_portal|end_gateway|frosted_ice|budding_amethyst|reinforced_deepslate|infested_.*|.*_head|.*_skull|.*_banner|.*_bed|.*_shulker_box|.*_sign|.*_hanging_sign|.*_chest|.*_door|.*trapdoor|.*_stairs|.*_slab|.*_wall|.*_fence|.*_fence_gate|.*_button|.*_pressure_plate|.*_pane|.*_carpet|.*_candle|.*_sapling|.*_leaves_.*|.*_cauldron|bamboo|.*_coral$|.*_coral_fan|.*_coral_wall_fan|conduit|beacon|enchanting_table|brewing_stand|lectern|grindstone|stonecutter|bell|campfire|soul_campfire|lantern|soul_lantern|chain|.*rod|hopper|cake|composter|cauldron|anvil|chipped_anvil|damaged_anvil|dragon_egg|decorated_pot|sniffer_egg|turtle_egg|frogspawn|.*_torch|torch|ladder|vine|glow_lichen|sculk_vein|scaffold.*|snow|powder_snow|tripwire.*|redstone_wire|repeater|comparator|lever|daylight_detector|.*_crop|wheat|carrots|potatoes|beetroots|sweet_berry_bush|cactus|sugar_cane|kelp|kelp_plant|seagrass|tall_seagrass|nether_wart|.*_roots|.*_fungus|.*_stem|.*_stem$|attached_.*|.*_plant|flower_pot|potted_.*|.*mushroom$|.*_tulip|.*)$/;
 const keep=[];
 for(const b of jd.blocksArray){
   if(b.boundingBox!=='block') continue;
   const n=b.name;
-  if(/(^|_)(door|trapdoor|stairs|slab|wall|fence|fence_gate|button|pressure_plate|pane|carpet|candle|sapling|head|skull|banner|bed|shulker_box|sign|chest|coral_fan|coral_wall_fan|torch|lantern|rod|vine|lichen|vein|crop|roots|fungus|leaves_litter)$/.test(n)) continue;
-  if(/^(air|cave_air|void_air|barrier|light|structure_void|structure_block|jigsaw|command_block|chain_command_block|repeating_command_block|spawner|trial_spawner|vault|test_block|test_instance_block|piston_head|moving_piston|water|lava|fire|soul_fire|end_portal|end_portal_frame|nether_portal|end_gateway|bedrock|farmland|dirt_path|frosted_ice|snow|powder_snow|cactus|conduit|beacon|enchanting_table|brewing_stand|lectern|grindstone|stonecutter|bell|campfire|soul_campfire|hopper|cake|composter|cauldron|water_cauldron|lava_cauldron|powder_snow_cauldron|anvil|chipped_anvil|damaged_anvil|dragon_egg|decorated_pot|sniffer_egg|turtle_egg|frogspawn|ladder|scaffolding|tripwire|redstone_wire|repeater|comparator|lever|daylight_detector|wheat|carrots|potatoes|beetroots|sweet_berry_bush|sugar_cane|kelp|kelp_plant|seagrass|tall_seagrass|nether_wart|flower_pot|bamboo|chorus_plant|chorus_flower|sea_pickle|cocoa|pointed_dripstone|amethyst_cluster|large_amethyst_bud|medium_amethyst_bud|small_amethyst_bud|glow_item_frame|item_frame|end_rod|lightning_rod|iron_bars|chain|lily_pad|cobweb|big_dripleaf|small_dripleaf|big_dripleaf_stem|hanging_roots|spore_blossom|moss_carpet|pale_moss_carpet|tnt|bubble_column|slime_block_x)$/.test(n)) continue;
+  if(n!=='jack_o_lantern'&&/(^|_)(door|trapdoor|stairs|slab|wall|fence|fence_gate|button|pressure_plate|pane|carpet|candle|sapling|head|skull|banner|bed|shulker_box|sign|chest|coral_fan|coral_wall_fan|torch|lantern|rod|vine|lichen|vein|crop|roots|fungus|leaves_litter)$/.test(n)) continue;
+  if(/^(piston|sticky_piston|air|cave_air|void_air|barrier|light|structure_void|structure_block|jigsaw|command_block|chain_command_block|repeating_command_block|spawner|trial_spawner|vault|test_block|test_instance_block|piston_head|moving_piston|water|lava|fire|soul_fire|end_portal|end_portal_frame|nether_portal|end_gateway|bedrock|farmland|dirt_path|frosted_ice|snow|powder_snow|cactus|conduit|beacon|enchanting_table|brewing_stand|lectern|grindstone|stonecutter|bell|campfire|soul_campfire|hopper|cake|composter|cauldron|water_cauldron|lava_cauldron|powder_snow_cauldron|anvil|chipped_anvil|damaged_anvil|dragon_egg|decorated_pot|sniffer_egg|turtle_egg|frogspawn|ladder|scaffolding|tripwire|redstone_wire|repeater|comparator|lever|daylight_detector|wheat|carrots|potatoes|beetroots|sweet_berry_bush|sugar_cane|kelp|kelp_plant|seagrass|tall_seagrass|nether_wart|flower_pot|bamboo|chorus_plant|chorus_flower|sea_pickle|cocoa|pointed_dripstone|amethyst_cluster|large_amethyst_bud|medium_amethyst_bud|small_amethyst_bud|glow_item_frame|item_frame|end_rod|lightning_rod|iron_bars|chain|lily_pad|cobweb|big_dripleaf|small_dripleaf|big_dripleaf_stem|hanging_roots|spore_blossom|moss_carpet|pale_moss_carpet|tnt|bubble_column|slime_block_x)$/.test(n)) continue;
   if(/^(infested_|potted_|attached_|.*_wall_(banner|sign|head|skull|torch|hanging_sign|fan)|.*_candle_cake|.*_stem$|.*_sapling|.*_button|.*coral$)/.test(n)) continue;
   if(/(mushroom|tulip|flower|fern|grass|bush|azalea|dandelion|poppy|orchid|allium|bluet|daisy|lily|rose|peony|lilac|sunflower|sprout|tall|plant|vines|dripleaf|berries|torchflower|pitcher|cornflower)/.test(n) && !/(block|grass_block)/.test(n)) continue;
   keep.push(b);
@@ -80,10 +142,13 @@ for(const b of keep){
   const n=b.name;
   const bn=alias[n]||n;
   if(!bd.blocksByName[bn]){ missing.push(n+'→'+bn); continue; }
-  const tn=n.startsWith('waxed_')?n.replace('waxed_',''):n; const tx=resolveTextures(tn);
+  const tn=n.startsWith('waxed_')?n.replace('waxed_',''):n;
+  const dir=DIR[n];
+  const props={...javaDefaults(b),...(dir&&dir.j||{})};
+  const jf=JOVR[n]||javaFaces(n,props,dir&&dir.jfront)||(tn!==n&&javaFaces(tn,props))||null;
   let top=null,side=null,bottom=null;
-  if(tx){top=tx.top&&avg(tx.top);side=tx.side&&avg(tx.side);bottom=tx.bottom&&avg(tx.bottom);}
-  if(!tx||(!top&&!side&&!bottom)){
+  if(jf){top=avg(jf.up);side=avg(jf.east);bottom=avg(jf.down);}
+  if(!jf||(!top&&!side&&!bottom)){
     const a=avg(tn); top=side=bottom=a;
   }
   top=top||side||bottom; side=side||top; bottom=bottom||side;
@@ -93,17 +158,29 @@ for(const b of keep){
   const kind=glassy||top.a<0.9?1:/leaves$/.test(n)?2:0;
   const ti=tintOf(n)||[0,0,0];
   // Texturas Java: nomes em assets/minecraft/textures/block/
-  const jt=tx&&(tx.top||tx.side||tx.bottom)?[tx.top||tx.side||tx.bottom,tx.side||tx.top||tx.bottom,tx.bottom||tx.side||tx.top]:[tn,tn,tn];
+  const jt=jf?FACES6.map(k=>jf[k]):[tn,tn,tn,tn,tn,tn];
   // Texturas Bedrock: nomes curtos do terrain_texture.json
   const be=beBlocks[beTexAlias[n]||bn]||beBlocks[bn];
   let bt=null;
-  if(be&&be.textures){
-    const u=beFace(be.textures,'up'),sd=beFace(be.textures,'side'),d=beFace(be.textures,'down');
-    bt=[u||sd||d,sd||u||d,d||sd||u];
-    bt.forEach(k=>{ if(!beTerrain[k]) beMissing.push(n+':'+k); else beUsed[k]=1; });
-  } else beMissing.push(n);
-  const compact=a=>a[0]===a[1]&&a[1]===a[2]?a[0]:a;
-  out.push([n,b.displayName,bn,mul(top.c,ti[0]),mul(side.c,ti[1]),mul(bottom.c,ti[2]),kind,compact(jt),bt?compact(bt):0,ti[0]||ti[1]||ti[2]?compact(ti):0]);
+  if(dir){ const f=beDirFaces(dir); bt=FACES6.map(k=>f[k]); }
+  else if(BEOVR[n]) bt=BEOVR[n];
+  else if(be&&be.textures){
+    const any=beFace(be.textures,'side')||beFace(be.textures,'up');
+    bt=FACES6.map(k=>beFace(be.textures,k)||(k==='up'||k==='down'?null:beFace(be.textures,'side'))||any);
+  }
+  if(bt) bt.forEach(k=>{ if(!beTerrain[k.split('#')[0]]) beMissing.push(n+':'+k); else beUsed[k]=1; });
+  else beMissing.push(n);
+  const compact=a=>a.every(x=>x===a[0])?a[0]:a;
+  // Estado Bedrock completo (padrão do minecraft-data + o que DIR muda), com a versão do esquema de estados
+  let bst=0;
+  if(dir){
+    const def=bd.blockStates.find(x=>x.name===bn);
+    const st={}; for(const k in def.states) st[k]=[def.states[k].type,def.states[k].value];
+    for(const k in dir.b){ if(!st[k]) throw new Error(n+': estado Bedrock '+k+' não existe'); st[k][1]=dir.b[k]; }
+    bst=[def.version,st];
+  }
+  const jst=dir?'['+Object.keys(dir.j).map(k=>k+'='+dir.j[k]).join(',')+']':0;
+  out.push([n,b.displayName,bn,mul(top.c,ti[0]),mul(side.c,ti[1]),mul(bottom.c,ti[2]),kind,compact(jt),bt?compact(bt):0,ti[0]||ti[1]||ti[2]?compact(ti):0,jst,bst]);
 }
 console.error('keep',keep.length,'out',out.length,'missing',missing.length);
 console.error(missing.join(', '));
@@ -115,8 +192,9 @@ console.error(out.slice(0,5).map(r=>JSON.stringify(r)).join('\n'));
 // de cogumelo, em que a primeira é o miolo e o estado padrão (todas as faces de casca) é outra.
 const beVariant={mushroom_brown:'skin_brown',mushroom_red:'skin_red'};
 function bePath(e,k){
-  let t=e&&e.textures;
-  if(Array.isArray(t)){
+  let t=e&&e.textures; const vi=+(k.split('#')[1]||0);
+  if(Array.isArray(t)&&vi) t=t[vi]||t[0];
+  else if(Array.isArray(t)){
     const want=Object.keys(beVariant).find(p=>k.startsWith(p));
     t=(want&&t.find(x=>(typeof x==='string'?x:x.path||'').includes(beVariant[want])))||t[0];
   }
@@ -124,7 +202,7 @@ function bePath(e,k){
   return typeof t==='string'?[t,0]:null;
 }
 const tex={};
-Object.keys(beUsed).sort().forEach(k=>{ const p=bePath(beTerrain[k],k); if(p) tex[k]=p[1]?p:p[0]; });
+Object.keys(beUsed).sort().forEach(k=>{ const p=bePath(beTerrain[k.split('#')[0]],k); if(p) tex[k]=p[1]?p:p[0]; });
 fs.writeFileSync('data/bedrock_textures.json',JSON.stringify(tex));
 console.error('bedrock: texturas',Object.keys(tex).length,'sem mapeamento',beMissing.length,beMissing.join(', '));
 })().catch(e=>{ console.error(e); process.exit(1); });

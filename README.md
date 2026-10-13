@@ -13,7 +13,7 @@ Abra `dist/bloco-a-bloco.html` no Chrome ou no Edge. Esse arquivo é autossufici
 ```
 src/app.template.html   Interface e toda a lógica do editor (CSS + JS em um arquivo)
 src/exporters.js        Exportadores .schem e .mcstructure, escritor NBT e ZIP mínimo (sem dependências)
-data/blocks.json        Lista de blocos: [id java, nome, id bedrock, cor topo, cor lado, cor base, tipo, texturas java, texturas bedrock, cor de bioma]
+data/blocks.json        Lista de blocos: [id java, nome, id bedrock, cor topo, cor lado, cor base, tipo, texturas java, texturas bedrock, cor de bioma, estado java, estado bedrock]
 data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote vanilla (terrain_texture.json)
 scripts/gen_blocks.js   Regera os dois arquivos de data/ a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
 scripts/build.js        Junta template + exportadores + blocos e gera os dois HTML em dist/
@@ -38,6 +38,8 @@ npm test         # valida os exportadores
 - Alvo do mouse: varredura de voxels (DDA) mais interseção com o plano do chão ou da camada ativa.
 - Desfazer e refazer guardam lotes de alterações `[índice, valorAntigo, valorNovo]`. Um traço de pincel é um lote.
 - Salvamento automático no `localStorage` (RLE + paleta por nome Java). Projeto também pode ser salvo e aberto em `.json`.
+- Texturas por face na ordem [cima, baixo, norte, sul, leste, oeste]. As do Java saem do modelo do bloco no estado exportado (cadeia de `parent`, rotação `x`/`y` do blockstate); as do Bedrock, do `blocks.json` vanilla.
+- Blocos com frente (fornalha, defumador, alto-forno, abóbora entalhada, lanterna de abóbora, dispensador, liberador, observador, crafter, tear, colmeia, ninho de abelha, estante entalhada) ficam com a frente para o sul, que é o lado que a câmera inicial mostra, e são exportados assim: `facing=south` no Java e o estado equivalente no Bedrock (`minecraft:cardinal_direction`, `direction` ou `facing_direction`), com todos os estados e a versão de esquema do minecraft-data. O barril fica de pé (`facing=up`). Tabela `DIR` em `scripts/gen_blocks.js`. Girar blocos ainda não existe.
 - Tipo do bloco: 0 opaco, 1 translúcido (vidro, gelo, slime, mel), 2 recortado (folhas: buracos sem transparência parcial).
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
@@ -62,12 +64,13 @@ Menu Projeto > Texturas. O usuário escolhe um pacote de recursos e os blocos pa
 
 - Importar os arquivos dentro do jogo. Testar primeiro numa cópia criativa do mundo. Se o terreno for afetado de forma estranha, desmarcar "preservar terreno".
 - A versão com Three.js via CDN (`dist/artifact.html`) em um navegador com internet.
+- Blocos com frente no jogo, principalmente no Bedrock: conferir se a frente aparece mesmo para o sul. O observador é o mais duvidoso (no Bedrock, `minecraft:facing_direction` deveria ser o lado do rosto).
 - Texturas: testado com o pacote vanilla do Bedrock (bedrock-samples) e com as texturas vanilla do Java. Falta testar um pacote personalizado de verdade (HD, `.mcpack` baixado) e a escolha de pasta no Windows.
 
 ## Ideias para as próximas versões
 
-1. Blocos com estado: escadas, lajes, portas, troncos deitados, com orientação (hoje só cubos inteiros, estados padrão).
+1. Blocos com estado: girar blocos com frente, troncos deitados, escadas, lajes, portas (hoje só cubos inteiros, cada um num estado fixo).
 2. Importar `.schem` e `.mcstructure` existentes para editar.
 3. Selecionar, copiar, colar, espelhar e girar trechos.
 4. Preencher região, substituir um bloco por outro e cilindro.
-5. Texturas diferentes por direção (frente da fornalha, abóbora entalhada) junto com os blocos com estado.
+5. Rotação da textura dentro da face (ex.: setas do topo do observador, terracota esmaltada), que hoje é ignorada.

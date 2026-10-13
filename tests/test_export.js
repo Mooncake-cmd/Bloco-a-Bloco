@@ -1,8 +1,9 @@
 const nbt=require('prismarine-nbt');
 const E=require('../src/exporters.js');
-const BL=JSON.parse(require('fs').readFileSync(__dirname+'/../data/blocks.json','utf8')).map(r=>({java:r[0],bedrock:r[2]}));
+const BL=JSON.parse(require('fs').readFileSync(__dirname+'/../data/blocks.json','utf8')).map(r=>({java:r[0],bedrock:r[2],jstate:r[10]||'',bst:r[11]||null}));
 const idx=n=>BL.findIndex(b=>b.java===n);
-const vox=[[5,64,10,idx('stone')],[6,64,10,idx('oak_log')],[5,66,12,idx('oak_leaves')],[7,65,11,idx('bricks')],[5,64,12,idx('grass_block')]];
+const vox=[[5,64,10,idx('stone')],[6,64,10,idx('oak_log')],[5,66,12,idx('oak_leaves')],[7,65,11,idx('bricks')],[5,64,12,idx('grass_block')],[8,64,10,idx('furnace')],[8,65,10,idx('barrel')]];
+function check(ok,msg){ if(!ok){ console.error('FALHOU: '+msg); process.exitCode=1; } }
 (async()=>{
   const schem=await E.exportSchem(vox,BL,{name:'t'});
   const {parsed}=await nbt.parse(Buffer.from(schem));
@@ -15,6 +16,9 @@ const vox=[[5,64,10,idx('stone')],[6,64,10,idx('oak_log')],[5,66,12,idx('oak_lea
   let found=[];
   d.forEach((v,i)=>{ if(v){const x=i%W,z=Math.floor(i/W)%L,y=Math.floor(i/(W*L));found.push([x+5,y+64,z+10,inv[v]]);}});
   console.log(JSON.stringify(found));
+  check('minecraft:furnace[facing=south]' in s.Blocks.Palette,'schem: fornalha com a frente para o sul');
+  check('minecraft:barrel[facing=up]' in s.Blocks.Palette,'schem: barril de pé');
+  check('minecraft:oak_leaves[persistent=true]' in s.Blocks.Palette,'schem: folhas persistentes');
   const mc=await E.exportMcstructure(vox,BL,{preserveTerrain:true});
   const r=await nbt.parse(Buffer.from(mc),'little');
   const m=nbt.simplify(r.parsed);
@@ -25,4 +29,8 @@ const vox=[[5,64,10,idx('stone')],[6,64,10,idx('oak_log')],[5,66,12,idx('oak_lea
   bi[0].forEach((v,i)=>{const z=i%sz,y=Math.floor(i/sz)%sy,x=Math.floor(i/(sz*sy));if(P[v].name!=='minecraft:structure_void')f2.push([x+5,y+64,z+10,P[v].name]);});
   console.log(JSON.stringify(f2));
   console.log('layer1 all -1',bi[1].every(v=>v===-1));
+  const furn=P.find(p=>p.name==='minecraft:furnace'), bar=P.find(p=>p.name==='minecraft:barrel');
+  check(furn&&furn.states['minecraft:cardinal_direction']==='south'&&furn.version===18168865,'mcstructure: fornalha para o sul com versão do esquema');
+  check(bar&&bar.states.facing_direction===1&&bar.states.open_bit===0,'mcstructure: barril de pé e fechado');
+  check(f2.length===vox.length,'mcstructure: todos os blocos presentes');
 })().catch(e=>{console.error('ERRO',e);process.exit(1)});

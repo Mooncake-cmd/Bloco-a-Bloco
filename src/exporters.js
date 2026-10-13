@@ -106,6 +106,7 @@
 
   // Estados padrão extras (folhas não devem decair)
   function javaState(blk) {
+    if (blk.jstate) return blk.jstate;
     if (/_leaves$/.test(blk.java)) return '[persistent=true]';
     return '';
   }
@@ -160,7 +161,13 @@
 
   // ---------- .mcstructure (Bedrock) ----------
   const BEDROCK_BLOCK_VERSION = 18090528; // 1.20.80: o jogo atualiza para a versão atual ao carregar
+  // Blocos com frente trazem o estado completo e a versão do esquema (blk.bst = [versão, {nome: [tipo, valor]}])
   function bedrockStates(blk) {
+    if (blk.bst) {
+      const st = {};
+      for (const k of Object.keys(blk.bst[1])) st[k] = { t: blk.bst[1][k][0], v: blk.bst[1][k][1] };
+      return st;
+    }
     if (/_leaves$/.test(blk.bedrock)) return { persistent_bit: { t: 'byte', v: 1 }, update_bit: { t: 'byte', v: 0 } };
     return {};
   }
@@ -177,10 +184,10 @@
     }
     const emptyName = opts.preserveTerrain === false ? 'minecraft:air' : 'minecraft:structure_void';
     const pal = []; const palIndex = {};
-    function getPal(name, states) {
+    function getPal(name, states, version) {
       if (palIndex[name] === undefined) {
         palIndex[name] = pal.length;
-        pal.push({ name: { t: 'string', v: name }, states: { t: 'compound', v: states }, version: { t: 'int', v: BEDROCK_BLOCK_VERSION } });
+        pal.push({ name: { t: 'string', v: name }, states: { t: 'compound', v: states }, version: { t: 'int', v: version || BEDROCK_BLOCK_VERSION } });
       }
       return palIndex[name];
     }
@@ -190,7 +197,7 @@
       const idx = grid[i];
       if (idx < 0) { layer0[i] = emptyIdx; continue; }
       const blk = BLOCKS[idx];
-      layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk));
+      layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk), blk.bst && blk.bst[0]);
     }
     const layer1 = new Array(total).fill(-1);
     const root = {
