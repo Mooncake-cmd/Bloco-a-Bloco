@@ -278,6 +278,8 @@ function setRaw(x, y, z, v) {
   if (old === v) return false;
   grid[i] = v; verCounter++;
   if (!old && v) blockCount++; else if (old && !v) blockCount--;
+  if (old && cellBlock(old) === LIGHT_BI) { lightSet.delete(i); lightVer++; }
+  if (v && cellBlock(v) === LIGHT_BI) { lightSet.add(i); lightVer++; }
   markDirty(x, y, z);
   return old;
 }
@@ -1097,7 +1099,7 @@ $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.targe
 var BE_TEX = /*%%BETEX%%*/{};
 var GRASS_TINT = 0x91BD59;
 var BEDROCK_ZIP = 'https://github.com/Mojang/bedrock-samples/archive/refs/heads/main.zip';
-var PACK_V = 5; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
+var PACK_V = 6; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
 var packs = [];
 var texOn = true;
 try { texOn = localStorage.getItem('bloco-a-bloco-tex') !== '0'; } catch (e) {}
@@ -1596,7 +1598,7 @@ function newWorld(sx, sy, sz) {
   var g;
   try { g = new Uint32Array(sx * sy * sz); } catch (e) { throw new Error('Sem memória para um espaço de ' + sx + ' × ' + sy + ' × ' + sz + '. Tente um tamanho menor.'); }
   SX = sx; SY = sy; SZ = sz;
-  grid = g; blockCount = 0; verCounter++;
+  grid = g; blockCount = 0; verCounter++; lightFull = true;
   undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -1790,7 +1792,7 @@ function openHelp() {
     '<span><kbd>B E I U T L R H S O V</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar</span>' +
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
-    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
+    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
@@ -1882,11 +1884,47 @@ window.addEventListener('keydown', function (e) {
 window.addEventListener('keyup', function (e) { if (e.key === 'Shift') { lastShift = false; updatePreview(); } });
 
 /* ---------- Loop ---------- */
+/* Bloco de luz: com ele na mão (espaço ativo da hotbar), cada bloco de luz mostra o nível, como no jogo */
+var LIGHT_BI = -1, lightSet = new Set(), lightFull = true, lightVer = 0, lightShown = null, lightGroup = null, lightTex = [];
+function lightLabelTex(n) {
+  if (lightTex[n]) return lightTex[n];
+  var c = document.createElement('canvas'); c.width = c.height = 64;
+  var g = c.getContext('2d');
+  g.fillStyle = 'rgba(30,26,8,.82)'; g.beginPath(); g.arc(32, 32, 28, 0, Math.PI * 2); g.fill();
+  g.lineWidth = 4; g.strokeStyle = '#ffd84a'; g.stroke();
+  g.fillStyle = '#ffe680'; g.font = 'bold 34px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), 32, 34);
+  var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter;
+  return (lightTex[n] = t);
+}
+function updateLightLabels() {
+  if (LIGHT_BI < 0 && 'light' in BY_JAVA) LIGHT_BI = BY_JAVA.light;
+  var on = curBlock() === LIGHT_BI, key = on ? lightVer + '|' + SX + '|' + SY + '|' + (layerOn ? layerY : -1) + (lightFull ? 'f' : '') : null;
+  if (key === lightShown) return;
+  lightShown = key;
+  if (lightGroup) { scene.remove(lightGroup); lightGroup.children.forEach(function (s) { s.material.dispose(); }); lightGroup = null; }
+  if (!on) return;
+  if (lightFull) { // depois de abrir ou importar: procura uma vez no espaço todo
+    lightSet.clear();
+    for (var i = 0; i < grid.length; i++) if (grid[i] && cellBlock(grid[i]) === LIGHT_BI) lightSet.add(i);
+    lightFull = false; lightShown = key.slice(0, -1);
+  }
+  lightGroup = new THREE.Group(); var n = 0;
+  lightSet.forEach(function (i) {
+    if (n++ > 3000) return;
+    var v = grid[i], x = i % SX, z = ((i / SX) | 0) % SZ, y = (i / (SX * SZ)) | 0;
+    if (layerOn && y > layerY) return;
+    var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightLabelTex(stateProps(BLOCKS[LIGHT_BI], cellOri(v)).level), depthTest: false, transparent: true }));
+    s.position.set(x + 0.5, y + 0.5, z + 0.5); s.scale.set(0.62, 0.62, 1); s.renderOrder = 8;
+    lightGroup.add(s);
+  });
+  scene.add(lightGroup);
+}
 function frame() {
   requestAnimationFrame(frame);
   if (!needsRender || !renderer) return;
   needsRender = false;
   rebuildDirty();
+  updateLightLabels();
   renderer.render(scene, camera);
 }
 

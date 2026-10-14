@@ -84,9 +84,18 @@ function stateModels(st) {
 
 // ---------- Geometria própria para blocos que o jogo desenha como entidade ----------
 // Elementos no formato de modelo do Minecraft. Para texturas de entidade 64x64, uv = pixel / 4.
+// uv padrão do Minecraft para a face; se a caixa passa do bloco (bandeira, placa pendurada), o uv sairia da textura
+// e pegaria a vizinha no atlas: desliza para dentro de 0..16 ou, se for maior que 16, estica
+function fitUV(d, f, t) {
+  const uv = { down: [f[0], 16 - t[2], t[0], 16 - f[2]], up: [f[0], f[2], t[0], t[2]], north: [16 - t[0], 16 - t[1], 16 - f[0], 16 - f[1]],
+    south: [f[0], 16 - t[1], t[0], 16 - f[1]], west: [f[2], 16 - t[1], t[2], 16 - f[1]], east: [16 - t[2], 16 - t[1], 16 - f[2], 16 - f[1]] }[d];
+  const fix = (a, b) => { if (a >= 0 && b <= 16) return [a, b]; if (b - a > 16) return [0, 16]; const sh = a < 0 ? -a : 16 - b; return [a + sh, b + sh]; };
+  const u = fix(uv[0], uv[2]), v = fix(uv[1], uv[3]);
+  return [u[0], v[0], u[1], v[1]];
+}
 function box(from, to, tex, uvs) {
-  const faces = {};
-  for (const d of ['down', 'up', 'north', 'south', 'west', 'east']) faces[d] = uvs && uvs[d] ? { texture: '#' + tex, uv: uvs[d] } : { texture: '#' + tex };
+  const faces = {}, out = from.concat(to).some(c => c < 0 || c > 16);
+  for (const d of ['down', 'up', 'north', 'south', 'west', 'east']) faces[d] = uvs && uvs[d] ? { texture: '#' + tex, uv: uvs[d] } : out ? { texture: '#' + tex, uv: fitUV(d, from, to) } : { texture: '#' + tex };
   return { from, to, faces };
 }
 // Caixa de entidade (desdobramento padrão do Minecraft): offset (u,v) em pixels, tamanho w x h x d, textura 64x64
@@ -158,7 +167,7 @@ function entityGeometry(n) {
     return { model: { textures: { w: 'block/' + m[1] + '_wool', s: 'block/oak_planks', particle: 'block/' + m[1] + '_wool' }, elements: [box([1, -14, 15], [15, 14, 16], 'w'), box([0, 13, 14], [16, 15, 16], 's')] }, states: horizontalStates('bab:' + n) };
   }
   if ((m = /^(\w+?)_banner$/.exec(n))) {
-    return { model: { textures: { w: 'block/' + m[1] + '_wool', s: 'block/oak_planks', particle: 'block/' + m[1] + '_wool' }, elements: [box([7, 0, 7], [9, 28, 9], 's'), box([1, 2, 6], [15, 28, 7], 'w'), box([0, 28, 6], [16, 30, 8], 's')] }, states: rotStates('bab:' + n, 'rotation') };
+    return { model: { textures: { w: 'block/' + m[1] + '_wool', s: 'block/oak_planks', particle: 'block/' + m[1] + '_wool' }, elements: [box([7, 0, 7], [9, 28, 9], 's'), box([1, 2, 9], [15, 28, 10], 'w'), box([0, 28, 8], [16, 30, 10], 's')] }, states: rotStates('bab:' + n, 'rotation') };
   }
   if ((m = /^(\w+?)_wall_(skull|head)$/.exec(n))) {
     const t = HEAD_TEX[m[1]] || 'brown_terracotta';
@@ -281,6 +290,7 @@ const BE_SYN = {
     if ((m = /^(dead_)?(tube|brain|bubble|fire|horn)_coral(_fan)?$/.exec(j))) return (m[3] ? 'coral_fan_' : 'coral_plant_') + CORAL_BE[m[2]] + (m[1] ? '_dead' : '');
     if ((m = /^(crimson|warped)_door_(top|bottom)$/.exec(j))) return 'huge_fungus/' + m[1] + '_door_' + (m[2] === 'top' ? 'top' : 'lower');
     if ((m = /^pointed_dripstone_(up|down)_tip_merge$/.exec(j))) return 'pointed_dripstone_' + m[1] + '_merge';
+    if (/^((exposed|weathered|oxidized)_)?copper_chain$/.test(j)) return j + '1'; // não o ícone do item
     return null;
   }
   Object.assign(BE_SYN, { cornflower: 'flower_cornflower', wither_rose: 'flower_wither_rose', lily_of_the_valley: 'flower_lily_of_the_valley',
@@ -386,7 +396,10 @@ const BE_SYN = {
     let radix = 1; P.forEach(p => { if (p[2] === 's') radix *= p[1].length; });
     if (radix > 1 << 19) { console.error('estados demais', n, radix); }
     const stored = P.filter(p => p[2] === 's').map(p => p[0]);
-    const tog = TOGGLE.filter(t => stored.includes(t) && !(multi && t === multi.p) && !ORIENT.includes(t)).slice(0, 2);
+    let tog = TOGGLE.filter(t => stored.includes(t) && !(multi && t === multi.p) && !ORIENT.includes(t));
+    // repetidor e comparador: Usar muda o atraso e o modo, como o clique no jogo; ligado/desligado fica no Shift
+    if (/^(repeater|comparator)$/.test(n)) tog = tog.filter(t => t !== 'powered').concat(['powered']);
+    tog = tog.slice(0, 2);
     const ori = ORIENT.filter(o => stored.includes(o) && !(multi && o === multi.p));
     // tinta (tintindex): grama, folhagem, redstone...
     let tint = 0;

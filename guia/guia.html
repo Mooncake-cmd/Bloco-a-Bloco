@@ -197,7 +197,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
       <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
       <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
-      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor, carga da âncora, nível da água. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado.</td><td>Muda a segunda opção do bloco, quando existe. Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
+      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor (1 a 4), modo do comparador, carga da âncora, nível da água e da luz. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado.</td><td>Muda a segunda opção do bloco, quando existe (no repetidor e no comparador, liga e desliga). Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
       <tr><td>5</td><td><b>Girar</b></td><td><kbd>T</kbd></td><td>Passa para a próxima direção: frente, eixo do tronco, escada de cabeça para baixo, laje em cima/embaixo/dupla.</td><td>Gira ao contrário.</td></tr>
       <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="5">Dois cliques: o primeiro marca o ponto inicial, o segundo o final. Entre os dois, uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto mostra o ponto inicial e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No segundo clique, apaga a forma em vez de construir.</td></tr>
       <tr><td>7</td><td><b>Caixa sólida</b></td><td><kbd>R</kbd></td></tr>
@@ -399,7 +399,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <ul class="plain">
     <li><b>Técnicos</b> (existem nos dois jogos): bloco de comando (normal, em cadeia, repetidor), bloco de estrutura, quebra-cabeça, vazio de estrutura, bloco de luz (níveis 0 a 15), rocha-mãe, água, lava, cabeça de pistão. Saem sem comando e sem configuração.</li>
     <li><b>Só Bedrock</b> (marcados “só Bedrock” no nome): allow, deny, border, camera, obsidiana brilhante, núcleo do reator do Nether, rocha-mãe invisível e, da Education Edition, calor químico, vidro reforçado, painel de vidro reforçado e tocha subaquática. Vão no .mcstructure; ficam de fora do .schem, com aviso.</li>
-    <li>Luz, vazio de estrutura e rocha-mãe invisível são invisíveis no jogo; aqui aparecem como cubinhos translúcidos. Água e lava aparecem como blocos translúcidos e escorrem no jogo.</li>
+    <li>Luz, vazio de estrutura e rocha-mãe invisível são invisíveis no jogo; aqui aparecem como cubinhos translúcidos. Água e lava escorrem também aqui (veja acima).</li>
+    <li><b>Nível da luz à vista</b>: com o bloco de luz no espaço ativo da hotbar, cada bloco de luz da construção mostra o seu nível (0 a 15) num círculo amarelo, como quando se segura o item no jogo. Com <b>Usar</b> o nível muda; o número acompanha.</li>
   </ul>
 </section>
 
@@ -576,7 +577,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="tbl"><table>
     <thead><tr><th>Assunto</th><th>Situação</th></tr></thead>
     <tbody>
-      <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados como caixas simples (o jogo os desenha de um jeito especial). O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
+      <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados de forma simplificada (o jogo os desenha de um jeito especial): o estandarte tem o mastro, a barra e o pano inteiro da cor, mas sem padrões. O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia fica só nesta aba do navegador (não vai para a área de transferência do sistema e some ao recarregar a página). Girar é só de 90° na horizontal; espelhar ainda não existe.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
