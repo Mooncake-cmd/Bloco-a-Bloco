@@ -197,7 +197,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
       <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
       <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
-      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor, carga da âncora, nível da água. Numa muda, faz a árvore crescer.</td><td>Muda a segunda opção do bloco, quando existe. Numa muda, faz a versão grande da árvore.</td></tr>
+      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor, carga da âncora, nível da água. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado.</td><td>Muda a segunda opção do bloco, quando existe. Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
       <tr><td>5</td><td><b>Girar</b></td><td><kbd>T</kbd></td><td>Passa para a próxima direção: frente, eixo do tronco, escada de cabeça para baixo, laje em cima/embaixo/dupla.</td><td>Gira ao contrário.</td></tr>
       <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="5">Dois cliques: o primeiro marca o ponto inicial, o segundo o final. Entre os dois, uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto mostra o ponto inicial e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No segundo clique, apaga a forma em vez de construir.</td></tr>
       <tr><td>7</td><td><b>Caixa sólida</b></td><td><kbd>R</kbd></td></tr>
@@ -336,7 +336,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="tbl"><table>
     <thead><tr><th>Categoria</th><th>O que tem</th><th class="num">Blocos</th></tr></thead>
     <tbody>
-      <tr><td>Pedra</td><td>Pedras, tijolos, ardósia, quartzo, prismarinho, cobre…</td><td class="num">110</td></tr>
+      <tr><td>Pedra</td><td>Pedras, tijolos, ardósia, quartzo, prismarinho, cobre…</td><td class="num">109</td></tr>
       <tr><td>Madeira</td><td>Tábuas, troncos, madeiras, caules, bambu</td><td class="num">55</td></tr>
       <tr><td>Cores</td><td>Lã, concreto, terracota e terracota esmaltada</td><td class="num">81</td></tr>
       <tr><td>Minérios</td><td>Minérios e blocos de metal e gema</td><td class="num">32</td></tr>
@@ -345,9 +345,9 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Formas</td><td>Escadas, lajes, muros, cercas, portões, portas, alçapões, vidraças, barras, tapetes, escada de mão, andaime, correntes</td><td class="num">267</td></tr>
       <tr><td>Redstone</td><td>Pó, repetidor, comparador, alavanca, botões, placas de pressão, trilhos, pistões, linha de armadilha, TNT…</td><td class="num">58</td></tr>
       <tr><td>Plantas</td><td>Flores, mudas, plantações, cogumelos, corais, cipós, folhagens</td><td class="num">160</td></tr>
-      <tr><td>Decoração</td><td>Camas, baús, placas, estandartes, cabeças, lanternas, bolo, bigorna, caldeirão, velas, moldura do portal do Fim…</td><td class="num">197</td></tr>
+      <tr><td>Decoração</td><td>Camas, baús, placas, estandartes, cabeças, lanternas, bolo, bigorna, caldeirão, velas, moldura do portal do Fim, estante entalhada, núcleo pesado…</td><td class="num">199</td></tr>
       <tr><td>Técnicos e só Bedrock</td><td>Blocos de comando, estrutura, quebra-cabeça, luz, água, lava e os 11 blocos que só existem no Bedrock</td><td class="num">21</td></tr>
-      <tr><td>Outros</td><td>O que não se encaixa acima (estantes, mesas de trabalho, blocos especiais)</td><td class="num">44</td></tr>
+      <tr><td>Outros</td><td>O que não se encaixa acima (estantes, mesas de trabalho, blocos especiais)</td><td class="num">43</td></tr>
     </tbody>
   </table></div>
   <h3>Hotbar</h3>
@@ -369,9 +369,31 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Conexões automáticas</td><td>Cercas, muros, vidraças e barras se ligam aos vizinhos e aos blocos sólidos; portões encaixam no muro. O pó de redstone se liga a componentes e sobe degraus; sozinho, vira cruz. Escadas fazem cantos em L. Dois baús iguais lado a lado viram baú duplo. A linha de armadilha prende nos ganchos.</td></tr>
       <tr><td>Dois blocos</td><td>Porta, cama e plantas altas (girassol, roseira, lilás, peônia, capim alto) são colocadas, giradas, usadas e apagadas como uma peça só.</td></tr>
       <tr><td>Laje dupla</td><td>Pôr a mesma laje sobre a face de cima de uma laje de baixo (ou embaixo de uma de cima) junta as duas.</td></tr>
-      <tr><td>Blocos que mudam com Usar</td><td>Aberto/fechado, ligado/desligado, aceso/apagado, idade das plantações, pedaços do bolo, número de velas, picles do mar, camadas de neve, atraso do repetidor, modo do comparador, olho na moldura do portal do Fim, carga da âncora, nível de água, lava e luz. Mudas, cogumelos e fungos crescem e viram a árvore (cap. 03).</td></tr>
+      <tr><td>Blocos que mudam com Usar</td><td>Aberto/fechado, ligado/desligado, aceso/apagado, idade das plantações, pedaços do bolo, número de velas, picles do mar, camadas de neve, atraso do repetidor, modo do comparador, olho na moldura do portal do Fim, carga da âncora, nível de água, lava e luz. Mudas, cogumelos e fungos crescem e viram a árvore (cap. 03). Estante entalhada: livro em cada um dos 6 nichos.</td></tr>
     </tbody>
   </table></div>
+  <h3>Estante entalhada</h3>
+  <div class="side">
+    <figure><img src="img/estante.jpg" alt="Três estantes entalhadas: vazia, com três livros e cheia" width="600" height="380" loading="lazy"><figcaption>Vazia, com três livros e cheia.</figcaption></figure>
+    <ul class="plain">
+      <li>Com <b>Usar</b> (<kbd>U</kbd>), clique na frente da estante, no nicho que quiser: o livro entra ou sai daquele nicho, como no jogo (3 em cima, 3 embaixo).</li>
+      <li>Com <kbd>Shift</kbd>, enche todos os nichos de uma vez; se já estiver cheia, esvazia.</li>
+      <li>Os livros vão junto na exportação (<code>books_stored</code> no Bedrock, <code>slot_N_occupied</code> no Java), mas sem dizer quais livros são: no jogo eles aparecem como livros comuns.</li>
+    </ul>
+  </div>
+
+  <h3>Água e lava escorrem</h3>
+  <figure><img src="img/agua.jpg" alt="Água colocada em cima de uma plataforma de pedra escorrendo pelas bordas e se espalhando no chão; mais à direita, obsidiana onde a água encontrou uma fonte de lava; na frente, uma poça de lava" width="972" height="718" loading="lazy"><figcaption>Uma fonte de água em cima da plataforma: ela se espalha, cai pelas bordas e se espalha de novo no chão. À direita, a água chegou numa fonte de lava, que virou obsidiana. Na frente, uma fonte de lava sozinha.</figcaption></figure>
+  <p>Coloque um bloco de <b>água</b> ou de <b>lava</b> (categoria Técnicos e só Bedrock) e ele escorre como no jogo, em ondas (a lava mais devagar):</p>
+  <ul class="plain">
+    <li>A água anda até 7 blocos para os lados, baixando um nível por bloco; a lava anda 3. Onde há buraco, o fluido cai e volta a se espalhar embaixo. Como no jogo, prefere escorrer na direção do buraco mais perto.</li>
+    <li>Duas fontes de água com um espaço entre elas, sobre chão firme, enchem o meio com uma fonte nova (fonte infinita).</li>
+    <li>Lava que encosta em água vira <b>obsidiana</b> (fonte de lava) ou <b>pedregulho</b> (lava corrente); lava que cai na água vira <b>pedra</b>.</li>
+    <li>Tirar a fonte (ou fechar o caminho com um bloco) faz a água corrente secar.</li>
+    <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz a colocação e tudo o que escorreu dela de uma vez.</li>
+    <li>Para deixar a água e a lava paradas onde você colocar (ex.: montar um lago de um nível só), use <b>Projeto → Água e lava escorrem: não</b>. Estruturas importadas e projetos abertos não escorrem até você mexer perto.</li>
+  </ul>
+
   <h3>Técnicos e só Bedrock</h3>
   <figure><img src="img/inventario.jpg" alt="Os 32 itens do inventário de teste, incluindo blocos de comando, portais, fogo, água e blocos só do Bedrock" width="972" height="640" loading="lazy"><figcaption>Blocos técnicos e só do Bedrock no editor.</figcaption></figure>
   <ul class="plain">
@@ -398,7 +420,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="400" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="436" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
@@ -407,6 +429,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
         <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
+        <tr><td>Água e lava escorrem: sim/não</td><td>Liga e desliga o escorrer da água e da lava (cap. 07). Fica guardado no navegador.</td></tr>
         <tr><td>Texturas…</td><td>Carrega e organiza pacotes de recursos (cap. 10).</td></tr>
         <tr><td>Tema</td><td>Alterna automático (segue o sistema), claro e escuro.</td></tr>
         <tr><td>Atalhos e ajuda</td><td>Resumo dos atalhos (também com <kbd>?</kbd>).</td></tr>
@@ -524,7 +547,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="atalhos">
   <h2><span class="n">17</span>Atalhos</h2>
   <div class="side">
-    <figure><img src="img/ajuda.jpg" alt="Janela Atalhos e ajuda do site" width="536" height="750" loading="lazy" style="max-width:420px"><figcaption>Projeto → Atalhos e ajuda, ou <kbd>?</kbd>.</figcaption></figure>
+    <figure><img src="img/ajuda.jpg" alt="Janela Atalhos e ajuda do site" width="536" height="776" loading="lazy" style="max-width:420px"><figcaption>Projeto → Atalhos e ajuda, ou <kbd>?</kbd>.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Tecla</th><th>Ação</th></tr></thead>
       <tbody>
@@ -556,6 +579,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados como caixas simples (o jogo os desenha de um jeito especial). O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia fica só nesta aba do navegador (não vai para a área de transferência do sistema e some ao recarregar a página). Girar é só de 90° na horizontal; espelhar ainda não existe.</td></tr>
+      <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>

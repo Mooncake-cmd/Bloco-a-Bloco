@@ -263,8 +263,29 @@ function shapeGeom(b, o) {
 }
 
 /* Malha: chamado por buildChunk para cada célula com forma */
+/* Água e lava: altura pelo nível (fonte 8/9, corrente (8 - nível)/9, coluna caindo cheia) e faces escondidas
+   entre células do mesmo fluido, como no jogo */
+function fluidH(b, s) { var lv = +stateProps(b, s).level; return lv === 0 || lv >= 8 ? 8 / 9 : (8 - lv) / 9; }
+function fluidGeom(b, s, x, y, z) {
+  var same = function (dx, dy, dz) { var n = blockAt(x + dx, y + dy, z + dz); return n && n.b === b ? n : null; };
+  var hOf = function (n, dx, dz) { return same(dx, 1, dz) ? 1 : fluidH(b, n.s); };
+  var h = same(0, 1, 0) ? 1 : fluidH(b, s), g = [], tint = b.java === 'water';
+  var add = function (d, A, B, sh) {
+    var f = [A[0] * 16, A[1] * 16, A[2] * 16], t = [B[0] * 16, B[1] * 16, B[2] * 16], uv = defaultUV(d, f, t);
+    g.push({ p: faceCorners(d, A, B), uv: [[uv[0], uv[1]], [uv[2], uv[1]], [uv[2], uv[3]], [uv[0], uv[3]]], ti: 0, cull: null, sh: sh, tint: tint, ov: false });
+  };
+  if (h < 1) add('up', [0, 0, 0], [1, h, 1], 1);
+  var dn = blockAt(x, y - 1, z);
+  if (!(dn && (dn.b === b || dn.b.solid))) add('down', [0, 0, 0], [1, h, 1], 0.55);
+  [['north', 0, -1, 0.9], ['south', 0, 1, 0.9], ['east', 1, 0, 0.8], ['west', -1, 0, 0.8]].forEach(function (q) {
+    var n = blockAt(x + q[1], y, z + q[2]), lo = 0;
+    if (n) { if (n.b.solid) return; if (n.b === b) { lo = hOf(n, q[1], q[2]); if (lo >= h) return; } }
+    add(q[0], [0, lo, 0], [1, h, 1], q[3]);
+  });
+  return g;
+}
 function emitShape(b, s, x, y, z, O, C, G) {
-  var o = fullProps(b, s, x, y, z), g = shapeGeom(b, o);
+  var o = fullProps(b, s, x, y, z), g = b.java === 'water' || b.java === 'lava' ? fluidGeom(b, s, x, y, z) : shapeGeom(b, o);
   var T = b.kind === 1 ? G : C, tintC = b.shape.tint;
   var tr = (tintC >> 16 & 255) / 255, tg = (tintC >> 8 & 255) / 255, tb = (tintC & 255) / 255;
   for (var i = 0; i < g.length; i++) {

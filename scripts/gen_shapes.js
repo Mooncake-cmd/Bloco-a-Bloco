@@ -19,6 +19,8 @@ const clean = s => s.replace('minecraft:', '').replace(/^block\//, '');
 // Texturas no formato novo ({sprite, force_translucent}) viram texto; as translúcidas ficam anotadas
 const TRANSLUCENT = new Set();
 for (const n in M) { const t = M[n].textures || {}; for (const k in t) if (t[k] && typeof t[k] === 'object') { if (t[k].force_translucent) TRANSLUCENT.add(clean(t[k].sprite)); t[k] = t[k].sprite; } }
+// Faces que citam a variável sem o '#' (ex.: núcleo pesado, "texture": "all") valem como "#all"
+for (const n in M) (M[n].elements || []).forEach(e => Object.values(e.faces || {}).forEach(f => { if (f.texture && !f.texture.startsWith('#') && !f.texture.includes('/')) f.texture = '#' + f.texture; }));
 
 // ---------- Quais blocos ----------
 const SKIP = /^(air|cave_air|void_air|bubble_column|moving_piston|barrier|test_block|test_instance_block|frosted_ice|bedrock|infested_.*|budding_amethyst|reinforced_deepslate|spawner|trial_spawner|vault|petrified_oak_slab|sculk_sensor_x)$/;
@@ -35,7 +37,7 @@ function jdefaults(b) {
 const FIXED = new Set(['waterlogged', 'distance', 'persistent', 'snowy', 'unstable', 'triggered', 'enabled', 'locked', 'conditional',
   'has_book', 'has_record', 'signal_fire', 'sculk_sensor_phase', 'shrieking', 'can_summon', 'bottom', 'natural', 'note', 'instrument',
   'short', 'extended', 'occupied', 'disarmed', 'drag', 'dusted', 'honey_level', 'has_bottle_0', 'has_bottle_1', 'has_bottle_2',
-  'cracked', 'side_chain', 'slot_0_occupied', 'slot_1_occupied', 'slot_2_occupied', 'slot_3_occupied', 'slot_4_occupied', 'slot_5_occupied',
+  'cracked', 'side_chain',
   'tip', 'creaking_heart_state', 'ominous', 'vault_state', 'trial_spawner_state', 'crafting', 'moisture', 'inverted']);
 // Propriedades calculadas pelos vizinhos, por família
 function family(n, props) {

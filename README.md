@@ -22,6 +22,7 @@ data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote v
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
+src/fluids.js           Água e lava escorrendo (simulação como no Java)
 src/trees.js            Árvores que crescem com Usar nas mudas (geradores por tipo)
 src/selection.js        Selecionar, copiar, recortar, colar (com giro), apagar e substituir na área
 scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
@@ -56,6 +57,8 @@ npm test         # valida os exportadores
 - Tipo do bloco: 0 opaco, 1 translúcido (vidro, gelo, slime, mel), 2 recortado (folhas: buracos sem transparência parcial).
 - Seleção (`src/selection.js`, ferramenta Selecionar, V): caixa [mín, máx] marcada com dois cliques. Copiar guarda as células cruas (bloco + estado) num `Uint32Array` relativo ao canto mínimo; colar segue o mouse (centrada no ponto apontado), não sobrescreve com o ar da cópia e pode repetir. Girar a cópia (R) gira posições e estados 90° no sentido horário (`facing`, `axis`, `rotation`, trilhos, `orientation`, conexões norte/leste/sul/oeste). Substituir troca um tipo (ou todos) por outro dentro da área mantendo as propriedades em comum e pode preencher o ar. Cada operação é um lote de desfazer. A cópia fica na memória da aba e sobrevive a abrir outro projeto.
 - Árvores (`src/trees.js`): Usar numa muda, propágulo, azaleia, cogumelo ou fungo chama `growAt`, que monta um plano (`TreePlan`: toras com eixo, folhas, cipós, cacau, raízes, musgo, vinhas) com um gerador por tipo que imita o do jogo, com variação aleatória. Shift faz a versão grande; 4 mudas em quadrado fazem as de tronco 2 x 2 (abeto e selva gigantes, carvalho-escuro e carvalho-pálido, que só crescem assim). O tronco precisa de espaço livre (atravessa folhas); folhas só entram no ar e em plantinhas; grama embaixo do tronco vira terra. Tudo num lote de desfazer.
+- Água e lava (`src/fluids.js`): depois de cada edição, as células de fluido mudadas e vizinhas entram numa fila; a simulação segue o `FlowingFluid` do Java (nível novo pelos vizinhos, cair, espalhar para os lados na direção do buraco mais perto, fonte infinita, lava com água vira obsidiana/pedregulho/pedra) em ondas (água 100 ms, lava 450 ms). As mudanças entram no lote de desfazer do topo; desfazer/refazer param a simulação. Projeto > "Água e lava escorrem" liga e desliga (localStorage). A malha do fluido (`fluidGeom` em `src/shapes.js`) tem altura pelo nível e esconde faces entre células do mesmo fluido.
+- Estante entalhada: forma com `facing` e `slot_0..5_occupied`; Usar no nicho clicado (ponto do clique na face da frente) põe ou tira o livro; Shift enche ou esvazia.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)
