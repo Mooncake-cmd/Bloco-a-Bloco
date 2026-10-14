@@ -60,6 +60,7 @@ npm test         # valida os exportadores
 - Água e lava (`src/fluids.js`): depois de cada edição, as células de fluido mudadas e vizinhas entram numa fila; a simulação segue o `FlowingFluid` do Java (nível novo pelos vizinhos, cair, espalhar para os lados na direção do buraco mais perto, fonte infinita, lava com água vira obsidiana/pedregulho/pedra) em ondas (água 100 ms, lava 450 ms). As mudanças entram no lote de desfazer do topo; desfazer/refazer param a simulação. Projeto > "Água e lava escorrem" liga e desliga (localStorage). A malha do fluido (`fluidGeom` em `src/shapes.js`) tem altura pelo nível e esconde faces entre células do mesmo fluido.
 - Estante entalhada: forma com `facing` e `slot_0..5_occupied`; Usar no nicho clicado (ponto do clique na face da frente) põe ou tira o livro; Shift enche ou esvazia.
 - Bloco de luz: `setRaw` mantém o conjunto das células de luz (`lightSet`); com a luz no espaço ativo da hotbar, `updateLightLabels` mostra o nível de cada uma num sprite (refeito quando muda a versão, a camada ou o bloco ativo).
+- Formas: linha, caixa e caixa oca têm três cliques (`anchor`, `anchor2` e a altura); a altura vem de `heightAt`, o ponto da coluna vertical em (x, z) mais perto do raio do ponteiro. Borracha com `eraseSize` 1, 2 ou 3 (quadrado no plano da face clicada). Projeto > Preencher o chão cobre camadas inteiras do espaço.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)

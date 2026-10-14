@@ -197,14 +197,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <thead><tr><th>#</th><th>Ferramenta</th><th>Tecla</th><th>Clique</th><th>Com Shift</th></tr></thead>
     <tbody>
       <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
-      <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
+      <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Tamanho 1×1, 2×2 ou 3×3 no aviso do canto (veja abaixo). Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
       <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
       <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor (1 a 4), modo do comparador, carga da âncora, nível da água e da luz. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado.</td><td>Muda a segunda opção do bloco, quando existe (no repetidor e no comparador, liga e desliga). Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
       <tr><td>5</td><td><b>Girar</b></td><td><kbd>T</kbd></td><td>Passa para a próxima direção: frente, eixo do tronco, escada de cabeça para baixo, laje em cima/embaixo/dupla.</td><td>Gira ao contrário.</td></tr>
-      <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="5">Dois cliques: o primeiro marca o ponto inicial, o segundo o final. Entre os dois, uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto mostra o ponto inicial e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No segundo clique, apaga a forma em vez de construir.</td></tr>
+      <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="3">Três cliques: o início, o ponto oposto e a altura (veja abaixo). Uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto diz o passo e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No último clique, apaga a forma em vez de construir.</td></tr>
       <tr><td>7</td><td><b>Caixa sólida</b></td><td><kbd>R</kbd></td></tr>
       <tr><td>8</td><td><b>Caixa oca</b> (paredes)</td><td><kbd>H</kbd></td></tr>
-      <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td></tr>
+      <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td><td rowspan="2">Dois cliques: o centro e um ponto da borda (o raio).</td></tr>
       <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
       <tr><td>11</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
       <tr><td>12–13</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
@@ -223,8 +223,25 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     </ul>
   </div>
 
-  <h3>Formas com dois cliques</h3>
-  <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida entre o primeiro e o segundo clique, com o aviso do ponto inicial no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida depois do primeiro clique: a prévia laranja mostra a área, e o aviso no canto superior esquerdo mostra o ponto inicial com o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
+  <h3>Borracha de 1×1, 2×2 e 3×3</h3>
+  <div class="side">
+    <figure><img src="img/borracha.jpg" alt="Borracha 3 por 3 com o contorno vermelho no chão e o aviso Borracha 1×1, 2×2, 3×3 no canto" width="640" height="600" loading="lazy"><figcaption>Borracha em 3×3: o contorno vermelho mostra o que vai sair.</figcaption></figure>
+    <ul class="plain">
+      <li>Com a Borracha (ou o Pincel com <kbd>Shift</kbd>), um aviso no canto mostra os tamanhos <b>1×1</b>, <b>2×2</b> e <b>3×3</b>. O tamanho escolhido fica guardado.</li>
+      <li>O quadrado fica na face clicada: no chão ou no teto apaga uma área deitada; numa parede, uma área de pé. A profundidade é sempre de um bloco.</li>
+      <li>No 2×2, o quadrado vai para o lado da metade da face em que você clicou.</li>
+      <li>Arrastar apaga uma faixa da largura escolhida.</li>
+    </ul>
+  </div>
+
+  <h3>Formas: linha e caixas com altura</h3>
+  <ul class="plain">
+    <li><b>Linha, Caixa sólida e Caixa oca</b> têm três cliques: o primeiro marca o início, o segundo o ponto oposto (a base) e o terceiro a altura. Depois do segundo clique, suba ou desça o ponteiro: a prévia cresce para cima (ou para baixo) e o terceiro clique confirma.</li>
+    <li>Para uma caixa achatada (um piso), clique o terceiro sem subir o ponteiro.</li>
+    <li>Para uma <b>linha de pé</b> (de baixo para cima), clique duas vezes no mesmo ponto e suba o ponteiro. Se o segundo ponto for longe, a linha sai inclinada até a altura escolhida.</li>
+    <li><b>Esferas</b> continuam com dois cliques: o centro e um ponto da borda.</li>
+  </ul>
+  <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida no passo da altura, com o aviso Base e a instrução de subir o ponteiro no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida no passo da altura: a base já foi marcada com dois cliques e a prévia laranja sobe junto com o ponteiro. O aviso no canto superior esquerdo mostra o tamanho da base e tem o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
 
   <h3>Selecionar, copiar e colar</h3>
   <figure><img src="img/selecao.jpg" alt="Árvore marcada por uma caixa azul de seleção, com o aviso Seleção 5 × 6 × 5 e os botões Copiar, Recortar, Apagar, Substituir e Limpar" width="972" height="718" loading="lazy"><figcaption>Com <b>Selecionar</b> (<kbd>V</kbd>): o primeiro clique marca um canto, a caixa azul acompanha o mouse e o segundo clique fecha a área. O aviso no canto mostra o tamanho e os botões de ação; a barra de status também mostra o tamanho da seleção.</figcaption></figure>
@@ -423,13 +440,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="436" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="472" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
         <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar.</td></tr>
         <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
         <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
         <tr><td>Água e lava escorrem: sim/não</td><td>Liga e desliga o escorrer da água e da lava (cap. 07). Fica guardado no navegador.</td></tr>
@@ -439,6 +457,17 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Guia de uso completo ↗</td><td>Abre este guia numa aba nova. A janela de ajuda também tem o link.</td></tr>
       </tbody>
     </table></div>
+  </div>
+  <h3>Preencher o chão</h3>
+  <div class="side">
+    <figure><img src="img/chao.jpg" alt="Janela Preencher o chão com o bloco, a camada, a espessura e a opção de só preencher os espaços vazios" width="536" height="362" loading="lazy"><figcaption>Projeto → Preencher o chão…</figcaption></figure>
+    <ul class="plain">
+      <li><b>Bloco</b>: nome ou id, com lista para escolher; já vem com o bloco ativo da hotbar.</li>
+      <li><b>Camada</b>: a altura Y do chão (0 é o fundo do espaço; com a Camada ligada, começa nela).</li>
+      <li><b>Espessura</b>: quantas camadas encher, de baixo para cima (ex.: 3 para terra grossa).</li>
+      <li><b>Só nos espaços vazios</b>: ligado, não troca nada que já está construído; desligado, cobre tudo nessas camadas.</li>
+      <li>Vale para o espaço inteiro (a largura e a profundidade do Tamanho do espaço). Ctrl+Z desfaz.</li>
+    </ul>
   </div>
 </section>
 

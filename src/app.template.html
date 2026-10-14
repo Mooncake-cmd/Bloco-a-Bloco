@@ -67,6 +67,9 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 .chip{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:8px;font:500 12px var(--font-mono);backdrop-filter:blur(6px);pointer-events:auto}
 .chip b{font-weight:500;color:var(--muted)}
 .chip button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:5px;padding:2px 8px;font-size:12px}
+#eraseBtns{display:inline-flex;gap:4px}
+#eraseBtns button{background:var(--line);color:var(--fg)}
+#eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
 #selChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 #selBtns{display:inline-flex;flex-wrap:wrap;gap:4px}
 #selBtns button+button{background:var(--line);color:var(--fg)}
@@ -158,6 +161,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="newBtn">Novo (limpar tudo)</button>
           <button class="tbtn txt" id="saveBtn">Salvar projeto (.json)</button>
           <button class="tbtn txt" id="openBtn">Abrir projeto ou estrutura…</button>
+          <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
@@ -172,7 +176,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -438,13 +442,55 @@ function renderTools() {
     return '<button type="button" class="tbtn" data-tool="' + t[0] + '" aria-pressed="' + (t[0] === tool) + '" title="' + t[1] + ' (' + t[2] + ')" aria-label="' + t[1] + '"><svg viewBox="0 0 20 20">' + t[3] + '</svg></button>';
   }).join('');
 }
-function setTool(t) { tool = t; anchor = null; if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
+function setTool(t) { tool = t; anchor = null; anchor2 = null; if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
 $('tools').addEventListener('click', function (e) { var b = e.target.closest('[data-tool]'); if (b) setTool(b.getAttribute('data-tool')); });
 function isShape(t) { return t === 'line' || t === 'box' || t === 'hbox' || t === 'sphere' || t === 'hsphere'; }
+/* Linha, caixa e caixa oca têm três cliques: início, ponto oposto (a base) e a altura */
+var anchor2 = null;
+function hasHeightStep(k) { return k === 'line' || k === 'box' || k === 'hbox'; }
 function updateAnchorChip() {
+  if (!anchor) anchor2 = null;
   $('anchorChip').hidden = !anchor;
-  if (anchor) $('anchorTxt').textContent = 'Início ' + anchor.join(', ') + ' · toque no ponto final (Shift apaga)';
+  if (anchor2) $('anchorTxt').textContent = (tool === 'line' ? 'Fim ' + anchor2.join(', ') : 'Base ' + (Math.abs(anchor[0] - anchor2[0]) + 1) + ' × ' + (Math.abs(anchor[2] - anchor2[2]) + 1)) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
+  else if (anchor) $('anchorTxt').textContent = 'Início ' + anchor.join(', ') + ' · toque no ' + (hasHeightStep(tool) ? 'ponto oposto' : 'ponto final') + (hasHeightStep(tool) ? '' : ' (Shift apaga)');
 }
+/* Altura apontada: o ponto da coluna vertical em (x, z) mais perto do raio do ponteiro */
+function heightAt(cx, cy, x, z, def) {
+  if (cx == null) return def;
+  var r = rayFrom(cx, cy), o = r.o, d = r.d;
+  var w = [o[0] - (x + 0.5), o[1], o[2] - (z + 0.5)];
+  var b = d[1], dd = d[0] * w[0] + d[1] * w[1] + d[2] * w[2], den = 1 - b * b;
+  if (den < 1e-4) return def; // olhando reto de cima: não dá para medir a altura
+  var y = Math.floor((w[1] - b * dd) / den);
+  return Math.max(0, Math.min(layerMax(), y));
+}
+/* Ponto final da forma no passo da altura */
+function shapeEnd(kind, cx, cy) {
+  var h = heightAt(cx, cy, anchor2[0], anchor2[2], kind === 'line' ? anchor2[1] : anchor[1]);
+  return [anchor2[0], h, anchor2[2]];
+}
+/* Borracha: 1 x 1, 2 x 2 ou 3 x 3 no plano da face clicada */
+var eraseSize = 1;
+try { eraseSize = +localStorage.getItem('bloco-a-bloco-erase') || 1; } catch (e) {}
+function eraseCells(t) {
+  var c = t && t.hit; if (!c) return [];
+  var n = t.normal || [0, 1, 0], ax = [0, 1, 2].filter(function (i) { return !n[i]; }), out = [];
+  var span = function (i) {
+    if (eraseSize === 1) return [0]; if (eraseSize === 3) return [-1, 0, 1];
+    var f = t.pt ? t.pt[i] - c[i] : 0.5; return f >= 0.5 ? [0, 1] : [-1, 0];
+  };
+  var A = span(ax[0]), B = span(ax[1]);
+  A.forEach(function (a) { B.forEach(function (b) { var p = c.slice(); p[ax[0]] += a; p[ax[1]] += b; if (inB(p[0], p[1], p[2])) out.push(p); }); });
+  return out;
+}
+function eraseArea(t) { eraseCells(t).forEach(function (p) { if (grid[idx(p[0], p[1], p[2])]) eraseAt(p); }); }
+function updateEraseChip() {
+  var on = effTool(lastShift) === 'erase' || tool === 'erase';
+  $('eraseChip').hidden = !on;
+  if (on) $('eraseChip').querySelectorAll('[data-es]').forEach(function (b) { b.setAttribute('aria-pressed', +b.getAttribute('data-es') === eraseSize); });
+}
+function setEraseSize(n) { eraseSize = n; try { localStorage.setItem('bloco-a-bloco-erase', n); } catch (e) {} updateEraseChip(); updatePreview(); }
+$('eraseBtns').addEventListener('click', function (e) { var b = e.target.closest('[data-es]'); if (b) setEraseSize(+b.getAttribute('data-es')); });
 $('anchorCancel').addEventListener('click', function () { anchor = null; updateAnchorChip(); updatePreview(); requestRender(); });
 
 function shapeCells(kind, a, b) {
@@ -755,7 +801,8 @@ function setBoxAt(mesh, c) { mesh.position.set(c[0] + 0.5, c[1] + 0.5, c[2] + 0.
 function effTool(shift) { return tool === 'place' && shift ? 'erase' : tool; }
 var lastShift = false;
 function updatePreview() {
-  ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0;
+  ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
+  updateEraseChip();
   var t = hoverT;
   if (selA) drawSelBox();
   if (!t) { requestRender(); return; }
@@ -769,6 +816,12 @@ function updatePreview() {
     ghostFill.material.color.setRGB(b.top[0] / 255, b.top[1] / 255, b.top[2] / 255);
     setBoxAt(ghostFill, cell); ghostFill.visible = true;
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
+  } else if (et === 'erase' && eraseSize > 1) {
+    var ec = eraseCells(t); if (!ec.length) { requestRender(); return; }
+    var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    ec.forEach(function (p) { for (var k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], p[k]); hi[k] = Math.max(hi[k], p[k]); } });
+    ghostEdges.material.color.copy(danger); ghostEdges.scale.set(hi[0] - lo[0] + 1, hi[1] - lo[1] + 1, hi[2] - lo[2] + 1);
+    ghostEdges.position.set((lo[0] + hi[0]) / 2 + 0.5, (lo[1] + hi[1]) / 2 + 0.5, (lo[2] + hi[2]) / 2 + 0.5); ghostEdges.visible = true;
   } else if (et === 'erase' || et === 'pick' || et === 'rotate' || et === 'use') {
     cell = t.hit; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(et === 'erase' ? danger : info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
@@ -776,10 +829,12 @@ function updatePreview() {
     cell = t.hit || t.place; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
   } else if (isShape(et)) {
-    cell = t.place; if (!cell) { requestRender(); return; }
+    cell = t.place;
+    if (anchor2 && hasHeightStep(et)) cell = shapeEnd(et, hoverXY && hoverXY[0], hoverXY && hoverXY[1]);
+    if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
     if (anchor) {
-      var cells = shapeCells(et, anchor, cell), n = Math.min(cells.length, 40000), m = new THREE.Matrix4();
+      var cells = shapeCells(et, anchor2 && et !== 'line' ? [anchor[0], anchor[1], anchor[2]] : anchor, cell), n = Math.min(cells.length, 40000), m = new THREE.Matrix4();
       for (var i = 0; i < n; i++) { m.setPosition(cells[i][0] + 0.5, cells[i][1] + 0.5, cells[i][2] + 0.5); previewInst.setMatrixAt(i, m); }
       previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
       previewInst.material.color.copy(lastShift ? danger : accent);
@@ -795,8 +850,8 @@ function updateStatus() {
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
-  if (anchor && t && t.place && isShape(effTool(lastShift))) {
-    var a = anchor, b2 = t.place;
+  if (anchor && (anchor2 || (t && t.place)) && isShape(effTool(lastShift))) {
+    var a = anchor, b2 = anchor2 && hasHeightStep(tool) ? shapeEnd(tool, hoverXY && hoverXY[0], hoverXY && hoverXY[1]) : t.place;
     $('stSize').textContent += '  |  forma ' + (Math.abs(a[0] - b2[0]) + 1) + ' × ' + (Math.abs(a[1] - b2[1]) + 1) + ' × ' + (Math.abs(a[2] - b2[2]) + 1);
   }
   var ss = sel || (selA && cell ? selFrom(selA, cell) : null);
@@ -939,7 +994,7 @@ function pressAt(cx, cy, shift) {
     if (!t) return;
     stroke = { mode: et, cells: new Set() };
     beginBatch();
-    if (et === 'place') placeAt(t.place, t); else eraseAt(t.hit);
+    if (et === 'place') placeAt(t.place, t); else eraseArea(t);
     stroke.last = (et === 'place' ? t.place : t.hit);
     stroke.on = true;
   } else if (et === 'pick') {
@@ -956,9 +1011,14 @@ function pressAt(cx, cy, shift) {
   } else if (et === 'use') {
     if (t && t.hit) useAt(t.hit, shift, t);
   } else if (isShape(et)) {
-    if (!t || !t.place) return;
-    if (!anchor) { anchor = t.place.slice(); updateAnchorChip(); }
-    else { var a = anchor; anchor = null; updateAnchorChip(); commitShape(et, a, t.place, shift, t); }
+    if (anchor2 && hasHeightStep(et)) {
+      var e3 = shapeEnd(et, cx, cy), a3 = anchor; anchor = null; updateAnchorChip(); commitShape(et, a3, e3, shift, t || { d: rayFrom(cx, cy).d, normal: [0, 1, 0] });
+    } else {
+      if (!t || !t.place) return;
+      if (!anchor) { anchor = t.place.slice(); updateAnchorChip(); }
+      else if (hasHeightStep(et)) { anchor2 = t.place.slice(); updateAnchorChip(); }
+      else { var a = anchor; anchor = null; updateAnchorChip(); commitShape(et, a, t.place, shift, t); }
+    }
   }
   updatePreview(); updateStatus();
 }
@@ -968,7 +1028,7 @@ function dragAt(cx, cy) {
   if (t) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
-      if (stroke.mode === 'place') placeAt(c, t); else eraseAt(c);
+      if (stroke.mode === 'place') placeAt(c, t); else eraseArea(t);
       stroke.last = c;
     }
   }
@@ -1790,6 +1850,8 @@ function openHelp() {
     '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
     '<span><kbd>B E I U T L R H S O V</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar</span>' +
+    '<span>Linha e caixas (<kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd>)</span><span>Três cliques: o início, o ponto oposto e a altura (suba ou desça o ponteiro). Para uma linha de pé, clique duas vezes no mesmo ponto e suba. Esferas: dois cliques (centro e raio).</span>' +
+    '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
@@ -1836,6 +1898,34 @@ $('fileIn').addEventListener('change', function (e) {
   rd.readAsText(f); e.target.value = '';
 });
 $('sizeBtn').addEventListener('click', function () { $('menu').open = false; openSize(); });
+$('floorBtn').addEventListener('click', function () { $('menu').open = false; openFloor(); });
+/* Preencher o chão: cobre uma ou mais camadas do espaço inteiro com um bloco, de uma vez */
+function openFloor() {
+  var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
+  var y0 = layerOn ? layerY : 0;
+  openDialog('<h3>Preencher o chão</h3><p>Cobre o espaço inteiro (' + SX + ' × ' + SZ + ') com um bloco, sem precisar marcar a área. Ctrl+Z desfaz.</p>' +
+    '<label>Bloco (nome ou id)<input type="text" id="flBlock" list="flList" value="' + esc(BLOCKS[curBlock()].java) + '" autocomplete="off"></label><datalist id="flList">' + list + '</datalist>' +
+    '<div class="row"><label>Camada (altura Y)<input type="number" id="flY" min="0" max="' + (SY - 1) + '" value="' + y0 + '"></label><label>Espessura (camadas)<input type="number" id="flH" min="1" max="' + SY + '" value="1"></label></div>' +
+    '<label class="check"><input type="checkbox" id="flKeep" checked><span>Só nos espaços vazios (não troca o que já está construído)</span></label>' +
+    '<p id="flErr" class="err" hidden></p>' +
+    '<div class="row"><button class="btn primary" id="flOk">Preencher</button><button class="btn" id="flNo">Cancelar</button></div>',
+    function () {
+      $('flNo').onclick = closeDialog;
+      $('flOk').onclick = function () {
+        var bi = blockByText($('flBlock').value), y = Math.max(0, Math.min(SY - 1, $('flY').value | 0)), h = Math.max(1, $('flH').value | 0), keep = $('flKeep').checked;
+        if (bi < 0) { $('flErr').hidden = false; $('flErr').textContent = 'Bloco não encontrado: escreva o id (ex.: grass_block) ou escolha um nome da lista.'; return; }
+        var v = mkCell(bi), n = 0, y1 = Math.min(SY - 1, y + h - 1);
+        if (BLOCKS[bi].shape && BLOCKS[bi].shape.multi) { $('flErr').hidden = false; $('flErr').textContent = 'Blocos de duas partes (porta, cama, plantas altas) não servem para o chão.'; return; }
+        beginBatch();
+        for (var yy = y; yy <= y1; yy++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
+          if (keep && grid[idx(x, yy, z)]) continue;
+          editSet(x, yy, z, v); n++;
+        }
+        endBatch(); closeDialog();
+        toast('Chão preenchido: ' + n + ' blocos de ' + BLOCKS[bi].name + '.');
+      };
+    });
+}
 $('flowBtn').addEventListener('click', function () { setFlow(!flowOn); toast(flowOn ? 'A água e a lava escorrem ao colocar, como no jogo.' : 'A água e a lava ficam paradas onde você colocar.'); $('menu').open = false; });
 setFlow(flowOn);
 $('gridBtn').addEventListener('click', function () { showGrid = !showGrid; positionGrid(); requestRender(); $('menu').open = false; });

@@ -43,9 +43,13 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   // forma: caixa com âncora
   await cam(VIEW);
   await p.keyboard.press('r');
-  await p.mouse.click(250, 560); await p.waitForTimeout(200); await p.mouse.move(420, 640); await p.waitForTimeout(500);
+  await p.mouse.click(250, 560); await p.waitForTimeout(200); await p.mouse.click(420, 640); await p.waitForTimeout(200); await p.mouse.move(420, 520); await p.waitForTimeout(500);
   await shot('caixa', { x: 0, y: 54, width: 972, height: 718 });
-  await p.keyboard.press('Escape'); await p.keyboard.press('b'); await hideToast();
+  await p.keyboard.press('Escape'); await hideToast();
+  // borracha 3 x 3
+  await p.keyboard.press('e'); await p.click('[data-es="3"]'); await p.mouse.move(300, 600); await p.waitForTimeout(400);
+  await shot('borracha', { x: 0, y: 54, width: 640, height: 600 });
+  await p.click('[data-es="1"]'); await p.keyboard.press('b'); await hideToast();
   // seleção: área da casa, colar uma cópia ao lado e a janela Substituir
   await cam(VIEW); await p.keyboard.press('v');
   // a árvore: caixa das folhas, do chão (y = 1) até o topo
@@ -75,6 +79,7 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await dlg('materiais', () => p.click('#matBtn'));
   await dlg('texturas', async () => { await p.click('#menu summary'); await p.click('#texBtn'); });
   await dlg('tamanho', async () => { await p.click('#menu summary'); await p.click('#sizeBtn'); });
+  await dlg('chao', async () => { await p.click('#menu summary'); await p.click('#floorBtn'); });
   await dlg('ajuda', async () => { await p.click('#menu summary'); await p.click('#helpBtn'); });
   // paleta
   const pal = async (name, cat, q) => { if (cat) await p.click('[data-cat="' + cat + '"]'); if (q != null) await p.fill('#search', q); await p.waitForTimeout(400); await shot(name, { x: 972, y: 0, width: 308, height: 800 }); };
