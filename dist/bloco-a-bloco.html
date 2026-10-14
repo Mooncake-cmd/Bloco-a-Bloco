@@ -2130,6 +2130,23 @@ function buildAtlas(tiles) {
   return px;
 }
 var texJob = 0, onTexProgress = null;
+/* O pó de redstone no Bedrock: a linha vem deitada (no Java, em pé, e o modelo usa a do Java) e não existe o ponto
+   central, só a cruz inteira. Sem ajuste, cada trecho aparece atravessado e cada pó desenha uma cruz. */
+function beFix(jt) { return /^redstone_dust_line[01]$/.test(jt) ? 'rot' : jt === 'redstone_dust_dot' ? 'dot' : ''; }
+function fixImage(img, fx) {
+  var w = img.w, h = img.h, s = Math.min(w, h), d = new Uint8ClampedArray(s * s * 4);
+  for (var y = 0; y < s; y++) for (var x = 0; x < s; x++) {
+    var o = (y * s + x) * 4, i;
+    if (fx === 'rot') i = ((s - 1 - x) * w + y) * 4; // gira 90°: a linha deitada fica em pé
+    else { // ponto: só o miolo da cruz (o pedaço que no Java é a textura do ponto)
+      var u = x * 16 / s, v = y * 16 / s;
+      if (u < 4 || u >= 12 || v < 5 || v >= 12) continue;
+      i = (y * w + x) * 4;
+    }
+    d[o] = img.d[i]; d[o + 1] = img.d[i + 1]; d[o + 2] = img.d[i + 2]; d[o + 3] = img.d[i + 3];
+  }
+  return { w: s, h: s, d: d };
+}
 async function applyTextures() {
   if (!renderer) return;
   var job = ++texJob, active = texOn ? packs : [], tiles = [], seen = new Map(), cache = new Map();
@@ -2154,10 +2171,11 @@ async function applyTextures() {
     for (var f = 0; f < b.jt.length; f++) for (var pi = active.length - 1; pi >= 0; pi--) {
       var P = active[pi], key = packKeys(P, b)[f], t = key && P.tex[key];
       if (!t) continue;
-      var tint = t.ov ? GRASS_TINT : b.tint[f] || 0, id = pi + '|' + key + '|' + tint;
+      var tint = t.ov ? GRASS_TINT : b.tint[f] || 0, fx = P.kind === 'java' ? '' : beFix(b.jt[f]), id = pi + '|' + key + '|' + tint + fx;
       if (!seen.has(id)) {
         var img = cache.get(t);
         if (!img) continue;
+        if (fx) img = fixImage(img, fx);
         seen.set(id, tiles.length + 2); tiles.push({ img: img, tint: tint, ov: t.ov, big: /entity\//.test(key) });
       }
       res[bi][f] = seen.get(id); break;
