@@ -16,7 +16,7 @@ function cellOf(name, props) {
 var TREE_SOFT = { short_grass: 1, grass: 1, fern: 1, dead_bush: 1, snow: 1, vine: 1, moss_carpet: 1, pale_moss_carpet: 1, leaf_litter: 1, dandelion: 1, poppy: 1, short_dry_grass: 1 };
 function treeFree(x, y, z, sap, log) {
   if (!inB(x, y, z)) return false;
-  var v = grid[idx(x, y, z)]; if (!v) return true;
+  var v = gget(x, y, z); if (!v) return true;
   var j = BLOCKS[cellBlock(v)].java;
   return j === sap || j in TREE_SOFT || (log && /_leaves$|_wart_block$/.test(j)); // tronco e galhos atravessam folhas
 }
@@ -330,7 +330,7 @@ function saplingSquare(c, bi) {
     var ok = true;
     for (var i = 0; i < 2 && ok; i++) for (var k = 0; k < 2 && ok; k++) {
       var x = c[0] + ox + i, z = c[2] + oz + k;
-      ok = inB(x, c[1], z) && cellBlock(grid[idx(x, c[1], z)]) === bi && grid[idx(x, c[1], z)] !== 0;
+      ok = inB(x, c[1], z) && cellBlock(gget(x, c[1], z)) === bi && gget(x, c[1], z) !== 0;
     }
     if (ok) return [c[0] + ox, c[1], c[2] + oz];
   }
@@ -338,7 +338,7 @@ function saplingSquare(c, bi) {
 }
 /* Usar numa muda: faz crescer. Com Shift, a versão grande (carvalho grande, bétula alta, pinheiro, cogumelo alto…). Devolve true se tratou. */
 function growAt(c, big) {
-  var v = grid[idx(c[0], c[1], c[2])], bi = cellBlock(v), b = BLOCKS[bi], kind = SAPLINGS[b.java];
+  var v = gget(c[0], c[1], c[2]), bi = cellBlock(v), b = BLOCKS[bi], kind = SAPLINGS[b.java];
   if (!kind) return false;
   if (b.java === 'mangrove_propagule' && stateProps(b, cellOri(v)).hanging === 'true') { toast('O propágulo pendurado não cresce: coloque-o no chão para virar um mangue.'); return true; }
   var sq = (kind === 'spruce' || kind === 'jungle' || kind === 'dark_oak' || kind === 'pale_oak') ? saplingSquare(c, bi) : null;
@@ -356,7 +356,7 @@ function growAt(c, big) {
     if (!inB(q.x, q.y, q.z)) { out++; return; }
     if (!q.t && !treeFree(q.x, q.y, q.z, b.java)) {
       // raízes e terra enraizada entram na terra
-      var cur = grid[idx(q.x, q.y, q.z)], j = cur && BLOCKS[cellBlock(cur)].java;
+      var cur = gget(q.x, q.y, q.z), j = cur && BLOCKS[cellBlock(cur)].java;
       if (!(/mangrove_roots|rooted_dirt/.test(BLOCKS[cellBlock(q.v)].java) && /^(dirt|grass_block|mud|coarse_dirt|podzol|rooted_dirt|moss_block)$/.test(j))) return;
     }
     if (q.v) { editSet(q.x, q.y, q.z, q.v); n++; }
@@ -364,11 +364,11 @@ function growAt(c, big) {
   // como no jogo, a grama embaixo do tronco vira terra
   P.trunk.forEach(function (t) {
     if (t[1] - 1 < 0 || P.has(t[0], t[1] - 1, t[2])) return;
-    var u = grid[idx(t[0], t[1] - 1, t[2])];
+    var u = gget(t[0], t[1] - 1, t[2]);
     if (u && /^(grass_block|podzol|mycelium)$/.test(BLOCKS[cellBlock(u)].java)) editSet(t[0], t[1] - 1, t[2], cellOf('dirt'));
   });
   // mudas do quadrado que sobraram (fora do tronco) somem
-  if (sq) for (var i = 0; i < 2; i++) for (var k = 0; k < 2; k++) if (cellBlock(grid[idx(sq[0] + i, sq[1], sq[2] + k)]) === bi) editSet(sq[0] + i, sq[1], sq[2] + k, 0);
+  if (sq) for (var i = 0; i < 2; i++) for (var k = 0; k < 2; k++) if (cellBlock(gget(sq[0] + i, sq[1], sq[2] + k)) === bi) editSet(sq[0] + i, sq[1], sq[2] + k, 0);
   endBatch();
   toast(TREE_NAMES[kind] + (sq && (kind === 'spruce' || kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + n + ' blocos' + (out ? ' (' + out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
   return true;

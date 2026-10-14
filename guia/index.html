@@ -128,7 +128,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <div class="fact"><b>13</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>categorias de blocos</span></div>
     <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
-    <div class="fact"><b>64 mi</b><span>blocos de espaço no máximo (ex.: 400 × 400 × 400)</span></div>
+    <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
   </div>
 </header>
 
@@ -557,6 +557,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li><b>Baixar .mcstructure (Bedrock)</b>: no jogo, ponha um bloco de estrutura, modo <b>Carregar</b>, botão <b>Importar</b>, escolha o arquivo e carregue.</li>
       <li><b>Baixar .schem (Java)</b>: coloque na pasta de schematics do WorldEdit e use <code>//schem load</code> e <code>//paste</code>.</li>
       <li>Só a parte construída é exportada (o menor retângulo que contém os blocos), não o espaço inteiro.</li>
+      <li><b>Baixar em pedaços</b> (aparece quando a construção passa de 64 × 384 × 64, o tamanho de uma estrutura do Bedrock): sai um .zip com vários .mcstructure de até 64 × 384 × 64 e um texto (<code>_LEIA.txt</code>) com o deslocamento de cada pedaço em relação ao canto de menor X, Y e Z da construção. Carregue cada um no mundo somando esse deslocamento às coordenadas do ponto de referência (por exemplo, com <code>/structure load nome x y z</code>, o nome sendo o do arquivo sem <code>.mcstructure</code>). Pedaços sem blocos não são gravados.</li>
+      <li>Um arquivo só (.mcstructure inteiro ou .schem) aceita construções de até 150 milhões de espaços na caixa; acima disso, use os pedaços.</li>
       <li>Cada bloco sai com o estado completo: direção, aberto, conexões, metade… No Bedrock, a tradução usa a tabela oficial Java → Bedrock do minecraft-data, e a cor das camas vai junto.</li>
     </ul>
   </div>
@@ -590,12 +592,15 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="tamanho">
   <h2><span class="n">14</span>Tamanho do espaço</h2>
   <div class="side">
-    <figure><img src="img/tamanho.jpg" alt="Janela Tamanho do espaço com largura, altura e profundidade" width="536" height="362" loading="lazy"><figcaption>Projeto → Tamanho do espaço…</figcaption></figure>
+    <figure><img src="img/tamanho.jpg" alt="Janela Tamanho do espaço com largura, altura e profundidade" width="536" height="493" loading="lazy"><figcaption>Projeto → Tamanho do espaço…</figcaption></figure>
     <ul class="plain">
-      <li>Padrão de 32 × 32 × 32; mínimo de 8 por lado; máximo de 2.048 por lado e 64 milhões de blocos de espaço no total (ex.: 400 × 400 × 400 ou 1.000 × 64 × 1.000).</li>
-      <li>Ao diminuir, os blocos que ficarem de fora são apagados. Ao aumentar, a construção fica no canto de origem.</li>
-      <li>Espaços grandes usam mais memória mesmo vazios (4 bytes por bloco de espaço). No celular, algo como 200 × 100 × 200 vai bem; os maiores, prefira no computador.</li>
-      <li>Em espaços grandes a cena é montada aos poucos, para a tela não travar.</li>
+      <li>Padrão de 32 × 32 × 32; mínimo de 8 por lado; máximo de 16.384 de largura e de profundidade e 4.096 de altura.</li>
+      <li><b>O espaço vazio não ocupa memória.</b> A construção é guardada em pedaços de 16 × 16 × 16, e só existem os pedaços que têm algum bloco. O que pesa é a quantidade de blocos construídos: cerca de 1 byte por bloco em pedaços cheios (em testes, 134 milhões de blocos ocuparam uns 130 MB). No computador, dá para passar de 100 milhões de blocos; no celular, conte com algo como 20 a 50 milhões.</li>
+      <li>A janela mostra quantos blocos e pedaços a construção tem e quanta memória eles ocupam.</li>
+      <li><b>Distância de desenho</b>: só os pedaços até essa distância do centro da câmera são desenhados (padrão 384 blocos). Os de longe continuam na construção e voltam quando a câmera chega perto. Numa construção enorme, diminua se a tela ficar lenta; “Tudo” desenha a construção inteira.</li>
+      <li>Ao diminuir o espaço, os blocos que ficarem de fora são apagados. Ao aumentar, a construção fica no canto de origem.</li>
+      <li>Em construções grandes a cena é montada aos poucos, para a tela não travar. Com o espaço maior que 512 blocos, a câmera inicial olha para a construção (ou para o meio, de perto), e a grade do chão passa a ter uma linha a cada 16 blocos.</li>
+      <li>Para não estourar a memória do desfazer, “Preencher o chão” e “Substituir” com preenchimento aceitam até 16 milhões de espaços de uma vez, e copiar aceita áreas de até 64 milhões de espaços.</li>
     </ul>
   </div>
 </section>
@@ -605,8 +610,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="tbl"><table>
     <thead><tr><th>O quê</th><th>Onde fica</th><th>Observação</th></tr></thead>
     <tbody>
-      <tr><td>Construção atual</td><td>Salva sozinha no navegador, logo depois de cada mudança</td><td>Só no aparelho e navegador em que foi feita. Se ficar grande demais para o navegador, aparece um aviso pedindo para salvar o projeto.</td></tr>
-      <tr><td>Projeto .json</td><td>Arquivo que você baixa</td><td>O jeito de levar a construção para outro aparelho, guardar versões ou mandar para alguém.</td></tr>
+      <tr><td>Construção atual</td><td>Salva sozinha no navegador (IndexedDB), logo depois de cada mudança</td><td>Só no aparelho e navegador em que foi feita. Só os pedaços que mudaram são gravados, então construções grandes também são salvas sem travar. Construções salvas pelas versões antigas do site são trazidas para o formato novo sozinhas.</td></tr>
+      <tr><td>Projeto .json</td><td>Arquivo que você baixa</td><td>O jeito de levar a construção para outro aparelho, guardar versões ou mandar para alguém. O arquivo novo guarda a construção por pedaços (versão 2); os projetos antigos continuam abrindo.</td></tr>
       <tr><td>Pacotes de textura</td><td>Guardados no navegador (só as texturas usadas)</td><td>Carregue uma vez em cada aparelho.</td></tr>
       <tr><td>Favoritos, tema e textura ligada/desligada</td><td>Navegador</td><td>Por aparelho.</td></tr>
     </tbody>

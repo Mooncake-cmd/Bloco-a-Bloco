@@ -12,7 +12,7 @@ var sculptStroke = null, sculptTimer = 0;
 var SURFACE = /^(grass_block|podzol|mycelium|snow_block|sand|red_sand|moss_block|pale_moss_block|crimson_nylium|warped_nylium)$/;
 
 function colTop(x, z) {
-  for (var y = layerMax(); y >= 0; y--) if (grid[idx(x, y, z)]) return y;
+  for (var y = layerMax(); y >= 0; y--) if (gget(x, y, z)) return y;
   return -1;
 }
 function sculptFalloff(t) { return t >= 1 ? 0 : (1 - t * t) * (1 - t * t); }
@@ -48,10 +48,10 @@ function sculptDab(t) {
     var x = q[0], z = q[1]; sculptStroke.h.set(x + z * SX, q[2]);
     var want = Math.round(q[2]), old = colTop(x, z);
     if (want > old) {
-      if (old >= 0) { var ov = grid[idx(x, old, z)]; if (SURFACE.test(BLOCKS[cellBlock(ov)].java) && BY_JAVA.dirt != null) editSet(x, old, z, mkCell(BY_JAVA.dirt)); }
+      if (old >= 0) { var ov = gget(x, old, z); if (SURFACE.test(BLOCKS[cellBlock(ov)].java) && BY_JAVA.dirt != null) editSet(x, old, z, mkCell(BY_JAVA.dirt)); }
       for (var y = old + 1; y <= want; y++) editSet(x, y, z, v);
     } else if (want < old) {
-      var top = grid[idx(x, old, z)];
+      var top = gget(x, old, z);
       for (var y2 = old; y2 > want; y2--) editSet(x, y2, z, 0);
       if (want >= 0 && SURFACE.test(BLOCKS[cellBlock(top)].java)) editSet(x, want, z, top); // a grama desce junto
     }

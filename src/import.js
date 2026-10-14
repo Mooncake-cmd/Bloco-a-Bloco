@@ -89,7 +89,7 @@ function fillWorld(w, h, l, get) {
   var se = sizeError(sx, sy, sz); if (se) throw new Error('Estrutura grande demais para abrir: ' + se);
   newWorld(sx, sy, sz);
   for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
-    var v = get(x, y, z); if (v) { grid[idx(x, y, z)] = v; blockCount++; }
+    var v = get(x, y, z); if (v) { gset(x, y, z, v); blockCount++; }
   }
   verCounter++; dirtyAll(); changed(); renderList();
   return false;

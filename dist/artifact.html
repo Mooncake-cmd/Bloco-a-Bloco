@@ -589,15 +589,207 @@ var $ = function (id) { return document.getElementById(id); };
 
 /* ---------- Estado do mundo ---------- */
 var SX = 32, SY = 32, SZ = 32;
-/* Sem limite fixo por lado: o que limita é a memória (4 bytes por célula, mesmo vazia).
-   64 milhões de células = 256 MB, ex.: 400 x 400 x 400. */
-var MAX_SIDE = 2048, MAX_CELLS = 64 * 1024 * 1024;
+/* O espaço vazio não ocupa memória (chunks esparsos, src/world.js): o limite é por lado, não por volume.
+   O que pesa é a quantidade de blocos construídos (cerca de 1 a 2 bytes cada). */
+var MAX_SIDE = 16384, MAX_Y = 4096;
 function sizeError(sx, sy, sz) {
-  if (sx > MAX_SIDE || sy > MAX_SIDE || sz > MAX_SIDE) return 'Máximo de ' + MAX_SIDE + ' blocos por lado.';
-  if (sx * sy * sz > MAX_CELLS) return sx + ' × ' + sy + ' × ' + sz + ' passa do limite de ' + (MAX_CELLS / 1048576) + ' milhões de blocos de espaço (a memória do navegador não aguenta).';
+  if (sx > MAX_SIDE || sz > MAX_SIDE) return 'Máximo de ' + MAX_SIDE + ' blocos de largura e de profundidade.';
+  if (sy > MAX_Y) return 'Máximo de ' + MAX_Y + ' blocos de altura.';
   return '';
 }
-var grid = new Uint32Array(SX * SY * SZ);
+/* ---------- Mundo em chunks esparsos ---------- */
+/* O espaço é dividido em chunks de 16 x 16 x 16. Só existem na memória os chunks com algum bloco; o vazio não ocupa
+   nada. Cada chunk guarda uma paleta (os valores de célula que aparecem nele) e, por célula, o índice na paleta:
+   1 byte por célula (até 256 valores diferentes no chunk), 2 bytes acima disso. Um chunk inteiro de um bloco só
+   (ex.: chão grosso de pedra) vira "uniforme" ao ser salvo e ocupa um valor só.
+   Célula = índice do bloco + 1 (bits 0 a 11) + estado * 4096, como antes. Coordenadas inteiras >= 0. */
+var W = new Map();          // chave numérica do chunk -> { cx, cy, cz, pal, map, d, u, n }
+var NCX = 1, NCZ = 1;       // chunks por lado (X e Z), para a chave
+function ckey(cx, cy, cz) { return (cy * NCZ + cz) * NCX + cx; }
+function ckeyStr(ch) { return ch.cx + ',' + ch.cy + ',' + ch.cz; }
+function worldReset() { W.clear(); NCX = Math.ceil(SX / 16) + 1; NCZ = Math.ceil(SZ / 16) + 1; }
+function newChunk(cx, cy, cz) { return { cx: cx, cy: cy, cz: cz, pal: [0], map: new Map([[0, 0]]), d: new Uint8Array(4096), u: 0, n: 0 }; }
+/* Índice global da célula (para desfazer, filas e conjuntos); vai além de 2^32 em espaços grandes, então nada de "| 0" */
+function unidx(i) { var a = SX * SZ, y = Math.floor(i / a), r = i - y * a, z = Math.floor(r / SX); return [r - z * SX, y, z]; }
+function gget(x, y, z) {
+  var ch = W.get(ckey(x >> 4, y >> 4, z >> 4)); if (!ch) return 0;
+  return ch.d ? ch.pal[ch.d[((y & 15) << 8) | ((z & 15) << 4) | (x & 15)]] : ch.u;
+}
+function gat(i) { var p = unidx(i); return gget(p[0], p[1], p[2]); }
+function chunkUnpack(ch) { // uniforme -> com índices
+  ch.pal = [0, ch.u]; ch.map = new Map([[0, 0], [ch.u, 1]]); ch.d = new Uint8Array(4096).fill(1);
+}
+/* Paleta sem os valores que não aparecem mais; devolve true se o chunk ficou vazio */
+function chunkRepack(ch) {
+  if (!ch.d) return false;
+  var used = new Uint32Array(ch.pal.length), d = ch.d, i;
+  for (i = 0; i < 4096; i++) used[d[i]]++;
+  var pal = [0], remap = new Uint32Array(ch.pal.length), map = new Map([[0, 0]]);
+  for (i = 1; i < ch.pal.length; i++) if (used[i]) { remap[i] = pal.length; map.set(ch.pal[i], pal.length); pal.push(ch.pal[i]); }
+  if (pal.length === 2 && used[0] === 0) { ch.u = pal[1]; ch.d = null; ch.pal = pal; ch.map = map; return false; }
+  var nd = pal.length > 256 ? new Uint16Array(4096) : new Uint8Array(4096);
+  for (i = 0; i < 4096; i++) nd[i] = remap[d[i]];
+  ch.pal = pal; ch.map = map; ch.d = nd;
+  return ch.n === 0;
+}
+/* Grava e devolve o valor antigo; mantém a contagem de blocos de cada chunk e apaga o chunk que esvazia */
+function gset(x, y, z, v) {
+  var cx = x >> 4, cy = y >> 4, cz = z >> 4, k = ckey(cx, cy, cz), ch = W.get(k);
+  if (!ch) { if (!v) return 0; ch = newChunk(cx, cy, cz); W.set(k, ch); }
+  var o = ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
+  var old = ch.d ? ch.pal[ch.d[o]] : ch.u;
+  if (old === v) return old;
+  if (!ch.d) chunkUnpack(ch);
+  var pi = ch.map.get(v);
+  if (pi === undefined) {
+    if (ch.pal.length >= 4096) { chunkRepack(ch); if (!ch.d) chunkUnpack(ch); }
+    pi = ch.pal.length;
+    if (pi === 256 && ch.d instanceof Uint8Array) ch.d = Uint16Array.from(ch.d);
+    ch.pal.push(v); ch.map.set(v, pi);
+  }
+  ch.d[o] = pi; ch.bb = null;
+  if (!old) ch.n++; else if (!v) ch.n--;
+  if (!ch.n) { W.delete(k); worldDirty.add(cx + ',' + cy + ',' + cz); }
+  else if (!ch.sv) { ch.sv = true; worldDirty.add(cx + ',' + cy + ',' + cz); } // marcado para o salvamento automático
+  return old;
+}
+/* Percorre só os chunks com blocos: fn(chunk); e cada bloco: fn(x, y, z, v) */
+function forEachChunk(fn) { W.forEach(fn); }
+function forEachBlock(fn) {
+  W.forEach(function (ch) {
+    var x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
+    for (var o = 0; o < 4096; o++) {
+      var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (!v) continue;
+      fn(x0 + (o & 15), y0 + (o >> 8), z0 + ((o >> 4) & 15), v);
+    }
+  });
+}
+/* Blocos em ordem y, z, x dentro de uma caixa (para exportar em pedaços) */
+function blocksInBox(x0, y0, z0, x1, y1, z1, fn) {
+  for (var cy = y0 >> 4; cy <= y1 >> 4; cy++) for (var cz = z0 >> 4; cz <= z1 >> 4; cz++) for (var cx = x0 >> 4; cx <= x1 >> 4; cx++) {
+    var ch = W.get(ckey(cx, cy, cz)); if (!ch) continue;
+    for (var o = 0; o < 4096; o++) {
+      var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (!v) continue;
+      var x = (cx << 4) + (o & 15), y = (cy << 4) + (o >> 8), z = (cz << 4) + ((o >> 4) & 15);
+      if (x < x0 || x > x1 || y < y0 || y > y1 || z < z0 || z > z1) continue;
+      fn(x, y, z, v);
+    }
+  }
+}
+/* Caixa dos blocos do chunk (guardada até o chunk mudar), para o tamanho da construção sem percorrer tudo */
+function chunkBounds(ch) {
+  if (ch.bb) return ch.bb;
+  var b = [16, 16, 16, -1, -1, -1];
+  for (var o = 0; o < 4096; o++) {
+    if (!(ch.d ? ch.pal[ch.d[o]] : ch.u)) continue;
+    var x = o & 15, y = o >> 8, z = (o >> 4) & 15;
+    if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (z < b[2]) b[2] = z;
+    if (x > b[3]) b[3] = x; if (y > b[4]) b[4] = y; if (z > b[5]) b[5] = z;
+  }
+  return (ch.bb = b);
+}
+function worldBytes() { var b = 0; W.forEach(function (ch) { b += ch.d ? ch.d.byteLength + ch.pal.length * 8 : 16; }); return b; }
+
+/* ---------- Desfazer compacto ---------- */
+/* Cada passo guarda (índice, valor antigo, valor novo) em arrays tipados que crescem: 16 bytes por mudança,
+   em vez de um array JavaScript por mudança. */
+function EditLog() { this.i = new Float64Array(16); this.o = new Uint32Array(16); this.v = new Uint32Array(16); this.length = 0; }
+EditLog.prototype.add = function (i, o, v) {
+  if (this.length === this.i.length) {
+    var n = this.length * 2, a = new Float64Array(n), b = new Uint32Array(n), c = new Uint32Array(n);
+    a.set(this.i); b.set(this.o); c.set(this.v); this.i = a; this.o = b; this.v = c;
+  }
+  this.i[this.length] = i; this.o[this.length] = o; this.v[this.length] = v; this.length++;
+};
+var UNDO_MAX = 20e6; // mudanças guardadas no total (cerca de 320 MB); os passos mais antigos saem antes
+function undoTrim() {
+  var tot = 0; for (var k = 0; k < undoStack.length; k++) tot += undoStack[k].length;
+  while (undoStack.length > 1 && (tot > UNDO_MAX || undoStack.length > 300)) tot -= undoStack.shift().length;
+}
+
+/* ---------- Salvar: projeto (.json) e salvamento automático no navegador ---------- */
+/* Chunk em formato de arquivo: coordenadas, paleta por nome (sobrevive a mudanças na lista de blocos) e índices */
+function chunkRecord(ch) {
+  chunkRepack(ch);
+  var r = { c: [ch.cx, ch.cy, ch.cz], p: ch.pal.map(function (v) { return v ? cellName(v) : ''; }) };
+  if (ch.d) r.d = ch.d; else r.u = 1;
+  return r;
+}
+function chunkFromRecord(r) {
+  var vals = r.p.map(function (nm) { return nm ? cellFromName(nm) : 0; }), miss = 0;
+  var x0 = r.c[0] << 4, y0 = r.c[1] << 4, z0 = r.c[2] << 4;
+  if (r.u) {
+    var v = vals[1] || 0; if (!v) return 4096;
+    for (var o = 0; o < 4096; o++) { var x = x0 + (o & 15), y = y0 + (o >> 8), z = z0 + ((o >> 4) & 15); if (inB(x, y, z)) { gset(x, y, z, v); blockCount++; } }
+    return 0;
+  }
+  var d = r.d;
+  for (var o2 = 0; o2 < 4096; o2++) {
+    var pi = d[o2]; if (!pi) continue;
+    var w = vals[pi]; if (!w) { miss++; continue; }
+    var x2 = x0 + (o2 & 15), y2 = y0 + (o2 >> 8), z2 = z0 + ((o2 >> 4) & 15);
+    if (inB(x2, y2, z2)) { gset(x2, y2, z2, w); blockCount++; }
+  }
+  return miss;
+}
+function b64(u8) { var s = '', n = 0x8000; for (var i = 0; i < u8.length; i += n) s += String.fromCharCode.apply(null, u8.subarray(i, i + n)); return btoa(s); }
+function unb64(s, two) { var bin = atob(s), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return two ? new Uint16Array(u.buffer) : u; }
+function projectMeta() { return { size: [SX, SY, SZ], hotbar: hotbar.map(function (i) { return BLOCKS[i].java; }), slot: slot }; }
+/* Projeto inteiro (Projeto > Salvar projeto): versão 2, por chunks */
+function serialize() {
+  var o = projectMeta(); o.v = 2; o.chunks = [];
+  W.forEach(function (ch) {
+    var r = chunkRecord(ch);
+    if (r.d) { r.w = r.d instanceof Uint16Array ? 2 : 1; r.d = b64(new Uint8Array(r.d.buffer)); }
+    o.chunks.push(r);
+  });
+  return o;
+}
+
+/* Salvamento automático no IndexedDB, só dos chunks que mudaram (o localStorage aceita poucos MB) */
+var worldDirty = new Set(), worldClear = true, autosaveBusy = false, autosaveAgain = false;
+function autosave() {
+  if (autosaveBusy) { autosaveAgain = true; return; }
+  autosaveBusy = true;
+  var keys = Array.from(worldDirty); worldDirty.clear();
+  var clear = worldClear; worldClear = false;
+  var recs = keys.map(function (s) {
+    var p = s.split(','), ch = W.get(ckey(+p[0], +p[1], +p[2]));
+    if (ch) ch.sv = false;
+    return [s, ch ? chunkRecord(ch) : null];
+  });
+  var meta = projectMeta(); meta.v = 2;
+  idbDo('readwrite', function (st) {
+    if (clear) st.delete(IDBKeyRange.bound('w:c:', 'w:c:\uffff'));
+    recs.forEach(function (r) { if (r[1]) st.put(r[1], 'w:c:' + r[0]); else st.delete('w:c:' + r[0]); });
+    st.put(meta, 'w:meta');
+  }).then(function () {
+    autosaveBusy = false;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    if (autosaveAgain) { autosaveAgain = false; autosave(); }
+  }, function () {
+    autosaveBusy = false;
+    keys.forEach(function (k) { worldDirty.add(k); }); if (clear) worldClear = true;
+    if (!autosaveWarned) { autosaveWarned = true; toast('Não foi possível salvar automaticamente neste navegador. Use Projeto > Salvar projeto para não perder o trabalho.', 9000); }
+  });
+}
+/* Lê o salvamento automático; devolve false se não houver */
+function loadAutosave() {
+  return idbDo('readonly', function (st) { return st.get('w:meta'); }).then(function (meta) {
+    if (!meta || !meta.size) return false;
+    return idbDo('readonly', function (st) { return st.getAll(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).then(function (recs) {
+      newWorld(meta.size[0], meta.size[1], meta.size[2]);
+      (recs || []).forEach(chunkFromRecord);
+      if (meta.hotbar) hotbar = meta.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
+      slot = meta.slot | 0;
+      worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; }); // já está salvo assim
+      verCounter++; dirtyAll(); renderHotbar(); renderList();
+      return true;
+    });
+  }, function () { return false; });
+}
+worldReset();
+
 var blockCount = 0;
 var CS = 16;
 var layerOn = false, layerY = 0;
@@ -611,24 +803,32 @@ var batch = null;
 var dirty = new Set();
 var saveTimer = 0;
 
+var lastDirty = '';
 function markDirty(x, y, z) {
+  // a célula e, se ela estiver na borda do pedaço, os pedaços vizinhos (faces e sombras dependem dos vizinhos)
+  var lx = x & 15, ly = y & 15, lz = z & 15;
+  if (lx > 0 && lx < 15 && ly > 0 && ly < 15 && lz > 0 && lz < 15) {
+    var k = (x >> 4) + ',' + (y >> 4) + ',' + (z >> 4);
+    if (k !== lastDirty || !dirty.has(k)) { dirty.add(k); lastDirty = k; }
+    return;
+  }
   for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) for (var dz = -1; dz <= 1; dz++) {
     var nx = x + dx, ny = y + dy, nz = z + dz;
     if (!inB(nx, ny, nz)) continue;
-    dirty.add(((nx / CS) | 0) + ',' + ((ny / CS) | 0) + ',' + ((nz / CS) | 0));
+    dirty.add((nx >> 4) + ',' + (ny >> 4) + ',' + (nz >> 4));
   }
 }
 function setRaw(x, y, z, v) {
-  var i = idx(x, y, z), old = grid[i];
+  var i = idx(x, y, z), old = gget(x, y, z);
   if (old === v) return false;
-  grid[i] = v; verCounter++;
+  gset(x, y, z, v); verCounter++;
   if (!old && v) blockCount++; else if (old && !v) blockCount--;
   if (old && cellBlock(old) === LIGHT_BI) { lightSet.delete(i); lightVer++; }
   if (v && cellBlock(v) === LIGHT_BI) { lightSet.add(i); lightVer++; }
   markDirty(x, y, z);
   return old;
 }
-function beginBatch() { batch = []; }
+function beginBatch() { batch = new EditLog(); }
 function editSet(x, y, z, v) {
   if (!symBusy && symAny()) { // simetria: repete a edição nas posições espelhadas
     symBusy = true;
@@ -639,16 +839,16 @@ function editSet(x, y, z, v) {
 }
 function editSet1(x, y, z, v) {
   if (!inB(x, y, z)) return;
-  var i = idx(x, y, z), old = grid[i];
+  var i = idx(x, y, z), old = gget(x, y, z);
   if (old === v) return;
   setRaw(x, y, z, v);
-  if (batch) batch.push([i, old, v]);
+  if (batch) batch.add(i, old, v);
   if (stroke) stroke.cells.add(i);
 }
 function endBatch() {
   if (batch && batch.length) {
     undoStack.push(batch);
-    if (undoStack.length > 300) undoStack.shift();
+    undoTrim();
     redoStack = [];
     changed();
     fluidAfterBatch(batch);
@@ -657,10 +857,8 @@ function endBatch() {
 }
 function applyBatch(b, undo) {
   for (var k = 0; k < b.length; k++) {
-    var i = b[undo ? b.length - 1 - k : k][0];
-    var e = b[undo ? b.length - 1 - k : k];
-    var x = i % SX, z = ((i / SX) | 0) % SZ, y = (i / (SX * SZ)) | 0;
-    setRaw(x, y, z, undo ? e[1] : e[2]);
+    var j = undo ? b.length - 1 - k : k, p = unidx(b.i[j]);
+    setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
   }
 }
 function undo() { fluidStop(); var b = undoStack.pop(); if (!b) return; applyBatch(b, true); redoStack.push(b); changed(); }
@@ -834,7 +1032,7 @@ function eraseCells(t) {
   A.forEach(function (a) { B.forEach(function (b) { var p = c.slice(); p[ax[0]] += a; p[ax[1]] += b; if (inB(p[0], p[1], p[2])) out.push(p); }); });
   return out;
 }
-function eraseArea(t) { eraseCells(t).forEach(function (p) { if (grid[idx(p[0], p[1], p[2])]) eraseAt(p); }); }
+function eraseArea(t) { eraseCells(t).forEach(function (p) { if (gget(p[0], p[1], p[2])) eraseAt(p); }); }
 function updateEraseChip() {
   var on = effTool(lastShift) === 'erase' || tool === 'erase';
   $('eraseChip').hidden = !on;
@@ -939,9 +1137,9 @@ function buildHelpers() {
   var fg = cssColor('--fg') || '#888';
   var floor = new THREE.Mesh(new THREE.PlaneGeometry(SX, SZ), new THREE.MeshBasicMaterial({ color: floorC }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(SX / 2, -0.02, SZ / 2); scene.add(floor); helpers.push(floor);
-  var pts = [], pts2 = [], i;
-  for (i = 0; i <= SX; i++) { (i % 8 === 0 ? pts2 : pts).push(i, 0, 0, i, 0, SZ); }
-  for (i = 0; i <= SZ; i++) { (i % 8 === 0 ? pts2 : pts).push(0, 0, i, SX, 0, i); }
+  var pts = [], pts2 = [], i, gs = Math.max(SX, SZ) > 1024 ? 16 : 1; // espaço enorme: grade de 16 em 16
+  for (i = 0; i <= SX; i += gs) { (i % (8 * gs) === 0 ? pts2 : pts).push(i, 0, 0, i, 0, SZ); }
+  for (i = 0; i <= SZ; i += gs) { (i % (8 * gs) === 0 ? pts2 : pts).push(0, 0, i, SX, 0, i); }
   var gm = new THREE.BufferGeometry(); gm.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
   var gm2 = new THREE.BufferGeometry(); gm2.setAttribute('position', new THREE.Float32BufferAttribute(pts2, 3));
   var gl = new THREE.LineSegments(gm, new THREE.LineBasicMaterial({ color: gridC }));
@@ -975,7 +1173,7 @@ var AO_L = [0.55, 0.72, 0.86, 1];
 function vis(x, y, z) {
   if (x < 0 || y < 0 || z < 0 || x >= SX || y >= SY || z >= SZ) return 0;
   if (y > layerMax()) return 0;
-  return grid[(y * SZ + z) * SX + x];
+  return gget(x, y, z);
 }
 function solidAt(x, y, z) { var v = vis(x, y, z); if (!v) return 0; var b = BLOCKS[cellBlock(v)]; return !b.glass && !b.shape ? 1 : 0; }
 function buildChunk(cx, cy, cz) {
@@ -985,8 +1183,10 @@ function buildChunk(cx, cy, cz) {
   var x0 = cx * CS, y0 = cy * CS, z0 = cz * CS;
   var x1 = Math.min(x0 + CS, SX), z1 = Math.min(z0 + CS, SZ), y1 = Math.min(y0 + CS, SY, layerMax() + 1);
   var O = { p: [], c: [], u: [], i: [], n: 0 }, G = { p: [], c: [], u: [], i: [], n: 0 }, C = { p: [], c: [], u: [], i: [], n: 0 };
+  built.add(key);
+  var wc = W.get(ckey(cx, cy, cz)); if (!wc) return; // chunk vazio: só some com a malha antiga
   for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
-    var v = grid[(y * SZ + z) * SX + x];
+    var v = wc.d ? wc.pal[wc.d[((y & 15) << 8) | ((z & 15) << 4) | (x & 15)]] : wc.u;
     if (!v) continue;
     var b = BLOCKS[cellBlock(v)], T = b.glass ? G : b.solid ? O : C;
     if (b.shape) { emitShape(b, cellOri(v), x, y, z, O, C, G); continue; }
@@ -1045,20 +1245,45 @@ function buildChunk(cx, cy, cz) {
   if (meshes.length) chunks.set(key, meshes);
 }
 /* Refaz os pedaços alterados; em espaços grandes, aos poucos (até ~25 ms por quadro) para a tela não travar */
+/* Distância de desenho: só os chunks perto do centro da câmera ficam montados; os de longe soltam a malha
+   (os blocos continuam na memória) e voltam quando a câmera se aproxima. */
+var built = new Set(), viewDist = 384, viewAt = null;
+try { viewDist = +localStorage.getItem('bloco-a-bloco-view') || 384; } catch (e) {}
+function chunkNear(cx, cz) {
+  if (viewDist >= 1e6) return true;
+  var dx = cx * CS + 8 - cam.tx, dz = cz * CS + 8 - cam.tz, r = viewDist + 12;
+  return dx * dx + dz * dz <= r * r;
+}
+function dropChunk(k) {
+  var ms = chunks.get(k); if (ms) { ms.forEach(function (m) { scene.remove(m); m.geometry.dispose(); }); chunks.delete(k); }
+  built.delete(k);
+}
+/* Chamado quando a câmera anda: solta os chunks que ficaram longe e pede os que ficaram perto */
+function updateView(force) {
+  var c = [Math.round(cam.tx / 16), Math.round(cam.tz / 16)];
+  if (!force && viewAt && viewAt[0] === c[0] && viewAt[1] === c[1]) return;
+  viewAt = c;
+  chunks.forEach(function (ms, k) { var p = k.split(','); if (!chunkNear(+p[0], +p[2])) dropChunk(k); });
+  W.forEach(function (ch) { var k = ckeyStr(ch); if (!built.has(k) && chunkNear(ch.cx, ch.cz)) dirty.add(k); });
+  requestRender();
+}
 function rebuildDirty() {
   if (!dirty.size) return;
   var t0 = performance.now();
   for (var k of dirty) {
-    var p = k.split(','); buildChunk(+p[0], +p[1], +p[2]); dirty.delete(k);
+    var p = k.split(','); dirty.delete(k);
+    if (!chunkNear(+p[0], +p[2])) { dropChunk(k); continue; }
+    buildChunk(+p[0], +p[1], +p[2]);
     if (performance.now() - t0 > 25) { requestRender(); break; }
   }
 }
 function dirtyAll() {
-  for (var cx = 0; cx * CS < SX; cx++) for (var cy = 0; cy * CS < SY; cy++) for (var cz = 0; cz * CS < SZ; cz++) dirty.add(cx + ',' + cy + ',' + cz);
+  W.forEach(function (ch) { dirty.add(ckeyStr(ch)); });
+  chunks.forEach(function (ms, k) { dirty.add(k); });
 }
 function clearChunks() {
   chunks.forEach(function (ms) { ms.forEach(function (m) { scene.remove(m); m.geometry.dispose(); }); });
-  chunks.clear();
+  chunks.clear(); built.clear();
 }
 
 /* Câmera */
@@ -1073,6 +1298,11 @@ function resetCamera() {
   camera.far = Math.max(1500, (SX + SY + SZ) * 4); camera.updateProjectionMatrix();
   cam.yaw = 0.8; cam.pitch = 0.62; cam.dist = Math.max(SX, SZ) * 1.35 + 6;
   cam.tx = SX / 2; cam.ty = Math.min(6, SY / 4); cam.tz = SZ / 2;
+  if (Math.max(SX, SZ) > 512) { // espaço enorme: olha para a construção (ou para o meio, de perto)
+    var bb = bbox();
+    if (bb) { cam.tx = (bb.minX + bb.maxX + 1) / 2; cam.tz = (bb.minZ + bb.maxZ + 1) / 2; cam.ty = Math.min(bb.maxY, bb.minY + 6); cam.dist = Math.min(viewDist * 1.4, Math.max(bb.w, bb.l) * 1.35 + 6); }
+    else cam.dist = 120;
+  }
   updateCamera(); requestRender();
 }
 function resize() {
@@ -1099,7 +1329,7 @@ function solidForRay(x, y, z) {
   if (!inB(x, y, z) || y > layerMax()) return 0;
   var i = idx(x, y, z);
   if (stroke && stroke.cells.has(i)) return stroke.mode === 'erase' ? 1 : 0;
-  return grid[i];
+  return gget(x, y, z);
 }
 function castRay(o, d) {
   var x = Math.floor(o[0]), y = Math.floor(o[1]), z = Math.floor(o[2]);
@@ -1200,7 +1430,7 @@ function updatePreview() {
 function updateStatus() {
   var t = hoverT, cell = t && (t.hit || t.place);
   $('stPos').textContent = cell ? cell.join(', ') : '–';
-  var tv = t && t.hit ? grid[idx(t.hit[0], t.hit[1], t.hit[2])] : 0, tb = tv ? BLOCKS[cellBlock(tv)] : null;
+  var tv = t && t.hit ? gget(t.hit[0], t.hit[1], t.hit[2]) : 0, tb = tv ? BLOCKS[cellBlock(tv)] : null;
   $('stBlock').textContent = (tb ? tb.name + (tb.ori ? ', ' + oriLabel(tb, cellOri(tv)) : tb.shape && tb.sp.length ? ' [' + shapeLabel(tb, cellOri(tv)) + ']' : '') + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
@@ -1215,14 +1445,15 @@ function updateStatus() {
 function bbox() {
   if (!blockCount) return null;
   if (bboxVer === verCounter && bboxCache) return bboxCache;
+  // junta as caixas guardadas de cada chunk (só os chunks que mudaram são medidos de novo)
   var minX = 1e9, minY = 1e9, minZ = 1e9, maxX = -1, maxY = -1, maxZ = -1;
-  for (var y = 0; y < SY; y++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
-    if (!grid[(y * SZ + z) * SX + x]) continue;
-    if (x < minX) minX = x; if (y < minY) minY = y; if (z < minZ) minZ = z;
-    if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
-  }
+  W.forEach(function (ch) {
+    var b = chunkBounds(ch), x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
+    if (x0 + b[0] < minX) minX = x0 + b[0]; if (y0 + b[1] < minY) minY = y0 + b[1]; if (z0 + b[2] < minZ) minZ = z0 + b[2];
+    if (x0 + b[3] > maxX) maxX = x0 + b[3]; if (y0 + b[4] > maxY) maxY = y0 + b[4]; if (z0 + b[5] > maxZ) maxZ = z0 + b[5];
+  });
   bboxVer = verCounter;
-  bboxCache = { w: maxX - minX + 1, h: maxY - minY + 1, l: maxZ - minZ + 1 };
+  bboxCache = { w: maxX - minX + 1, h: maxY - minY + 1, l: maxZ - minZ + 1, minX: minX, minY: minY, minZ: minZ, maxX: maxX, maxY: maxY, maxZ: maxZ };
   return bboxCache;
 }
 
@@ -1255,7 +1486,7 @@ function placeAt(c, t) {
   if (!b.shape) { editSet(c[0], c[1], c[2], mkCell(bi, orientFor(bi, t))); return; }
   // laje sobre laje igual vira laje dupla, como no jogo
   if (t && t.hit && b.sp.some(function (q) { return q[0] === 'type' && q[1].indexOf('double') >= 0; })) {
-    var hv = grid[idx(t.hit[0], t.hit[1], t.hit[2])];
+    var hv = gget(t.hit[0], t.hit[1], t.hit[2]);
     if (hv && cellBlock(hv) === bi) {
       var ty = stateProps(b, cellOri(hv)).type, n = t.normal || [0, 0, 0];
       if ((ty === 'bottom' && n[1] > 0) || (ty === 'top' && n[1] < 0)) { editSet(t.hit[0], t.hit[1], t.hit[2], mkCell(bi, stateIndex(b, { type: 'double' }))); return; }
@@ -1263,7 +1494,7 @@ function placeAt(c, t) {
   }
   var r = placeShape(bi, t), rb = BLOCKS[r.bi];
   var pa = partnerOf(rb, r.s, c[0], c[1], c[2]);
-  if (pa && (!inB(pa.x, pa.y, pa.z) || pa.y > layerMax() || grid[idx(pa.x, pa.y, pa.z)])) { if (!stroke || !stroke.warned) toast('Não cabe: ' + rb.name + ' ocupa dois blocos.'); if (stroke) stroke.warned = 1; return; }
+  if (pa && (!inB(pa.x, pa.y, pa.z) || pa.y > layerMax() || gget(pa.x, pa.y, pa.z))) { if (!stroke || !stroke.warned) toast('Não cabe: ' + rb.name + ' ocupa dois blocos.'); if (stroke) stroke.warned = 1; return; }
   editSet(c[0], c[1], c[2], mkCell(r.bi, r.s));
   if (pa) editSet(pa.x, pa.y, pa.z, mkCell(r.bi, pa.s));
 }
@@ -1271,13 +1502,13 @@ function placeAt(c, t) {
 function setShapeState(c, v, s2) {
   var b = BLOCKS[cellBlock(v)], pa = partnerOf(b, cellOri(v), c[0], c[1], c[2]);
   editSet(c[0], c[1], c[2], mkCell(cellBlock(v), s2));
-  if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(grid[idx(pa.x, pa.y, pa.z)]) === cellBlock(v)) {
+  if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(gget(pa.x, pa.y, pa.z)) === cellBlock(v)) {
     var pb = partnerOf(b, s2, c[0], c[1], c[2]);
     if (pb && pb.x === pa.x && pb.y === pa.y && pb.z === pa.z) editSet(pa.x, pa.y, pa.z, mkCell(cellBlock(v), pb.s));
   }
 }
 function useAt(c, back, t) {
-  var v = grid[idx(c[0], c[1], c[2])]; if (!v) return;
+  var v = gget(c[0], c[1], c[2]); if (!v) return;
   if (growAt(c, back)) return;
   var b = BLOCKS[cellBlock(v)];
   if (b.java === 'chiseled_bookshelf') { useBookshelf(c, v, b, back, t); return; }
@@ -1307,7 +1538,7 @@ function useBookshelf(c, v, b, back, t) {
   toast(b.name + ': ' + full + ' de 6 livros');
 }
 function rotateAt(c, back) {
-  var v = grid[idx(c[0], c[1], c[2])]; if (!v) return;
+  var v = gget(c[0], c[1], c[2]); if (!v) return;
   var b = BLOCKS[cellBlock(v)];
   if (b.shape) {
     if (!b.shape.ori.length) { toast(b.name + ' não tem direção para girar.'); return; }
@@ -1323,10 +1554,10 @@ function rotateAt(c, back) {
 }
 function eraseAt(c) {
   if (!c) return;
-  var v = grid[idx(c[0], c[1], c[2])];
+  var v = gget(c[0], c[1], c[2]);
   var pa = v && partnerOf(BLOCKS[cellBlock(v)], cellOri(v), c[0], c[1], c[2]);
   editSet(c[0], c[1], c[2], 0);
-  if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(grid[idx(pa.x, pa.y, pa.z)]) === cellBlock(v)) editSet(pa.x, pa.y, pa.z, 0);
+  if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(gget(pa.x, pa.y, pa.z)) === cellBlock(v)) editSet(pa.x, pa.y, pa.z, 0);
 }
 function commitShape(kind, a, b, erase, t) {
   var cells = shapeCells(kind, a, b);
@@ -1358,7 +1589,7 @@ function pressAt(cx, cy, shift) {
     stroke.on = true;
   } else if (et === 'pick') {
     if (t && t.hit) {
-      var v = grid[idx(t.hit[0], t.hit[1], t.hit[2])];
+      var v = gget(t.hit[0], t.hit[1], t.hit[2]);
       if (v) {
         var pb = BLOCKS[cellBlock(v)], pi = pb.shape && pb.shape.hide ? BY_JAVA[pb.java.replace('_wall_', '_').replace(/^wall_/, '')] : cellBlock(v);
         if (pi == null) pi = cellBlock(v);
@@ -1508,7 +1739,7 @@ function setLayer(on, y) {
   syncLayerUI(); positionGrid(); dirtyAll(); hoverT = null; updatePreview(); requestRender(); updateStatus();
 }
 function topY() {
-  for (var y = SY - 1; y >= 0; y--) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) if (grid[idx(x, y, z)]) return y;
+  var top = -1; forEachBlock(function (x, y) { if (y > top) top = y; }); if (top >= 0) return top;
   return 0;
 }
 $('layerBtn').addEventListener('click', function () { setLayer(!layerOn, layerOn ? null : (layerY || topY())); });
@@ -2017,7 +2248,7 @@ function defaultState(b) { return stateIndex(b, {}); }
 /* Vizinhos */
 function blockAt(x, y, z) {
   if (x < 0 || y < 0 || z < 0 || x >= SX || y >= SY || z >= SZ) return null;
-  var v = grid[(y * SZ + z) * SX + x]; if (!v) return null;
+  var v = gget(x, y, z); if (!v) return null;
   return { b: BLOCKS[cellBlock(v)], s: cellOri(v), v: v };
 }
 var NOT_STURDY = /leaves|pumpkin|melon|jack_o_lantern|shulker_box/;
@@ -2475,7 +2706,7 @@ function fillWorld(w, h, l, get) {
   var se = sizeError(sx, sy, sz); if (se) throw new Error('Estrutura grande demais para abrir: ' + se);
   newWorld(sx, sy, sz);
   for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
-    var v = get(x, y, z); if (v) { grid[idx(x, y, z)] = v; blockCount++; }
+    var v = get(x, y, z); if (v) { gset(x, y, z, v); blockCount++; }
   }
   verCounter++; dirtyAll(); changed(); renderList();
   return false;
@@ -2601,11 +2832,12 @@ function clearSel() { sel = null; selA = null; pasting = false; selRefresh(); }
 
 function copySel(cut) {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
-  var d = selSize(sel), cells = new Uint32Array(d[0] * d[1] * d[2]), n = 0;
-  for (var y = 0; y < d[1]; y++) for (var z = 0; z < d[2]; z++) for (var x = 0; x < d[0]; x++) {
-    var v = grid[idx(sel.a[0] + x, sel.a[1] + y, sel.a[2] + z)];
-    cells[(y * d[2] + z) * d[0] + x] = v; if (v) n++;
-  }
+  var d = selSize(sel), vol = d[0] * d[1] * d[2], n = 0;
+  if (vol > 64e6) { toast('Área grande demais para copiar de uma vez (' + Math.round(vol / 1e6) + ' milhões de espaços; o máximo é 64 milhões). Copie em partes.', 7000); return; }
+  var cells = new Uint32Array(vol);
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) {
+    cells[((y - sel.a[1]) * d[2] + (z - sel.a[2])) * d[0] + (x - sel.a[0])] = v; n++;
+  });
   clip = { w: d[0], h: d[1], l: d[2], cells: cells, n: n };
   if (cut) { deleteSel(true); toast('Recortado: ' + n + ' blocos. Ctrl+V para colar.'); }
   else toast('Copiado: ' + n + ' blocos. Ctrl+V para colar.');
@@ -2615,8 +2847,8 @@ function deleteSel(quiet) {
   if (!sel) return;
   var n = 0;
   beginBatch();
-  for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++)
-    if (grid[idx(x, y, z)]) { editSet(x, y, z, 0); n++; }
+  var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z) { list.push(x, y, z); });
+  for (var k = 0; k < list.length; k += 3) if (gget(list[k], list[k + 1], list[k + 2])) { editSet(list[k], list[k + 1], list[k + 2], 0); n++; }
   endBatch();
   if (!quiet) toast('Apagados ' + n + ' blocos.');
 }
@@ -2715,12 +2947,9 @@ function blockByText(txt) {
 }
 function openReplace() {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
-  var counts = {}, empty = 0;
-  for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
-    var v = grid[idx(x, y, z)]; if (!v) { empty++; continue; }
-    var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1;
-  }
-  var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0);
+  var counts = {}, sd = selSize(sel), vol = sd[0] * sd[1] * sd[2];
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1; });
+  var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0), empty = vol - total;
   var opts = '<option value="all">Todos os blocos (' + total + ')</option>' + Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })
     .map(function (k) { return '<option value="' + k + '">' + esc(BLOCKS[k].name) + ' (' + counts[k] + ')</option>'; }).join('');
   var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
@@ -2736,11 +2965,17 @@ function openReplace() {
       $('rpOk').onclick = function () {
         var to = blockByText($('rpTo').value);
         if (to === -1) { $('rpErr').hidden = false; $('rpErr').textContent = 'Bloco não encontrado: escreva o id (ex.: stone_bricks) ou escolha um nome da lista.'; return; }
-        var from = $('rpFrom').value, fill = $('rpFill').checked, n = 0;
+        var from = $('rpFrom').value, fill = $('rpFill').checked && to >= 0, n = 0;
+        if (fill && vol > 16e6) { $('rpErr').hidden = false; $('rpErr').textContent = 'Preencher ' + Math.round(vol / 1e6) + ' milhões de espaços de uma vez é demais para desfazer. Selecione uma área menor.'; return; }
         beginBatch();
-        for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
-          var v = grid[idx(x, y, z)];
-          if (v ? (from === 'all' || cellBlock(v) === +from) : (fill && to >= 0)) { editSet(x, y, z, to === -2 ? 0 : convertCell(v, to)); n++; }
+        if (fill) {
+          for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
+            var v = gget(x, y, z);
+            if (v ? (from === 'all' || cellBlock(v) === +from) : true) { editSet(x, y, z, convertCell(v, to)); n++; }
+          }
+        } else { // só onde há blocos: percorre só os pedaços ocupados
+          var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { if (from === 'all' || cellBlock(v) === +from) list.push(x, y, z); });
+          for (var k = 0; k < list.length; k += 3) { var w = gget(list[k], list[k + 1], list[k + 2]); if (w) { editSet(list[k], list[k + 1], list[k + 2], to === -2 ? 0 : convertCell(w, to)); n++; } }
         }
         endBatch(); closeDialog();
         toast(n + ' blocos ' + (to === -2 ? 'apagados' : 'trocados por ' + BLOCKS[to].name) + '.');
@@ -2789,7 +3024,7 @@ function cellOf(name, props) {
 var TREE_SOFT = { short_grass: 1, grass: 1, fern: 1, dead_bush: 1, snow: 1, vine: 1, moss_carpet: 1, pale_moss_carpet: 1, leaf_litter: 1, dandelion: 1, poppy: 1, short_dry_grass: 1 };
 function treeFree(x, y, z, sap, log) {
   if (!inB(x, y, z)) return false;
-  var v = grid[idx(x, y, z)]; if (!v) return true;
+  var v = gget(x, y, z); if (!v) return true;
   var j = BLOCKS[cellBlock(v)].java;
   return j === sap || j in TREE_SOFT || (log && /_leaves$|_wart_block$/.test(j)); // tronco e galhos atravessam folhas
 }
@@ -3103,7 +3338,7 @@ function saplingSquare(c, bi) {
     var ok = true;
     for (var i = 0; i < 2 && ok; i++) for (var k = 0; k < 2 && ok; k++) {
       var x = c[0] + ox + i, z = c[2] + oz + k;
-      ok = inB(x, c[1], z) && cellBlock(grid[idx(x, c[1], z)]) === bi && grid[idx(x, c[1], z)] !== 0;
+      ok = inB(x, c[1], z) && cellBlock(gget(x, c[1], z)) === bi && gget(x, c[1], z) !== 0;
     }
     if (ok) return [c[0] + ox, c[1], c[2] + oz];
   }
@@ -3111,7 +3346,7 @@ function saplingSquare(c, bi) {
 }
 /* Usar numa muda: faz crescer. Com Shift, a versão grande (carvalho grande, bétula alta, pinheiro, cogumelo alto…). Devolve true se tratou. */
 function growAt(c, big) {
-  var v = grid[idx(c[0], c[1], c[2])], bi = cellBlock(v), b = BLOCKS[bi], kind = SAPLINGS[b.java];
+  var v = gget(c[0], c[1], c[2]), bi = cellBlock(v), b = BLOCKS[bi], kind = SAPLINGS[b.java];
   if (!kind) return false;
   if (b.java === 'mangrove_propagule' && stateProps(b, cellOri(v)).hanging === 'true') { toast('O propágulo pendurado não cresce: coloque-o no chão para virar um mangue.'); return true; }
   var sq = (kind === 'spruce' || kind === 'jungle' || kind === 'dark_oak' || kind === 'pale_oak') ? saplingSquare(c, bi) : null;
@@ -3129,7 +3364,7 @@ function growAt(c, big) {
     if (!inB(q.x, q.y, q.z)) { out++; return; }
     if (!q.t && !treeFree(q.x, q.y, q.z, b.java)) {
       // raízes e terra enraizada entram na terra
-      var cur = grid[idx(q.x, q.y, q.z)], j = cur && BLOCKS[cellBlock(cur)].java;
+      var cur = gget(q.x, q.y, q.z), j = cur && BLOCKS[cellBlock(cur)].java;
       if (!(/mangrove_roots|rooted_dirt/.test(BLOCKS[cellBlock(q.v)].java) && /^(dirt|grass_block|mud|coarse_dirt|podzol|rooted_dirt|moss_block)$/.test(j))) return;
     }
     if (q.v) { editSet(q.x, q.y, q.z, q.v); n++; }
@@ -3137,11 +3372,11 @@ function growAt(c, big) {
   // como no jogo, a grama embaixo do tronco vira terra
   P.trunk.forEach(function (t) {
     if (t[1] - 1 < 0 || P.has(t[0], t[1] - 1, t[2])) return;
-    var u = grid[idx(t[0], t[1] - 1, t[2])];
+    var u = gget(t[0], t[1] - 1, t[2]);
     if (u && /^(grass_block|podzol|mycelium)$/.test(BLOCKS[cellBlock(u)].java)) editSet(t[0], t[1] - 1, t[2], cellOf('dirt'));
   });
   // mudas do quadrado que sobraram (fora do tronco) somem
-  if (sq) for (var i = 0; i < 2; i++) for (var k = 0; k < 2; k++) if (cellBlock(grid[idx(sq[0] + i, sq[1], sq[2] + k)]) === bi) editSet(sq[0] + i, sq[1], sq[2] + k, 0);
+  if (sq) for (var i = 0; i < 2; i++) for (var k = 0; k < 2; k++) if (cellBlock(gget(sq[0] + i, sq[1], sq[2] + k)) === bi) editSet(sq[0] + i, sq[1], sq[2] + k, 0);
   endBatch();
   toast(TREE_NAMES[kind] + (sq && (kind === 'spruce' || kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + n + ' blocos' + (out ? ' (' + out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
   return true;
@@ -3163,25 +3398,25 @@ var H4 = [[0, 0, -1], [1, 0, 0], [0, 0, 1], [-1, 0, 0]];
 function fluidType(v) { if (!v) return null; var j = BLOCKS[cellBlock(v)].java; return j === 'water' || j === 'lava' ? j : null; }
 function fluidLv(v) { return +stateProps(BLOCKS[cellBlock(v)], cellOri(v)).level; }
 function fluidAmt(lv) { return lv === 0 || lv >= 8 ? 8 : 8 - lv; }
-function fluidGet(x, y, z) { if (!inB(x, y, z)) return null; var v = grid[idx(x, y, z)], t = fluidType(v); return t ? { t: t, lv: fluidLv(v) } : null; }
+function fluidGet(x, y, z) { if (!inB(x, y, z)) return null; var v = gget(x, y, z), t = fluidType(v); return t ? { t: t, lv: fluidLv(v) } : null; }
 /* Chão firme: qualquer bloco que não seja fluido (fora do espaço não conta) */
-function fluidFirm(x, y, z) { if (!inB(x, y, z)) return false; var v = grid[idx(x, y, z)]; return !!v && !fluidType(v); }
+function fluidFirm(x, y, z) { if (!inB(x, y, z)) return false; var v = gget(x, y, z); return !!v && !fluidType(v); }
 /* O fluido pode ocupar a célula: vazia, ou o mesmo fluido sem ser fonte */
 function fluidRoom(x, y, z, t) {
   if (!inB(x, y, z)) return false;
-  var v = grid[idx(x, y, z)]; if (!v) return true;
+  var v = gget(x, y, z); if (!v) return true;
   return fluidType(v) === t && fluidLv(v) !== 0;
 }
 /* Buraco: embaixo cabe fluido (vazio ou o mesmo fluido) */
 function fluidHole(x, y, z, t) {
   if (!inB(x, y - 1, z)) return false;
-  var v = grid[idx(x, y - 1, z)];
+  var v = gget(x, y - 1, z);
   return !v || fluidType(v) === t;
 }
 function fluidSet(x, y, z, v) {
-  var i = idx(x, y, z), old = grid[i]; if (old === v) return;
+  var i = idx(x, y, z), old = gget(x, y, z); if (old === v) return;
   setRaw(x, y, z, v);
-  var top = undoStack[undoStack.length - 1]; if (top) top.push([i, old, v]);
+  var top = undoStack[undoStack.length - 1]; if (top) top.add(i, old, v);
   fluidChanges++;
   fluidTouch(x, y, z);
 }
@@ -3189,7 +3424,7 @@ function fluidCell(t, lv) { return cellOf(t, { level: String(lv) }); }
 /* Agenda a célula e as vizinhas que tenham fluido */
 function fluidTouch(x, y, z) {
   if (!flowOn) return;
-  var add = function (a, b, c) { if (!inB(a, b, c)) return; var t = fluidType(grid[idx(a, b, c)]); if (t) fluidQ[t].set(idx(a, b, c), [a, b, c]); };
+  var add = function (a, b, c) { if (!inB(a, b, c)) return; var t = fluidType(gget(a, b, c)); if (t) fluidQ[t].set(idx(a, b, c), [a, b, c]); };
   add(x, y, z); add(x, y + 1, z); add(x, y - 1, z);
   for (var k = 0; k < 4; k++) add(x + H4[k][0], y, z + H4[k][2]);
   fluidKick();
@@ -3257,7 +3492,7 @@ function lavaMeetsWater(x, y, z, lv) {
   return false;
 }
 function fluidStep(x, y, z, t) {
-  var v = grid[idx(x, y, z)]; if (fluidType(v) !== t) return;
+  var v = gget(x, y, z); if (fluidType(v) !== t) return;
   var lv = fluidLv(v);
   if (t === 'lava' && lavaMeetsWater(x, y, z, lv)) return;
   if (lv !== 0) {
@@ -3267,7 +3502,7 @@ function fluidStep(x, y, z, t) {
   }
   // cair
   if (inB(x, y - 1, z)) {
-    var bv = grid[idx(x, y - 1, z)], bt = fluidType(bv);
+    var bv = gget(x, y - 1, z), bt = fluidType(bv);
     if (t === 'lava' && bt === 'water') { fluidSet(x, y - 1, z, cellOf('stone')); return; }
     if (!bv || (bt === t && fluidLv(bv) !== 0 && fluidLv(bv) < 8)) {
       fluidSet(x, y - 1, z, fluidCell(t, 8));
@@ -3298,8 +3533,8 @@ function fluidAfterBatch(b) {
   if (!flowOn || !b) return;
   fluidChanges = 0;
   for (var k = 0; k < b.length; k++) {
-    var i = b[k][0], x = i % SX, z = ((i / SX) | 0) % SZ, y = (i / (SX * SZ)) | 0;
-    fluidTouch(x, y, z);
+    var p = unidx(b.i[k]);
+    fluidTouch(p[0], p[1], p[2]);
   }
 }
 function setFlow(on) {
@@ -3333,7 +3568,7 @@ function maskBrush(center, r, shape, mask, target) {
   if (!center || mask < 0 || target < 0 || mask === target) return 0;
   var n = 0;
   brushVolume(center, r, shape, function (x, y, z) {
-    var v = grid[idx(x, y, z)];
+    var v = gget(x, y, z);
     if (!v || cellBlock(v) !== mask) return; // diferente da máscara (ar ou outro bloco): fica igual
     editSet(x, y, z, convertCell(v, target)); n++;
   });
@@ -3343,7 +3578,7 @@ function maskBrush(center, r, shape, mask, target) {
 function maskMatches(center) {
   var out = [];
   if (!center || maskBi < 0) return out;
-  brushVolume(center, maskR, maskShape, function (x, y, z) { var v = grid[idx(x, y, z)]; if (v && cellBlock(v) === maskBi) out.push([x, y, z]); });
+  brushVolume(center, maskR, maskShape, function (x, y, z) { var v = gget(x, y, z); if (v && cellBlock(v) === maskBi) out.push([x, y, z]); });
   return out;
 }
 function maskApply(t) {
@@ -3354,7 +3589,7 @@ function maskApply(t) {
 }
 function maskPick(t) {
   if (!t || !t.hit) return;
-  maskBi = cellBlock(grid[idx(t.hit[0], t.hit[1], t.hit[2])]);
+  maskBi = cellBlock(gget(t.hit[0], t.hit[1], t.hit[2]));
   toast('Máscara: ' + BLOCKS[maskBi].name + '. Agora pinte: só esse bloco vira ' + BLOCKS[curBlock()].name + '.');
   updateMaskChip();
 }
@@ -3490,7 +3725,7 @@ var sculptStroke = null, sculptTimer = 0;
 var SURFACE = /^(grass_block|podzol|mycelium|snow_block|sand|red_sand|moss_block|pale_moss_block|crimson_nylium|warped_nylium)$/;
 
 function colTop(x, z) {
-  for (var y = layerMax(); y >= 0; y--) if (grid[idx(x, y, z)]) return y;
+  for (var y = layerMax(); y >= 0; y--) if (gget(x, y, z)) return y;
   return -1;
 }
 function sculptFalloff(t) { return t >= 1 ? 0 : (1 - t * t) * (1 - t * t); }
@@ -3526,10 +3761,10 @@ function sculptDab(t) {
     var x = q[0], z = q[1]; sculptStroke.h.set(x + z * SX, q[2]);
     var want = Math.round(q[2]), old = colTop(x, z);
     if (want > old) {
-      if (old >= 0) { var ov = grid[idx(x, old, z)]; if (SURFACE.test(BLOCKS[cellBlock(ov)].java) && BY_JAVA.dirt != null) editSet(x, old, z, mkCell(BY_JAVA.dirt)); }
+      if (old >= 0) { var ov = gget(x, old, z); if (SURFACE.test(BLOCKS[cellBlock(ov)].java) && BY_JAVA.dirt != null) editSet(x, old, z, mkCell(BY_JAVA.dirt)); }
       for (var y = old + 1; y <= want; y++) editSet(x, y, z, v);
     } else if (want < old) {
-      var top = grid[idx(x, old, z)];
+      var top = gget(x, old, z);
       for (var y2 = old; y2 > want; y2--) editSet(x, y2, z, 0);
       if (want >= 0 && SURFACE.test(BLOCKS[cellBlock(top)].java)) editSet(x, want, z, top); // a grama desce junto
     }
@@ -3597,29 +3832,22 @@ function cellFromName(nm) {
   if (m[3] && b.ori) for (var i = 0; i < b.ori.o.length; i++) if (b.ori.o[i][0] === m[3]) o = i;
   return mkCell(bi, o);
 }
-function serialize() {
-  var used = {}, pal = [], rle = [];
-  var last = -1, run = 0;
-  for (var i = 0; i < grid.length; i++) {
-    var v = grid[i], m = 0;
-    if (v) { var j = cellName(v); if (!(j in used)) { used[j] = pal.length; pal.push(j); } m = used[j] + 1; }
-    if (m === last) run++; else { if (run) rle.push(last, run); last = m; run = 1; }
-  }
-  if (run) rle.push(last, run);
-  return { v: 1, size: [SX, SY, SZ], pal: pal, rle: rle, hotbar: hotbar.map(function (i) { return BLOCKS[i].java; }), slot: slot };
-}
+/* serialize() (versão 2, por chunks) está em src/world.js; aqui lê a versão 2 e a antiga (1, RLE do espaço inteiro) */
 function loadProject(o) {
-  if (!o || !o.size || !o.rle) throw new Error('Arquivo de projeto inválido.');
+  if (!o || !o.size || !(o.rle || o.chunks)) throw new Error('Arquivo de projeto inválido.');
   var sx = Math.max(8, o.size[0] | 0), sy = Math.max(8, o.size[1] | 0), sz = Math.max(8, o.size[2] | 0);
   var se = sizeError(sx, sy, sz); if (se) throw new Error(se);
   newWorld(sx, sy, sz);
-  var map = (o.pal || []).map(cellFromName);
-  var p = 0, miss = 0;
-  for (var k = 0; k < o.rle.length; k += 2) {
-    var m = o.rle[k], c = o.rle[k + 1];
-    var v = m ? map[m - 1] : 0;
-    if (m && !v) miss += c;
-    for (var q = 0; q < c && p < grid.length; q++, p++) if (v) { grid[p] = v; blockCount++; }
+  var miss = 0;
+  if (o.chunks) o.chunks.forEach(function (r) { if (typeof r.d === 'string') r.d = unb64(r.d, r.w === 2); miss += chunkFromRecord(r); });
+  else {
+    var map = (o.pal || []).map(cellFromName), p = 0, tot = sx * sy * sz;
+    for (var k = 0; k < o.rle.length; k += 2) {
+      var m = o.rle[k], c = o.rle[k + 1], v = m ? map[m - 1] : 0;
+      if (m && !v) miss += c;
+      if (v) for (var q = 0; q < c && p + q < tot; q++) { var pp = unidx(p + q); gset(pp[0], pp[1], pp[2], v); blockCount++; }
+      p += c;
+    }
   }
   if (o.hotbar) hotbar = o.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
   slot = o.slot | 0;
@@ -3627,10 +3855,8 @@ function loadProject(o) {
   return miss;
 }
 function newWorld(sx, sy, sz) {
-  var g;
-  try { g = new Uint32Array(sx * sy * sz); } catch (e) { throw new Error('Sem memória para um espaço de ' + sx + ' × ' + sy + ' × ' + sz + '. Tente um tamanho menor.'); }
   SX = sx; SY = sy; SZ = sz;
-  grid = g; blockCount = 0; verCounter++; lightFull = true;
+  worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
   undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop();
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
@@ -3639,28 +3865,27 @@ function newWorld(sx, sy, sz) {
   if (scene) { buildHelpers(); resetCamera(); }
   hoverT = null;
 }
-var autosaveWarned = false;
-function autosave() {
-  try { localStorage.setItem(KEY, JSON.stringify(serialize())); autosaveWarned = false; }
-  catch (e) {
-    // construção grande demais para o armazenamento do navegador (alguns MB)
-    if (!autosaveWarned) { autosaveWarned = true; toast('A construção ficou grande demais para o salvamento automático. Use Projeto > Salvar projeto para não perder o trabalho.', 9000); }
-  }
-}
+var autosaveWarned = false; // autosave() está em src/world.js (IndexedDB, só os chunks que mudaram)
 function resizeWorld(sx, sy, sz) {
-  var old = grid, ox = SX, oy = SY, oz = SZ;
-  var data = [];
-  for (var y = 0; y < Math.min(oy, sy); y++) for (var z = 0; z < Math.min(oz, sz); z++) for (var x = 0; x < Math.min(ox, sx); x++) {
-    var v = old[(y * oz + z) * ox + x]; if (v) data.push([x, y, z, v]);
-  }
+  // guarda os chunks, muda o tamanho e devolve o que cabe (a chave dos chunks depende da largura)
+  var keep = []; W.forEach(function (ch) { keep.push(ch); });
+  var hb = hotbar.slice(), sl = slot;
   newWorld(sx, sy, sz);
-  for (var i = 0; i < data.length; i++) { grid[idx(data[i][0], data[i][1], data[i][2])] = data[i][3]; blockCount++; }
-  dirtyAll(); changed();
+  keep.forEach(function (ch) {
+    var x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
+    for (var o = 0; o < 4096; o++) {
+      var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (!v) continue;
+      var x = x0 + (o & 15), y = y0 + (o >> 8), z = z0 + ((o >> 4) & 15);
+      if (inB(x, y, z)) { gset(x, y, z, v); blockCount++; }
+    }
+  });
+  hotbar = hb; slot = sl;
+  verCounter++; dirtyAll(); changed();
 }
 function buildSample() {
   var ox = Math.floor((SX - 9) / 2), oz = Math.floor((SZ - 9) / 2);
   function B(n) { return mkCell(n in BY_JAVA ? BY_JAVA[n] : 0); }
-  function put(x, y, z, n) { grid[idx(ox + x, y, oz + z)] = B(n); blockCount++; }
+  function put(x, y, z, n) { if (!gget(ox + x, y, oz + z)) blockCount++; gset(ox + x, y, oz + z, B(n)); }
   var x, y, z;
   for (x = 0; x < 9; x++) for (z = 0; z < 9; z++) put(x, 0, z, 'cobblestone');
   for (y = 1; y <= 3; y++) for (x = 0; x < 9; x++) for (z = 0; z < 9; z++) {
@@ -3676,7 +3901,7 @@ function buildSample() {
     if (x === -1 + k || x === 9 - k) put(x, 4 + k, z, 'spruce_planks');
     else if (k === 4) put(x, 4 + k, z, 'spruce_planks');
   }
-  for (x = 1; x < 8; x++) for (z = 1; z < 8; z++) { /* piso interno */ grid[idx(ox + x, 0, oz + z)] = B('oak_planks'); }
+  for (x = 1; x < 8; x++) for (z = 1; z < 8; z++) { /* piso interno */ gset(ox + x, 0, oz + z, B('oak_planks')); }
 }
 $('undo').addEventListener('click', undo);
 $('redo').addEventListener('click', redo);
@@ -3709,13 +3934,11 @@ async function pool(items, n, fn) {
   await Promise.all(ws);
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-function collectVoxels() {
+function voxelOf(x, y, z, v) { var bi = cellBlock(v); return BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]; }
+function collectVoxels(box) {
   var out = [];
-  for (var y = 0; y < SY; y++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
-    var v = grid[(y * SZ + z) * SX + x]; if (!v) continue;
-    var bi = cellBlock(v);
-    out.push(BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]);
-  }
+  if (box) blocksInBox(box[0], box[1], box[2], box[3], box[4], box[5], function (x, y, z, v) { out.push(voxelOf(x, y, z, v)); });
+  else forEachBlock(function (x, y, z, v) { out.push(voxelOf(x, y, z, v)); });
   return out;
 }
 function cleanName(s) { return (s || 'construcao').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'construcao'; }
@@ -3743,40 +3966,77 @@ function reportErr(e) {
   toast((e && e.message) || 'Não foi possível gerar o arquivo.');
 }
 
+/* Exportar. Construções maiores que uma estrutura do Bedrock (64 × 384 × 64) podem sair em pedaços, num .zip,
+   com um texto dizendo onde carregar cada um. Os blocos são lidos só na hora de gravar (não ficam numa lista enorme). */
+var BE_PIECE = [64, 384, 64];
 function openExport() {
-  var vox = collectVoxels();
-  var bb = vox.length ? MCExport.bounds(vox) : null;
-  var dim = bb ? bb.w + ' × ' + bb.h + ' × ' + bb.l : 'vazia';
-  // blocos que só existem no Bedrock: ficam de fora do .schem
+  var bb = bbox(), dim = bb ? bb.w + ' × ' + bb.h + ' × ' + bb.l : 'vazia';
+  // blocos que só existem no Bedrock: ficam de fora do .schem (procura só nos pedaços que têm algum na paleta)
   var bo = {}, boN = 0;
-  vox.forEach(function (v) { var b = BLOCKS[v[3]]; if (b.bo) { var nm = b.name.replace(' (só Bedrock)', ''); bo[nm] = (bo[nm] || 0) + 1; boN++; } });
+  W.forEach(function (ch) {
+    if (!ch.pal.some(function (v) { return v && BLOCKS[cellBlock(v)].bo; })) return;
+    for (var o = 0; o < 4096; o++) { var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (v && BLOCKS[cellBlock(v)].bo) { var nm = BLOCKS[cellBlock(v)].name.replace(' (só Bedrock)', ''); bo[nm] = (bo[nm] || 0) + 1; boN++; } }
+  });
   var boTxt = Object.keys(bo).map(function (k) { return esc(k) + ' (' + bo[k] + ')'; }).join(', ');
+  var big = bb && (bb.w > BE_PIECE[0] || bb.h > BE_PIECE[1] || bb.l > BE_PIECE[2]);
+  var pieces = bb ? Math.ceil(bb.w / BE_PIECE[0]) * Math.ceil(bb.h / BE_PIECE[1]) * Math.ceil(bb.l / BE_PIECE[2]) : 0;
   openDialog(
     '<h3>Exportar construção</h3>' +
-    '<div class="info">Tamanho: ' + dim + '<br>Blocos: ' + vox.length + '</div>' +
+    '<div class="info">Tamanho: ' + dim + '<br>Blocos: ' + blockCount.toLocaleString('pt-BR') + '</div>' +
     '<label>Nome do arquivo<input type="text" id="exName" value="construcao" maxlength="40"></label>' +
     '<label class="check"><input type="checkbox" id="exKeep" checked><span>Bedrock: deixar o terreno intacto onde a construção tem ar (usa blocos vazios de estrutura). Desmarque para a construção substituir tudo no retângulo por ar.</span></label>' +
-    '<div class="row"><button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button><button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
+    (big ? '<div class="info">A construção passa do tamanho de uma estrutura do Bedrock (64 × 384 × 64). Baixe <b>em pedaços</b>: ' + pieces + ' arquivos .mcstructure num .zip, com um texto dizendo onde carregar cada um.</div>' : '') +
+    '<div class="row">' + (big ? '<button class="btn primary" id="exPieces">Baixar em pedaços (.zip, Bedrock)</button><button class="btn" id="exBedrock">.mcstructure inteiro</button>' : '<button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button>') + '<button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
     (boN ? '<div class="info">Só existem no Bedrock e ficam de fora do .schem (Java): ' + boTxt + '. No .mcstructure vão normalmente.</div>' : '') +
     '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
     '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
     function () {
       if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
       $('exClose').onclick = closeDialog;
+      var tooBig = function () { if (bb && bb.w * bb.h * bb.l > 150e6) { toast('Construção grande demais para um arquivo só (' + Math.round(bb.w * bb.h * bb.l / 1e6) + ' milhões de espaços na caixa). Use Baixar em pedaços.', 8000); return true; } return false; };
       $('exBedrock').onclick = async function () {
+        if (tooBig()) return;
         try {
-          var bytes = await MCExport.exportMcstructure(vox, BLOCKS, { preserveTerrain: $('exKeep').checked });
+          busy('Gravando o .mcstructure…', null);
+          var bytes = await MCExport.exportMcstructure(collectVoxels(), BLOCKS, { preserveTerrain: $('exKeep').checked });
+          busyEnd();
           var nm = cleanName($('exName').value) + '.mcstructure';
           reportSave(await saveBytes(nm, bytes), nm);
-        } catch (e) { reportErr(e); }
+        } catch (e) { busyEnd(); reportErr(e); }
+      };
+      if ($('exPieces')) $('exPieces').onclick = async function () {
+        try {
+          var base = cleanName($('exName').value), files = [], lines = [], n = 0;
+          lines.push('Construção ' + base + ': ' + bb.w + ' x ' + bb.h + ' x ' + bb.l + ' blocos, em pedaços de até 64 x 384 x 64.',
+            'Carregue cada pedaço com o canto de menor X, Y e Z no lugar indicado, contando a partir do mesmo ponto de referência',
+            '(o canto de menor X, Y e Z da construção inteira). Ex.: com o comando /structure load <nome> <x> <y> <z> (o nome é o do arquivo, sem .mcstructure),',
+            'some o deslocamento de cada pedaço às coordenadas desse ponto de referência no seu mundo.', '',
+            'arquivo; deslocamento X; deslocamento Y; deslocamento Z; tamanho');
+          for (var py = bb.minY; py <= bb.maxY; py += BE_PIECE[1]) for (var pz = bb.minZ; pz <= bb.maxZ; pz += BE_PIECE[2]) for (var px = bb.minX; px <= bb.maxX; px += BE_PIECE[0]) {
+            n++; busy('Gravando o pedaço ' + n + ' de ' + pieces + '…', n / pieces);
+            await new Promise(function (r) { setTimeout(r, 0); });
+            var vox = collectVoxels([px, py, pz, Math.min(px + BE_PIECE[0], bb.maxX + 1) - 1, Math.min(py + BE_PIECE[1], bb.maxY + 1) - 1, Math.min(pz + BE_PIECE[2], bb.maxZ + 1) - 1]);
+            if (!vox.length) continue;
+            var pb = MCExport.bounds(vox), nm = base + '_x' + (pb.minX - bb.minX) + '_y' + (pb.minY - bb.minY) + '_z' + (pb.minZ - bb.minZ) + '.mcstructure';
+            files.push({ name: nm, data: await MCExport.exportMcstructure(vox, BLOCKS, { preserveTerrain: $('exKeep').checked }) });
+            lines.push(nm + '; ' + (pb.minX - bb.minX) + '; ' + (pb.minY - bb.minY) + '; ' + (pb.minZ - bb.minZ) + '; ' + pb.w + ' x ' + pb.h + ' x ' + pb.l);
+          }
+          files.push({ name: base + '_LEIA.txt', data: new TextEncoder().encode(lines.join('\r\n') + '\r\n') });
+          busyEnd();
+          var zn = base + '_pedacos.zip';
+          reportSave(await saveBytes(zn, MCExport.makeZip(files), 'application/zip'), zn);
+        } catch (e) { busyEnd(); reportErr(e); }
       };
       $('exJava').onclick = async function () {
+        if (tooBig()) return;
         try {
-          var bytes = await MCExport.exportSchem(vox, BLOCKS, { name: cleanName($('exName').value) });
+          busy('Gravando o .schem…', null);
+          var bytes = await MCExport.exportSchem(collectVoxels(), BLOCKS, { name: cleanName($('exName').value) });
+          busyEnd();
           var nm = cleanName($('exName').value) + '.schem';
           reportSave(await saveBytes(nm, bytes), nm);
           if (boN) setTimeout(function () { toast(boN + ' blocos só do Bedrock ficaram de fora do .schem: ' + Object.keys(bo).join(', ') + '.', 7000); }, 2700);
-        } catch (e) { reportErr(e); }
+        } catch (e) { busyEnd(); reportErr(e); }
       };
     });
 }
@@ -3784,7 +4044,7 @@ $('exportBtn').addEventListener('click', openExport);
 
 function openMaterials() {
   var counts = {};
-  for (var i = 0; i < grid.length; i++) if (grid[i]) { var bi = cellBlock(grid[i]); counts[bi] = (counts[bi] || 0) + 1; }
+  forEachBlock(function (x, y, z, v) { var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1; });
   var rows = Object.keys(counts).map(function (k) { return [+k, counts[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
   var text = rows.map(function (r) { return BLOCKS[r[0]].name + ': ' + r[1] + ' (' + Math.floor(r[1] / 64) + ' pilhas + ' + (r[1] % 64) + ')'; }).join('\n');
   var body = rows.length ? '<div class="mat"><table>' + rows.map(function (r) {
@@ -3803,15 +4063,23 @@ function openMaterials() {
 $('matBtn').addEventListener('click', openMaterials);
 
 function openSize() {
-  openDialog('<h3>Tamanho do espaço</h3><p>Área de trabalho em blocos (mínimo 8 por lado). Ao diminuir, blocos fora do novo limite são removidos. Espaços muito grandes pesam: cada bloco de espaço ocupa memória mesmo vazio, e o limite é ' + (MAX_CELLS / 1048576) + ' milhões (ex.: 400 × 400 × 400).</p>' +
-    '<div class="row"><label>Largura (X)<input type="number" id="szX" min="8" value="' + SX + '"></label><label>Altura (Y)<input type="number" id="szY" min="8" value="' + SY + '"></label><label>Profundidade (Z)<input type="number" id="szZ" min="8" value="' + SZ + '"></label></div>' +
+  var mb = worldBytes() / 1048576;
+  var vd = [128, 256, 384, 512, 768, 1024, 1e9].map(function (d) { return '<option value="' + d + '"' + (d === viewDist ? ' selected' : '') + '>' + (d >= 1e6 ? 'Tudo (pode pesar em construções enormes)' : d + ' blocos') + '</option>'; }).join('');
+  openDialog('<h3>Tamanho do espaço</h3><p>Área de trabalho em blocos (mínimo 8 por lado; até ' + MAX_SIDE + ' de largura e profundidade e ' + MAX_Y + ' de altura). O espaço vazio não ocupa memória: o que pesa são os blocos construídos. Ao diminuir, blocos fora do novo limite são removidos.</p>' +
+    '<div class="info">Agora: ' + blockCount.toLocaleString('pt-BR') + ' blocos em ' + W.size.toLocaleString('pt-BR') + ' pedaços de 16³, cerca de ' + (mb < 10 ? mb.toFixed(1) : Math.round(mb)) + ' MB.</div>' +
+    '<div class="row"><label>Largura (X)<input type="number" id="szX" min="8" max="' + MAX_SIDE + '" value="' + SX + '"></label><label>Altura (Y)<input type="number" id="szY" min="8" max="' + MAX_Y + '" value="' + SY + '"></label><label>Profundidade (Z)<input type="number" id="szZ" min="8" max="' + MAX_SIDE + '" value="' + SZ + '"></label></div>' +
+    '<label>Distância de desenho (em volta do centro da câmera)<select id="szView">' + vd + '</select></label>' +
+    '<p>Os pedaços mais longe que isso deixam de ser desenhados (continuam na construção e voltam quando a câmera chega perto). Diminua se a tela ficar lenta numa construção enorme.</p>' +
     '<div class="row"><button class="btn primary" id="szOk">Aplicar</button><button class="btn" id="szNo">Cancelar</button></div>',
     function () {
       $('szNo').onclick = closeDialog;
       $('szOk').onclick = function () {
         var f = function (id) { return Math.max(8, parseInt($(id).value, 10) || 32); };
         var se = sizeError(f('szX'), f('szY'), f('szZ')); if (se) { toast(se, 7000); return; }
-        resizeWorld(f('szX'), f('szY'), f('szZ')); closeDialog(); toast('Espaço: ' + SX + ' × ' + SY + ' × ' + SZ);
+        var nv = +$('szView').value;
+        if (nv !== viewDist) { viewDist = nv; try { localStorage.setItem('bloco-a-bloco-view', String(nv)); } catch (e) {} updateView(true); }
+        if (f('szX') !== SX || f('szY') !== SY || f('szZ') !== SZ) resizeWorld(f('szX'), f('szY'), f('szZ'));
+        closeDialog(); toast('Espaço: ' + SX + ' × ' + SY + ' × ' + SZ + (viewDist < 1e6 ? ' · desenho até ' + viewDist + ' blocos' : ''));
       };
     });
 }
@@ -3892,10 +4160,11 @@ function openFloor() {
         var bi = blockByText($('flBlock').value), y = Math.max(0, Math.min(SY - 1, $('flY').value | 0)), h = Math.max(1, $('flH').value | 0), keep = $('flKeep').checked;
         if (bi < 0) { $('flErr').hidden = false; $('flErr').textContent = 'Bloco não encontrado: escreva o id (ex.: grass_block) ou escolha um nome da lista.'; return; }
         var v = mkCell(bi), n = 0, y1 = Math.min(SY - 1, y + h - 1);
+        if (SX * SZ * (y1 - y + 1) > 16e6) { $('flErr').hidden = false; $('flErr').textContent = 'São ' + Math.round(SX * SZ * (y1 - y + 1) / 1e6) + ' milhões de blocos de uma vez: grande demais para desfazer. Diminua a espessura ou o tamanho do espaço, ou preencha por partes com Selecionar → Substituir (com “preencher os espaços vazios”).'; return; }
         if (BLOCKS[bi].shape && BLOCKS[bi].shape.multi) { $('flErr').hidden = false; $('flErr').textContent = 'Blocos de duas partes (porta, cama, plantas altas) não servem para o chão.'; return; }
         beginBatch();
         for (var yy = y; yy <= y1; yy++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
-          if (keep && grid[idx(x, yy, z)]) continue;
+          if (keep && gget(x, yy, z)) continue;
           editSet(x, yy, z, v); n++;
         }
         endBatch(); closeDialog();
@@ -3976,13 +4245,13 @@ function updateLightLabels() {
   if (!on) return;
   if (lightFull) { // depois de abrir ou importar: procura uma vez no espaço todo
     lightSet.clear();
-    for (var i = 0; i < grid.length; i++) if (grid[i] && cellBlock(grid[i]) === LIGHT_BI) lightSet.add(i);
+    forEachBlock(function (x, y, z, v) { if (cellBlock(v) === LIGHT_BI) lightSet.add(idx(x, y, z)); });
     lightFull = false; lightShown = key.slice(0, -1);
   }
   lightGroup = new THREE.Group(); var n = 0;
   lightSet.forEach(function (i) {
     if (n++ > 3000) return;
-    var v = grid[i], x = i % SX, z = ((i / SX) | 0) % SZ, y = (i / (SX * SZ)) | 0;
+    var p = unidx(i), x = p[0], y = p[1], z = p[2], v = gget(x, y, z);
     if (layerOn && y > layerY) return;
     var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightLabelTex(stateProps(BLOCKS[LIGHT_BI], cellOri(v)).level), depthTest: false, transparent: true }));
     s.position.set(x + 0.5, y + 0.5, z + 0.5); s.scale.set(0.62, 0.62, 1); s.renderOrder = 8;
@@ -3994,6 +4263,7 @@ function frame() {
   requestAnimationFrame(frame);
   if (!needsRender || !renderer) return;
   needsRender = false;
+  updateView();
   rebuildDirty();
   updateLightLabels();
   renderer.render(scene, camera);
@@ -4010,16 +4280,20 @@ if (!THREE_OK) {
 async function start() {
   try { await loadShapes(); } catch (e) { toast('Não foi possível carregar os blocos que não são cubos: ' + (e.message || e), 8000); }
   renderList(); renderHotbar();
+  // projeto salvo: o do localStorage (formato antigo, ou posto pelos scripts do guia) passa na frente e é migrado
+  // para o IndexedDB no próximo salvamento; senão, o salvamento automático do IndexedDB
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   initThree(); bindCanvas();
   loadPacks().then(function () { if (packs.length) applyTextures(); });
-  if (saved && saved.rle) { try { loadProject(saved); } catch (e) { buildSample(); } }
-  else { buildSample(); dirtyAll(); }
-  changed(); updateStatus();
-  if (!saved) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
+  var ok = false;
+  if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} }
+  if (!ok) { busy('Abrindo a construção salva…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
+  if (!ok) { newWorld(SX, SY, SZ); buildSample(); dirtyAll(); }
+  resetCamera(); changed(); updateStatus();
+  if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
-  window.__bab = { name: function (a) { return cellName(grid[idx(a[0], a[1], a[2])]); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, grid: function () { return grid; }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(grid[i]); }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
+  window.__bab = { name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
 }
 })();
 </script>

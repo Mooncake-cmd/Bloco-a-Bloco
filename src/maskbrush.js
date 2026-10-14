@@ -23,7 +23,7 @@ function maskBrush(center, r, shape, mask, target) {
   if (!center || mask < 0 || target < 0 || mask === target) return 0;
   var n = 0;
   brushVolume(center, r, shape, function (x, y, z) {
-    var v = grid[idx(x, y, z)];
+    var v = gget(x, y, z);
     if (!v || cellBlock(v) !== mask) return; // diferente da máscara (ar ou outro bloco): fica igual
     editSet(x, y, z, convertCell(v, target)); n++;
   });
@@ -33,7 +33,7 @@ function maskBrush(center, r, shape, mask, target) {
 function maskMatches(center) {
   var out = [];
   if (!center || maskBi < 0) return out;
-  brushVolume(center, maskR, maskShape, function (x, y, z) { var v = grid[idx(x, y, z)]; if (v && cellBlock(v) === maskBi) out.push([x, y, z]); });
+  brushVolume(center, maskR, maskShape, function (x, y, z) { var v = gget(x, y, z); if (v && cellBlock(v) === maskBi) out.push([x, y, z]); });
   return out;
 }
 function maskApply(t) {
@@ -44,7 +44,7 @@ function maskApply(t) {
 }
 function maskPick(t) {
   if (!t || !t.hit) return;
-  maskBi = cellBlock(grid[idx(t.hit[0], t.hit[1], t.hit[2])]);
+  maskBi = cellBlock(gget(t.hit[0], t.hit[1], t.hit[2]));
   toast('Máscara: ' + BLOCKS[maskBi].name + '. Agora pinte: só esse bloco vira ' + BLOCKS[curBlock()].name + '.');
   updateMaskChip();
 }

@@ -53,7 +53,7 @@ function defaultState(b) { return stateIndex(b, {}); }
 /* Vizinhos */
 function blockAt(x, y, z) {
   if (x < 0 || y < 0 || z < 0 || x >= SX || y >= SY || z >= SZ) return null;
-  var v = grid[(y * SZ + z) * SX + x]; if (!v) return null;
+  var v = gget(x, y, z); if (!v) return null;
   return { b: BLOCKS[cellBlock(v)], s: cellOri(v), v: v };
 }
 var NOT_STURDY = /leaves|pumpkin|melon|jack_o_lantern|shulker_box/;

@@ -55,11 +55,12 @@ function clearSel() { sel = null; selA = null; pasting = false; selRefresh(); }
 
 function copySel(cut) {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
-  var d = selSize(sel), cells = new Uint32Array(d[0] * d[1] * d[2]), n = 0;
-  for (var y = 0; y < d[1]; y++) for (var z = 0; z < d[2]; z++) for (var x = 0; x < d[0]; x++) {
-    var v = grid[idx(sel.a[0] + x, sel.a[1] + y, sel.a[2] + z)];
-    cells[(y * d[2] + z) * d[0] + x] = v; if (v) n++;
-  }
+  var d = selSize(sel), vol = d[0] * d[1] * d[2], n = 0;
+  if (vol > 64e6) { toast('Área grande demais para copiar de uma vez (' + Math.round(vol / 1e6) + ' milhões de espaços; o máximo é 64 milhões). Copie em partes.', 7000); return; }
+  var cells = new Uint32Array(vol);
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) {
+    cells[((y - sel.a[1]) * d[2] + (z - sel.a[2])) * d[0] + (x - sel.a[0])] = v; n++;
+  });
   clip = { w: d[0], h: d[1], l: d[2], cells: cells, n: n };
   if (cut) { deleteSel(true); toast('Recortado: ' + n + ' blocos. Ctrl+V para colar.'); }
   else toast('Copiado: ' + n + ' blocos. Ctrl+V para colar.');
@@ -69,8 +70,8 @@ function deleteSel(quiet) {
   if (!sel) return;
   var n = 0;
   beginBatch();
-  for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++)
-    if (grid[idx(x, y, z)]) { editSet(x, y, z, 0); n++; }
+  var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z) { list.push(x, y, z); });
+  for (var k = 0; k < list.length; k += 3) if (gget(list[k], list[k + 1], list[k + 2])) { editSet(list[k], list[k + 1], list[k + 2], 0); n++; }
   endBatch();
   if (!quiet) toast('Apagados ' + n + ' blocos.');
 }
@@ -169,12 +170,9 @@ function blockByText(txt) {
 }
 function openReplace() {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
-  var counts = {}, empty = 0;
-  for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
-    var v = grid[idx(x, y, z)]; if (!v) { empty++; continue; }
-    var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1;
-  }
-  var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0);
+  var counts = {}, sd = selSize(sel), vol = sd[0] * sd[1] * sd[2];
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1; });
+  var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0), empty = vol - total;
   var opts = '<option value="all">Todos os blocos (' + total + ')</option>' + Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })
     .map(function (k) { return '<option value="' + k + '">' + esc(BLOCKS[k].name) + ' (' + counts[k] + ')</option>'; }).join('');
   var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
@@ -190,11 +188,17 @@ function openReplace() {
       $('rpOk').onclick = function () {
         var to = blockByText($('rpTo').value);
         if (to === -1) { $('rpErr').hidden = false; $('rpErr').textContent = 'Bloco não encontrado: escreva o id (ex.: stone_bricks) ou escolha um nome da lista.'; return; }
-        var from = $('rpFrom').value, fill = $('rpFill').checked, n = 0;
+        var from = $('rpFrom').value, fill = $('rpFill').checked && to >= 0, n = 0;
+        if (fill && vol > 16e6) { $('rpErr').hidden = false; $('rpErr').textContent = 'Preencher ' + Math.round(vol / 1e6) + ' milhões de espaços de uma vez é demais para desfazer. Selecione uma área menor.'; return; }
         beginBatch();
-        for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
-          var v = grid[idx(x, y, z)];
-          if (v ? (from === 'all' || cellBlock(v) === +from) : (fill && to >= 0)) { editSet(x, y, z, to === -2 ? 0 : convertCell(v, to)); n++; }
+        if (fill) {
+          for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
+            var v = gget(x, y, z);
+            if (v ? (from === 'all' || cellBlock(v) === +from) : true) { editSet(x, y, z, convertCell(v, to)); n++; }
+          }
+        } else { // só onde há blocos: percorre só os pedaços ocupados
+          var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { if (from === 'all' || cellBlock(v) === +from) list.push(x, y, z); });
+          for (var k = 0; k < list.length; k += 3) { var w = gget(list[k], list[k + 1], list[k + 2]); if (w) { editSet(list[k], list[k + 1], list[k + 2], to === -2 ? 0 : convertCell(w, to)); n++; } }
         }
         endBatch(); closeDialog();
         toast(n + ' blocos ' + (to === -2 ? 'apagados' : 'trocados por ' + BLOCKS[to].name) + '.');
