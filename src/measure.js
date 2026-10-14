@@ -7,6 +7,7 @@ try { measureOn = localStorage.getItem('bloco-a-bloco-measure') !== '0'; } catch
 function setMeasure(on) {
   measureOn = on; try { localStorage.setItem('bloco-a-bloco-measure', on ? '1' : '0'); } catch (e) {}
   $('measureBtn').textContent = 'Mostrar medidas: ' + (on ? 'sim' : 'não');
+  $('measTbtn').setAttribute('aria-pressed', String(on));
   measureKey = null; requestRender();
 }
 /* Caixa dos blocos na altura y (só os chunks dessa faixa) */
@@ -100,3 +101,63 @@ function updateMeasure(force) {
   if (!layerOn) addDim(g, [X1 + off, Y0, Z1 + off], [X1 + off, Y1, Z1 + off], Y1 - Y0, size, [off, 0, off]);
   measureObj = g; scene.add(g);
 }
+
+/* ---------- Régua: medir de um bloco a outro ---------- */
+/* Ferramenta Régua (N): cada clique marca um ponto (bloco ou chão); entre um ponto e o seguinte aparece uma cota.
+   Alinhados num eixo, conta os blocos de ponta a ponta, contando os dois (como as medidas da construção); em
+   diagonal, mostra a distância em linha reta entre os centros. Os pontos ficam até Limpar (ou Esc). */
+var rulerPts = [], rulerObj = null, rulerHoverKey = null;
+function rulerSeg(a, b) {
+  var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], nz = d.filter(function (v) { return v; }).length;
+  if (nz <= 1) { var ax = d[0] ? 0 : d[1] ? 1 : 2; return { n: Math.abs(d[ax]) + 1, ax: ax, aligned: true, d: d }; }
+  return { n: Math.hypot(d[0], d[1], d[2]), aligned: false, d: d };
+}
+function rulerFmt(sg) { return sg.aligned ? String(sg.n) : sg.n.toFixed(1).replace('.', ','); }
+function rulerDraw(hover) {
+  if (rulerObj) { scene.remove(rulerObj); rulerObj.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material && o.material !== MEAS_W && o.material !== MEAS_D) o.material.dispose(); }); rulerObj = null; }
+  var pts = rulerPts.slice(); if (hover && pts.length) pts.push(hover);
+  if (!pts.length) { requestRender(); return; }
+  if (!MEAS_W) { MEAS_W = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }); MEAS_D = new THREE.MeshBasicMaterial({ color: 0x101412, depthTest: false, transparent: true, opacity: 0.9 }); }
+  var g = new THREE.Group(), zb = Math.round(Math.log2(Math.max(4, cam.dist)) * 3), size = Math.max(Math.pow(2, zb / 3) * 0.03, 0.5);
+  var mark = new THREE.MeshBasicMaterial({ color: new THREE.Color(cssColor('--accent') || '#c55a11'), depthTest: false, transparent: true });
+  pts.forEach(function (p, i) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 1.06, 1.06), mark); m.material.opacity = i === pts.length - 1 && hover ? 0.25 : 0.4;
+    m.position.set(p[0] + 0.5, p[1] + 0.5, p[2] + 0.5); m.renderOrder = 8; g.add(m);
+    if (!i) return;
+    var a = pts[i - 1], sg = rulerSeg(a, p), A = [a[0] + 0.5, a[1] + 0.5, a[2] + 0.5], B = [p[0] + 0.5, p[1] + 0.5, p[2] + 0.5];
+    if (sg.aligned) { var s = sg.d[sg.ax] >= 0 ? 1 : -1; A[sg.ax] -= 0.5 * s; B[sg.ax] += 0.5 * s; } // de face a face: conta os dois blocos
+    if (A[0] === B[0] && A[1] === B[1] && A[2] === B[2]) return;
+    addDim(g, A, B, rulerFmt(sg), size, null);
+  });
+  rulerObj = g; scene.add(g); requestRender();
+}
+function rulerAdd(t) {
+  var c = t && (t.hit || t.place); if (!c) return;
+  var last = rulerPts[rulerPts.length - 1];
+  if (last && last[0] === c[0] && last[1] === c[1] && last[2] === c[2]) return;
+  rulerPts.push(c.slice()); rulerDraw(); updateRulerChip();
+}
+function rulerUndo() { rulerPts.pop(); rulerDraw(); updateRulerChip(); }
+function rulerClear() { rulerPts = []; rulerDraw(); updateRulerChip(); }
+function rulerHover(t) {
+  if (tool !== 'ruler' || !rulerPts.length) return;
+  var c = t && (t.hit || t.place), k = c ? c.join(',') : '';
+  if (k === rulerHoverKey) return; rulerHoverKey = k;
+  rulerDraw(c);
+}
+function updateRulerChip() {
+  var c = $('rulerChip'), on = tool === 'ruler' || rulerPts.length > 0;
+  c.hidden = !on; if (!on) return;
+  var segs = [], tot = 0, L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (var i = 1; i < rulerPts.length; i++) {
+    var sg = rulerSeg(rulerPts[i - 1], rulerPts[i]), nm = (L[i - 1] || i) + '→' + (L[i] || i + 1);
+    segs.push('<b>' + nm + '</b> ' + rulerFmt(sg) + (sg.aligned ? ' (' + 'XYZ'[sg.ax] + ')' : ' · ΔX ' + Math.abs(sg.d[0]) + ' ΔY ' + Math.abs(sg.d[1]) + ' ΔZ ' + Math.abs(sg.d[2])));
+    tot += sg.aligned ? sg.n - 1 : sg.n;
+  }
+  $('rulerTxt').innerHTML = '<b>Régua</b> ' + (rulerPts.length ? (segs.length ? segs.join(' · ') + (segs.length > 1 ? ' · <b>caminho</b> ' + (Math.round(tot * 10) / 10).toString().replace('.', ',') + ' entre centros' : '') : 'clique no próximo bloco') : 'clique no primeiro bloco');
+  $('rulerBtns').hidden = !rulerPts.length;
+}
+$('rulerChip').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'rulerUndo') rulerUndo(); else if (b.id === 'rulerClear') rulerClear();
+});

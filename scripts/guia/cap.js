@@ -27,8 +27,8 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await shot('medidas', { x: 0, y: 54, width: 972, height: 718 });
   await cam(VIEW);
   // barra de ferramentas
-  const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere', 'select', 'mask', 'sculpt']) tsel[t] = '[data-tool="' + t + '"]';
-  Object.assign(tsel, { undo: '#undo', redo: '#redo', layer: '#layerBtn', range: '#layerRange', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary' });
+  const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere', 'select', 'mask', 'sculpt', 'ruler']) tsel[t] = '[data-tool="' + t + '"]';
+  Object.assign(tsel, { undo: '#undo', redo: '#redo', meas: '#measTbtn', layer: '#layerBtn', range: '#layerRange', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary' });
   await shot('barra', { x: 0, y: 0, width: 972, height: 54 }, await rectsOf(p, tsel));
   // hotbar e status
   await p.mouse.move(640, 380); await p.waitForTimeout(400);
