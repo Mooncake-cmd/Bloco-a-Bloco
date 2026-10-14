@@ -125,7 +125,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
   <div class="facts">
     <div class="fact"><b>1.088</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
-    <div class="fact"><b>11</b><span>ferramentas, com seleção para copiar, colar e substituir</span></div>
+    <div class="fact"><b>12</b><span>ferramentas, com seleção, colar, substituir e pincel de troca</span></div>
     <div class="fact"><b>13</b><span>categorias de blocos</span></div>
     <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
     <div class="fact"><b>64 mi</b><span>blocos de espaço no máximo (ex.: 400 × 400 × 400)</span></div>
@@ -190,7 +190,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="strip-wrap"><div class="strip">
     <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
     <div class="marks">
-      <span class="pin" style="left:3.1%">1</span><span class="pin" style="left:6.6%">2</span><span class="pin" style="left:10.1%">3</span><span class="pin" style="left:13.6%">4</span><span class="pin" style="left:17.1%">5</span><span class="pin" style="left:20.6%">6</span><span class="pin" style="left:24.1%">7</span><span class="pin" style="left:27.6%">8</span><span class="pin" style="left:31.1%">9</span><span class="pin" style="left:34.6%">10</span><span class="pin" style="left:38.1%">11</span><span class="pin" style="left:42.6%">12</span><span class="pin" style="left:46.1%">13</span><span class="pin" style="left:52.3%">14</span><span class="pin" style="left:61.0%">15</span>
+      <span class="pin" style="left:2.9%">1</span><span class="pin" style="left:6.4%">2</span><span class="pin" style="left:9.9%">3</span><span class="pin" style="left:13.4%">4</span><span class="pin" style="left:16.9%">5</span><span class="pin" style="left:20.4%">6</span><span class="pin" style="left:23.9%">7</span><span class="pin" style="left:27.4%">8</span><span class="pin" style="left:30.9%">9</span><span class="pin" style="left:34.4%">10</span><span class="pin" style="left:37.9%">11</span><span class="pin" style="left:41.4%">12</span><span class="pin" style="left:45.7%">13</span><span class="pin" style="left:49.2%">14</span><span class="pin" style="left:55.0%">15</span><span class="pin" style="left:62.2%">16</span>
     </div>
   </div></div>
   <div class="tbl"><table>
@@ -207,8 +207,9 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td><td rowspan="2">Dois cliques: o centro e um ponto da borda (o raio).</td></tr>
       <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
       <tr><td>11</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
-      <tr><td>12–13</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
-      <tr><td>14–15</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
+      <tr><td>12</td><td><b>Pincel de troca</b></td><td><kbd>M</kbd></td><td>Pinta trocando só um tipo de bloco (a máscara) pelo bloco da hotbar, dentro de uma esfera ou cubo; o resto fica igual (veja abaixo).</td><td>Escolhe a máscara: o bloco clicado.</td></tr>
+      <tr><td>13–14</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
+      <tr><td>15–16</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
     </tbody>
   </table></div>
 
@@ -233,6 +234,26 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>Arrastar apaga uma faixa da largura escolhida.</li>
     </ul>
   </div>
+
+  <h3>Pincel de troca (máscara)</h3>
+  <p>Para trocar um material por outro numa parte da construção sem mexer no resto, como trocar os tijolos de um trecho de parede por pedra sem tocar na pedra, no vidro ou no ar em volta:</p>
+  <ol class="steps">
+    <li>Escolha a ferramenta <b>Pincel de troca</b> (<kbd>M</kbd>) e ponha na hotbar o bloco <b>novo</b> (o destino).</li>
+    <li>Com <kbd>Shift</kbd>, clique num bloco do tipo que deve sair: ele vira a <b>máscara</b>. O aviso no canto mostra “Troca <i>máscara</i> → <i>destino</i>”.</li>
+    <li>Ajuste o <b>raio</b> (1 a 12, nos botões − e + do aviso ou nas teclas <kbd>-</kbd> e <kbd>+</kbd>) e a forma: <b>Esfera</b> ou <b>Cubo</b>.</li>
+    <li>Passe o ponteiro: os blocos que vão mudar ficam destacados em laranja, dentro do contorno do volume. Clique ou arraste para pintar.</li>
+  </ol>
+  <div class="grid2">
+    <figure><img src="img/troca-antes.jpg" alt="Parede de pedra e tijolos com os tijolos dentro de uma esfera de raio 4 destacados em laranja" width="972" height="718" loading="lazy"><figcaption>Máscara: tijolos; destino: pedra; esfera de raio 4. Só os tijolos dentro da esfera ficam destacados.</figcaption></figure>
+    <figure><img src="img/troca-depois.jpg" alt="A mesma parede depois do clique: os tijolos do meio viraram pedra e os de fora continuam" width="972" height="718" loading="lazy"><figcaption>Depois do clique: os tijolos do meio viraram pedra; a pedra que já existia, os buracos (ar) e os tijolos de fora do raio ficaram iguais.</figcaption></figure>
+  </div>
+  <ul class="plain">
+    <li>O teste é pelo tipo do bloco: escada de carvalho é diferente de tábua de carvalho. Quando o destino tem as mesmas propriedades (escada por escada, tronco por tronco), a direção é mantida.</li>
+    <li>O centro do volume é o bloco apontado pelo ponteiro (a partir da câmera). Com a Camada ligada, nada acima dela muda.</li>
+    <li>Um traço inteiro (do clique até soltar) é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>; ao soltar, o aviso diz quantos blocos foram trocados.</li>
+    <li>O raio e a forma ficam guardados no navegador; a máscara vale até você escolher outra.</li>
+    <li>Para trocar numa área retangular inteira de uma vez, use <b>Selecionar → Substituir…</b> (abaixo).</li>
+  </ul>
 
   <h3>Formas: linha e caixas com altura</h3>
   <ul class="plain">
@@ -586,6 +607,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>B</kbd> <kbd>E</kbd> <kbd>I</kbd> <kbd>U</kbd> <kbd>T</kbd></td><td>Pincel, borracha, conta-gotas, usar, girar</td></tr>
         <tr><td><kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>O</kbd></td><td>Linha, caixa, caixa oca, esfera, esfera oca</td></tr>
         <tr><td><kbd>V</kbd></td><td>Selecionar área</td></tr>
+        <tr><td><kbd>M</kbd></td><td>Pincel de troca (<kbd>Shift</kbd> + clique escolhe a máscara; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio)</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>
         <tr><td><kbd>Delete</kbd></td><td>Apagar a seleção</td></tr>
         <tr><td><kbd>R</kbd> (colando)</td><td>Girar a cópia 90°</td></tr>

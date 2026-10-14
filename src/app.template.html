@@ -34,7 +34,7 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{display:grid;grid-template-columns:minmax(0,1fr) 308px;height:100%}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0}
-#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
 .brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
 .brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
 .group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--panel-2);border-radius:8px}
@@ -44,12 +44,12 @@ button{cursor:pointer}
 .tbtn:disabled{opacity:.35;cursor:default}
 .tbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .tbtn svg .f{fill:currentColor;fill-opacity:.22}
-.tbtn.txt{padding:0 12px;font-weight:500}
+.tbtn.txt{padding:0 10px;font-weight:500}
 .tbtn.primary{background:var(--accent);color:var(--accent-fg);font-weight:600}
 .tbtn.primary:hover{filter:brightness(1.08)}
 .spacer{flex:1 1 0}
-.layer{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.layer input[type=range]{width:80px;accent-color:var(--accent)}
+.layer{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.layer input[type=range]{width:60px;accent-color:var(--accent)}
 .layer output{font-family:var(--font-mono);min-width:38px;color:var(--fg)}
 details.menu{position:relative}
 details.menu summary{list-style:none}
@@ -70,6 +70,10 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
+#maskChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#maskChip .mbtns{display:inline-flex;align-items:center;gap:4px}
+#maskChip .mbtns button{background:var(--line);color:var(--fg)}
+#maskChip .mbtns button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
 #selChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 #selBtns{display:inline-flex;flex-wrap:wrap;gap:4px}
 #selBtns button+button{background:var(--line);color:var(--fg)}
@@ -176,7 +180,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -389,12 +393,12 @@ function renderHotbar() {
     return '<button type="button" class="slot" data-slot="' + s + '" aria-pressed="' + (s === slot) + '" title="' + b.name + ' (' + (s + 1) + ')"><span class="n">' + (s + 1) + '</span><span class="sw" style="' + swatch(b) + '"></span></button>';
   }).join('');
 }
-function selectSlot(s) { slot = s; renderHotbar(); markSel(); updateStatus(); requestRender(); }
+function selectSlot(s) { slot = s; renderHotbar(); markSel(); updateStatus(); updateMaskChip(); requestRender(); }
 function markSel() {
   var cur = $('list').querySelector('.sel'); if (cur) cur.classList.remove('sel');
   var n = $('list').querySelector('[data-i="' + curBlock() + '"]'); if (n) n.classList.add('sel');
 }
-function chooseBlock(i) { hotbar[slot] = i; renderHotbar(); markSel(); updateStatus(); requestRender(); autosave(); }
+function chooseBlock(i) { hotbar[slot] = i; renderHotbar(); markSel(); updateStatus(); updateMaskChip(); requestRender(); autosave(); }
 $('chips').addEventListener('click', function (e) {
   var b = e.target.closest('[data-cat]'); if (!b) return;
   activeCat = b.getAttribute('data-cat'); renderChips(); renderList();
@@ -433,7 +437,8 @@ var TOOLS = [
   ['hbox', 'Caixa oca (paredes)', 'H', '<path d="M3 3h14v14H3zM7.5 7.5h5v5h-5z"/>'],
   ['sphere', 'Esfera sólida', 'S', '<circle class="f" cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="7"/>'],
   ['hsphere', 'Esfera oca', 'O', '<circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="7" ry="2.6" stroke-dasharray="2 2"/>'],
-  ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>']
+  ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>'],
+  ['mask', 'Pincel de troca: troca só o bloco da máscara dentro do raio (Shift + clique escolhe a máscara)', 'M', '<path d="M4 16c2 0 3-1 3-3l6-6 2 2-6 6c0 2-1 3-3 3"/><circle cx="14.5" cy="5.5" r="2.5" class="f"/><path d="M3 3l3 3M17 13l-2 4"/>']
 ];
 var tool = 'place';
 var anchor = null;
@@ -802,7 +807,7 @@ function effTool(shift) { return tool === 'place' && shift ? 'erase' : tool; }
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  updateEraseChip();
+  updateEraseChip(); updateMaskChip();
   var t = hoverT;
   if (selA) drawSelBox();
   if (!t) { requestRender(); return; }
@@ -816,6 +821,8 @@ function updatePreview() {
     ghostFill.material.color.setRGB(b.top[0] / 255, b.top[1] / 255, b.top[2] / 255);
     setBoxAt(ghostFill, cell); ghostFill.visible = true;
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
+  } else if (et === 'mask') {
+    maskPreview(t, accent);
   } else if (et === 'erase' && eraseSize > 1) {
     var ec = eraseCells(t); if (!ec.length) { requestRender(); return; }
     var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
@@ -990,7 +997,10 @@ function pressAt(cx, cy, shift) {
   if (pasting) { commitPaste(t); updatePreview(); updateStatus(); return; }
   var et = effTool(shift);
   if (et === 'select') selectPress(t);
-  else if (et === 'place' || et === 'erase') {
+  else if (et === 'mask') {
+    if (shift) maskPick(t);
+    else if (t && t.hit) { stroke = { mode: 'mask', cells: new Set(), n: 0 }; beginBatch(); maskApply(t); stroke.last = t.hit; stroke.on = true; }
+  } else if (et === 'place' || et === 'erase') {
     if (!t) return;
     stroke = { mode: et, cells: new Set() };
     beginBatch();
@@ -1027,6 +1037,7 @@ function dragAt(cx, cy) {
   var t = targetAt(cx, cy); hoverT = t;
   if (t) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
+    if (stroke.mode === 'mask') { if (c && (!stroke.last || c.join() !== stroke.last.join())) { maskApply(t); stroke.last = c; } c = null; }
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
       if (stroke.mode === 'place') placeAt(c, t); else eraseArea(t);
       stroke.last = c;
@@ -1035,7 +1046,7 @@ function dragAt(cx, cy) {
   updatePreview(); updateStatus(); requestRender();
 }
 function releaseStroke() {
-  if (stroke) { stroke = null; endBatch(); }
+  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + ' trocados por ' + BLOCKS[curBlock()].name + '.' : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
 }
 
 /* ---------- Ponteiro ---------- */
@@ -1605,6 +1616,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SELECTION_JS%%*/
 /*%%TREES_JS%%*/
 /*%%FLUIDS_JS%%*/
+/*%%MASK_JS%%*/
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
@@ -1849,8 +1861,9 @@ function openHelp() {
     '<span><kbd>Botão dir.</kbd> arrastar</span><span>Girar a câmera (clique simples cancela a forma)</span>' +
     '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
-    '<span><kbd>B E I U T L R H S O V</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar</span>' +
+    '<span><kbd>B E I U T L R H S O V M</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar, pincel de troca</span>' +
     '<span>Linha e caixas (<kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd>)</span><span>Três cliques: o início, o ponto oposto e a altura (suba ou desça o ponteiro). Para uma linha de pé, clique duas vezes no mesmo ponto e suba. Esferas: dois cliques (centro e raio).</span>' +
+    '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
@@ -1952,10 +1965,11 @@ window.addEventListener('keydown', function (e) {
   if (typing || overlayRoot.firstChild || !camera) return;
   var k = e.key.toLowerCase();
   if (selectionKey(e, k)) return;
+  if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
