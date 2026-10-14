@@ -105,7 +105,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><a href="#projeto"><span>09</span>Menu Projeto</a></li>
     <li><a href="#texturas"><span>10</span>Texturas</a></li>
     <li><a href="#exportar"><span>11</span>Exportar</a></li>
-    <li><a href="#importar"><span>12</span>Importar</a></li>
+    <li><a href="#importar"><span>12</span>Importar e mundos do jogo</a></li>
     <li><a href="#materiais"><span>13</span>Materiais</a></li>
     <li><a href="#tamanho"><span>14</span>Tamanho do espaço</a></li>
     <li><a href="#salvar"><span>15</span>Salvar e aparelhos</a></li>
@@ -125,7 +125,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <div class="fact"><b>1.089</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
     <div class="fact"><b>14</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>categorias de blocos</span></div>
-    <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
+    <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json, além de mundos inteiros do Bedrock (.mcworld)</span></div>
     <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
   </div>
 </header>
@@ -515,13 +515,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="544" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="580" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
-        <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar.</td></tr>
+        <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar. Com um mundo do jogo aberto, também fecha o mundo.</td></tr>
         <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Abrir mundo do jogo (.mcworld)…</td><td>Abre um mundo do Bedrock para editar uma área dele e exportar o mundo com as mudanças (cap. 12).</td></tr>
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
@@ -590,7 +591,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 </section>
 
 <section id="importar">
-  <h2><span class="n">12</span>Importar</h2>
+  <h2><span class="n">12</span>Importar e mundos do jogo</h2>
   <figure><img src="img/importado.jpg" alt="Estrutura de 300 por 59 por 300 importada de um .schem" width="1280" height="800" loading="lazy"><figcaption>Um .schem de 300 × 59 × 300 com 107 mil blocos, aberto inteiro em menos de um segundo no computador de teste.</figcaption></figure>
   <ul class="plain">
     <li><b>Projeto → Abrir projeto ou estrutura…</b> aceita <code>.json</code> (projeto), <code>.mcstructure</code> e <code>.schem</code> (Sponge v2 e v3).</li>
@@ -599,6 +600,29 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Conexões (cercas, muros, redstone, escadas) são recalculadas pelos vizinhos.</li>
     <li>No .mcstructure, o vazio de estrutura vira espaço vazio, e o editor escolhe o estado que mais combina com o do arquivo. Quando o Bedrock não guarda um detalhe (ex.: para onde um botão no chão está virado), fica o padrão do jogo.</li>
     <li>Exportar e importar de volta foi testado e devolve a construção idêntica, nos dois formatos.</li>
+  </ul>
+  <h3 id="mundo">Editar um mundo do jogo (.mcworld)</h3>
+  <p>Dá para abrir um mundo inteiro do Bedrock, editar uma parte dele no site e levar de volta para o jogo com a construção pronta, no lugar certo.</p>
+  <div class="grid2">
+    <figure><img src="img/mundo-mapa.jpg" alt="Janela do mundo com o mapa visto de cima, os botões Mundo normal, Nether e End, e um quadrado marcando a área" width="900" height="760" loading="lazy"><figcaption>O mapa visto de cima: o quadrado é a área que vai para o editor, e o ponto laranja é onde você estava no jogo.</figcaption></figure>
+    <figure><img src="img/mundo-area.jpg" alt="Área do mundo aberta no editor, com morros, lagos e uma casa, e o aviso do mundo no canto" width="972" height="772" loading="lazy"><figcaption>A área aberta no editor. O aviso no canto mostra o mundo, a dimensão e as coordenadas, com Trocar área e Exportar mundo.</figcaption></figure>
+  </div>
+  <ol class="steps">
+    <li><b>No jogo:</b> Configurações do mundo → <b>Exportar mundo</b>. Sai um arquivo <code>.mcworld</code>. Também serve um <code>.zip</code> com a pasta do mundo dentro (a que tem <code>level.dat</code> e a pasta <code>db</code>), ou um .zip com o .mcworld dentro.</li>
+    <li><b>No site:</b> Projeto → <b>Abrir mundo do jogo (.mcworld)…</b> O site lê o mundo (alguns segundos) e desenha o mapa visto de cima.</li>
+    <li><b>Escolha a área:</b> clique no mapa para pôr o centro, ou digite <b>Centro X</b> e <b>Centro Z</b> (as coordenadas do jogo). Arraste para mover o mapa; a roda do mouse e os botões + e − aproximam. <b>Onde estou</b> volta para a sua posição no jogo. Os botões <b>Mundo normal</b>, <b>Nether</b> e <b>End</b> trocam de dimensão (cada uma tem o seu mapa).</li>
+    <li><b>Tamanho:</b> de 64 × 64 até <b>512 × 512</b> blocos, sempre com a altura toda da dimensão (−64 a 319 no mundo normal, 0 a 127 no Nether, 0 a 255 no End). A área se encaixa nos chunks do jogo (de 16 em 16). No celular, o tamanho sugerido é 256 × 256.</li>
+    <li><b>Carregar área</b> e construa com todas as ferramentas. A barra de status mostra as coordenadas do jogo.</li>
+    <li>Para mexer em outro lugar ou em outra dimensão, <b>Trocar área</b>. As mudanças da área anterior ficam guardadas e voltam quando você abre aquela área de novo.</li>
+    <li><b>Exportar mundo</b> (no aviso do canto ou em Exportar) gera <code>nome-do-mundo-editado.mcworld</code> com as mudanças de todas as áreas e dimensões. Abra esse arquivo no celular ou no computador: o jogo importa como um <b>mundo novo</b>, e o original continua como estava.</li>
+  </ol>
+  <ul class="plain">
+    <li><b>Só o que você mudou é gravado.</b> O site compara cada pedaço de 16 × 16 × 16 editado com o original e troca só os blocos diferentes. O resto do mundo sai do arquivo exatamente como entrou: baús com os itens dentro, placas com o texto, geradores de monstros, criaturas, aldeias, o inventário.</li>
+    <li><b>Blocos que o editor não conhece</b> (gerador de monstros, cofre, moldura, coluna de bolhas, blocos novos do jogo) aparecem <b>roxos</b>, com o nome real na barra de status (ex.: <i>Bloco do jogo: mob_spawner</i>). Eles voltam iguais para o mundo e podem ser copiados e colados com a seleção.</li>
+    <li>Ao apagar ou trocar um bloco, os dados dele somem junto (os itens de um baú apagado, por exemplo). As camas colocadas levam a cor certa. A água que estava dentro de um bloco trocado (alga, escada submersa) sai com ele.</li>
+    <li><b>Chunks que o jogo ainda não gerou</b> aparecem vazios no editor e não recebem construção: o jogo apagaria o que estivesse ali ao gerar o terreno. A janela do mapa diz quantos chunks da área já existem.</li>
+    <li>O site guarda no navegador o arquivo do mundo, a área aberta e as mudanças: se a página recarregar, tudo volta. <b>Novo</b> (ou abrir outro projeto) fecha o mundo, e o que não foi exportado se perde.</li>
+    <li>O site edita uma cópia: o mundo no jogo não muda até você importar o arquivo exportado. Mundos de Realms e servidores não podem ser editados assim.</li>
   </ul>
 </section>
 
@@ -706,6 +730,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
+      <tr><td>Mundo do jogo</td><td>Só Bedrock (o .mcworld); mundos do Java ainda não. No máximo 512 × 512 por vez (troque de área para editar mais). Pedaços num formato muito antigo do jogo ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Ainda não foi conferido dentro do jogo: teste primeiro numa cópia do mundo.</td></tr>
       <tr><td>Importação</td><td>Nomes de versões antigas (Java antes da 1.13, nomes antigos do Bedrock) e o .schematic do MCEdit não abrem. A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
       <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>
       <tr><td>Crafter</td><td>Gira só nas quatro direções horizontais.</td></tr>

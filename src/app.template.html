@@ -70,9 +70,10 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#maskChip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#worldChip,#maskChip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
+.chip .mbtns button#worldExp{background:var(--accent);color:var(--accent-fg)}
 .chip .mbtns button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
 #symChip .mbtns button[data-sa="0"][aria-pressed=true]{background:#e0533d;color:#fff}
 #symChip .mbtns button[data-sa="1"][aria-pressed=true]{background:#3fa34d;color:#fff}
@@ -103,6 +104,16 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 .empty{padding:20px 12px;color:var(--muted);font-size:13px}
 .overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
 .dialog{width:min(520px,100%);max-height:calc(100% - 8px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.dialog.wide{width:min(900px,100%)}
+.wmap{position:relative;height:min(52vh,460px);border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2)}
+.wmap canvas{display:block;touch-action:none;cursor:crosshair}
+.wzoom{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+.wzoom button,.wtabs button{min-width:34px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-weight:600}
+.wtabs{display:flex;flex-wrap:wrap;gap:6px}
+.wtabs button{padding:0 12px}
+.wtabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.wtabs button:disabled{opacity:.45}
+.dialog p.wmhelp{font-size:12px}
 .dialog h3{margin:0;font:700 20px var(--font-display);letter-spacing:-.01em}
 .dialog p{margin:0;color:var(--muted)}
 .dialog .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -169,6 +180,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="newBtn">Novo (limpar tudo)</button>
           <button class="tbtn txt" id="saveBtn">Salvar projeto (.json)</button>
           <button class="tbtn txt" id="openBtn">Abrir projeto ou estrutura…</button>
+          <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (.mcworld)…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
@@ -182,11 +194,12 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
         </div>
       </details>
       <input type="file" id="fileIn" accept=".json,.mcstructure,.schem,application/json" hidden>
+      <input type="file" id="worldIn" accept=".mcworld,.zip,application/zip" hidden>
       <input type="file" id="packIn" accept=".zip,.mcpack,.mcaddon,application/zip" hidden>
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -238,6 +251,12 @@ var AIR_GREY = [214, 222, 226];
 BLOCKS.push({ java: 'air', name: 'Air (apagar)', bedrock: 'air', top: AIR_GREY, side: AIR_GREY, bottom: AIR_GREY, kind: 1, glass: true,
   jt: [], bt: [], tint: tint6(0), ori: null, bst: null, tile: [], solid: false, icon: '', isAir: true });
 var AIR_BI = BLOCKS.length - 1;
+/* "Bloco do jogo": bloco de um mundo aberto (src/worldio.js) que o editor não conhece. O estado da célula é o índice
+   na lista de blocos guardados do mundo; ele volta igual para o mundo e pode ser copiado e colado. */
+var PRES_COL = [176, 84, 176];
+BLOCKS.push({ java: 'bab_preserved', name: 'Bloco do jogo', bedrock: 'unknown', top: PRES_COL, side: PRES_COL, bottom: PRES_COL, kind: 0, glass: false,
+  jt: six('bab_preserved'), bt: null, tint: tint6(0), ori: null, bst: null, tile: [-1, -1, -1, -1, -1, -1], solid: true, icon: '', hide: true });
+var PRES_BI = BLOCKS.length - 1;
 /* Célula do mundo (32 bits): bits 0-11 = índice do bloco + 1; acima disso, o estado: índice em ori.o nos cubos que giram,
    ou as propriedades guardadas das formas (base mista, ver stateIndex) */
 var OSH = 12, IMASK = 4095;
@@ -306,6 +325,7 @@ function setRaw(x, y, z, v) {
   var i = idx(x, y, z), old = gget(x, y, z);
   if (old === v) return false;
   gset(x, y, z, v); verCounter++;
+  if (wio && wio.area) wio.edited.add((x >> 4) + ',' + (y >> 4) + ',' + (z >> 4)); // mundo do jogo: pedaço a comparar ao exportar
   if (!old && v) blockCount++; else if (old && !v) blockCount--;
   if (old && cellBlock(old) === LIGHT_BI) { lightSet.delete(i); lightVer++; }
   if (v && cellBlock(v) === LIGHT_BI) { lightSet.add(i); lightVer++; }
@@ -986,8 +1006,9 @@ function updatePreview() {
 }
 function updateStatus() {
   var t = hoverT, cell = t && (t.hit || t.place);
-  $('stPos').textContent = cell ? cell.join(', ') : '–';
+  $('stPos').textContent = cell ? (wio && wio.area ? wioWorldPos(cell) : cell).join(', ') : '–';
   var tv = t && t.hit ? gget(t.hit[0], t.hit[1], t.hit[2]) : 0, tb = tv ? BLOCKS[cellBlock(tv)] : null;
+  if (tb && cellBlock(tv) === PRES_BI) tb = { name: 'Bloco do jogo: ' + presName(tv) + ' (mantido como está)' };
   $('stBlock').textContent = (tb ? tb.name + (tb.ori ? ', ' + oriLabel(tb, cellOri(tv)) : tb.shape && tb.sp.length ? ' [' + shapeLabel(tb, cellOri(tv)) + ']' : '') + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
@@ -1337,28 +1358,35 @@ async function openZip(blob) {
   var dec = new TextDecoder(), ents = new Map(), p = 0;
   for (i = 0; i < n && p + 46 <= cd.byteLength; i++) {
     if (cd.getUint32(p, true) !== 0x02014b50) break;
-    var method = cd.getUint16(p + 10, true), csz = cd.getUint32(p + 20, true), usz = cd.getUint32(p + 24, true);
+    var method = cd.getUint16(p + 10, true), csz = cd.getUint32(p + 20, true), usz = cd.getUint32(p + 24, true), crc = cd.getUint32(p + 16, true), tm = cd.getUint16(p + 12, true), dt = cd.getUint16(p + 14, true);
     var nl = cd.getUint16(p + 28, true), xl = cd.getUint16(p + 30, true), cl = cd.getUint16(p + 32, true), off = cd.getUint32(p + 42, true);
     var name = dec.decode(new Uint8Array(cd.buffer, p + 46, nl)).replace(/\\/g, '/');
     for (var xp = p + 46 + nl, xe = xp + xl; xp + 4 <= xe;) {
       var id = cd.getUint16(xp, true), ln = cd.getUint16(xp + 2, true), q = xp + 4;
       if (id === 1) {
-        if (usz === 0xffffffff) { q += 8; }
+        if (usz === 0xffffffff) { usz = Number(cd.getBigUint64(q, true)); q += 8; }
         if (csz === 0xffffffff) { csz = Number(cd.getBigUint64(q, true)); q += 8; }
         if (off === 0xffffffff) off = Number(cd.getBigUint64(q, true));
       }
       xp += 4 + ln;
     }
     p += 46 + nl + xl + cl;
-    if (name.slice(-1) !== '/') ents.set(name, { m: method, c: csz, o: off });
+    if (name.slice(-1) !== '/') ents.set(name, { m: method, c: csz, o: off, u: usz, crc: crc, tm: tm, dt: dt });
+  }
+  async function dataStart(en) {
+    var h = new DataView(await blob.slice(en.o, en.o + 30).arrayBuffer());
+    if (h.getUint32(0, true) !== 0x04034b50) throw new Error('ZIP corrompido.');
+    return en.o + 30 + h.getUint16(26, true) + h.getUint16(28, true);
   }
   return {
     paths: Array.from(ents.keys()),
+    info: function (path) { return ents.get(path); },
+    // os bytes comprimidos como estão (para copiar a entrada para outro .zip sem descomprimir)
+    rawSlice: async function (path) { var en = ents.get(path), st = await dataStart(en); return blob.slice(st, st + en.c); },
     read: async function (path) {
       var en = ents.get(path);
-      var h = new DataView(await blob.slice(en.o, en.o + 30).arrayBuffer());
-      if (h.getUint32(0, true) !== 0x04034b50) throw new Error('ZIP corrompido.');
-      var st = en.o + 30 + h.getUint16(26, true) + h.getUint16(28, true), raw = blob.slice(st, st + en.c);
+      if (!en) throw new Error('Arquivo não encontrado no .zip: ' + path);
+      var st = await dataStart(en), raw = blob.slice(st, st + en.c);
       if (en.m === 0) return new Uint8Array(await raw.arrayBuffer());
       if (en.m === 8) return new Uint8Array(await new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
       throw new Error('Compressão de ZIP não suportada.');
@@ -1778,15 +1806,18 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SYM_JS%%*/
 /*%%SCULPT_JS%%*/
 /*%%MEASURE_JS%%*/
+/*%%WORLDIO_JS%%*/
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
 function cellName(v) {
   var b = BLOCKS[cellBlock(v)], o = cellOri(v);
+  if (cellBlock(v) === PRES_BI) return 'bab_preserved#' + o;
   if (b.shape) { var sp = stateProps(b, o), ks = Object.keys(sp); return ks.length ? b.java + '[' + ks.map(function (k) { return k + '=' + sp[k]; }).join(',') + ']' : b.java; }
   return b.ori && o !== b.ori.d ? b.java + '[' + b.ori.k + '=' + b.ori.o[o][0] + ']' : b.java;
 }
 function cellFromName(nm) {
+  var mp = /^bab_preserved#(\d+)$/.exec(nm || ''); if (mp) return (PRES_BI + 1) + (+mp[1]) * 4096;
   var ms = /^([^\[]+)\[(.*)\]$/.exec(nm || '');
   if (ms && ms[1] in BY_JAVA && BLOCKS[BY_JAVA[ms[1]]].shape) {
     var pr = {}; ms[2].split(',').forEach(function (pv) { var a = pv.split('='); pr[a[0]] = a[1]; });
@@ -1821,6 +1852,7 @@ function loadProject(o) {
   return miss;
 }
 function newWorld(sx, sy, sz) {
+  if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
   undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop();
@@ -1900,7 +1932,10 @@ async function pool(items, n, fn) {
   await Promise.all(ws);
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-function voxelOf(x, y, z, v) { var bi = cellBlock(v); return BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]; }
+function voxelOf(x, y, z, v) {
+  var bi = cellBlock(v);
+  if (bi === PRES_BI) { var pe = wio && wio.pres[cellOri(v)], pt = pe ? nbtPalTyped(pe.raw) : null; return [x, y, z, bi, null, pt ? { bn: pt.name.replace(/^minecraft:/, ''), bs: pt.states, bv: pt.version } : null]; }
+  return BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]; }
 function collectVoxels(box) {
   var out = [];
   if (box) blocksInBox(box[0], box[1], box[2], box[3], box[4], box[5], function (x, y, z, v) { out.push(voxelOf(x, y, z, v)); });
@@ -1948,6 +1983,7 @@ function openExport() {
   var pieces = bb ? Math.ceil(bb.w / BE_PIECE[0]) * Math.ceil(bb.h / BE_PIECE[1]) * Math.ceil(bb.l / BE_PIECE[2]) : 0;
   openDialog(
     '<h3>Exportar construção</h3>' +
+    (wio && wio.area ? '<div class="get"><b>Mundo do jogo: ' + esc(wio.name) + '</b><small>Gera uma cópia do mundo (.mcworld) com tudo o que você mudou em todas as áreas. No jogo, ela vira um mundo novo; o original continua como estava.</small><div class="row"><button class="btn primary" id="exWorld">Exportar mundo (.mcworld)</button></div></div>' : '') +
     '<div class="info">Tamanho: ' + dim + '<br>Blocos: ' + blockCount.toLocaleString('pt-BR') + '</div>' +
     '<label>Nome do arquivo<input type="text" id="exName" value="construcao" maxlength="40"></label>' +
     '<label class="check"><input type="checkbox" id="exKeep" checked><span>Bedrock: deixar o terreno intacto onde a construção tem ar (usa blocos vazios de estrutura). Desmarque para a construção substituir tudo no retângulo por ar.</span></label>' +
@@ -1959,6 +1995,7 @@ function openExport() {
     function () {
       if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
       $('exClose').onclick = closeDialog;
+      if ($('exWorld')) $('exWorld').onclick = function () { closeDialog(); wioExport(); };
       var tooBig = function () { if (bb && bb.w * bb.h * bb.l > 150e6) { toast('Construção grande demais para um arquivo só (' + Math.round(bb.w * bb.h * bb.l / 1e6) + ' milhões de espaços na caixa). Use Baixar em pedaços.', 8000); return true; } return false; };
       $('exBedrock').onclick = async function () {
         if (tooBig()) return;
@@ -1997,7 +2034,7 @@ function openExport() {
         if (tooBig()) return;
         try {
           busy('Gravando o .schem…', null);
-          var bytes = await MCExport.exportSchem(collectVoxels(), BLOCKS, { name: cleanName($('exName').value) });
+          var bytes = await MCExport.exportSchem(collectVoxels().filter(function (q) { return q[3] !== PRES_BI; }), BLOCKS, { name: cleanName($('exName').value) });
           busyEnd();
           var nm = cleanName($('exName').value) + '.schem';
           reportSave(await saveBytes(nm, bytes), nm);
@@ -2029,6 +2066,7 @@ function openMaterials() {
 $('matBtn').addEventListener('click', openMaterials);
 
 function openSize() {
+  if (wio && wio.area) { toast('Com um mundo do jogo aberto, o tamanho é o da área. Use Trocar área para escolher outra.', 6000); return; }
   var mb = worldBytes() / 1048576;
   var vd = [128, 256, 384, 512, 768, 1024, 1e9].map(function (d) { return '<option value="' + d + '"' + (d === viewDist ? ' selected' : '') + '>' + (d >= 1e6 ? 'Tudo (pode pesar em construções enormes)' : d + ' blocos') + '</option>'; }).join('');
   openDialog('<h3>Tamanho do espaço</h3><p>Área de trabalho em blocos (mínimo 8 por lado; até ' + MAX_SIDE + ' de largura e profundidade e ' + MAX_Y + ' de altura). O espaço vazio não ocupa memória: o que pesa são os blocos construídos. Ao diminuir, blocos fora do novo limite são removidos.</p>' +
@@ -2068,6 +2106,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
+    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças; no jogo, ela vira um mundo novo.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
@@ -2084,7 +2123,7 @@ var confirmTimer = 0;
 $('newBtn').addEventListener('click', function () {
   var b = $('newBtn');
   if (b.dataset.armed) { b.dataset.armed = ''; b.textContent = 'Novo (limpar tudo)'; newWorld(SX, SY, SZ); changed(); updateStatus(); toast('Construção limpa.'); $('menu').open = false; return; }
-  b.dataset.armed = '1'; b.textContent = 'Clique de novo para apagar tudo';
+  b.dataset.armed = '1'; b.textContent = wio && wio.area ? 'Clique de novo: fecha o mundo sem exportar' : 'Clique de novo para apagar tudo';
   clearTimeout(confirmTimer); confirmTimer = setTimeout(function () { b.dataset.armed = ''; b.textContent = 'Novo (limpar tudo)'; }, 4000);
 });
 $('saveBtn').addEventListener('click', async function () {
@@ -2092,6 +2131,10 @@ $('saveBtn').addEventListener('click', async function () {
   try { var nm = 'projeto-bloco-a-bloco.json'; var r = await saveBytes(nm, new TextEncoder().encode(JSON.stringify(serialize())), 'application/json'); reportSave(r, nm); } catch (e) { reportErr(e); }
 });
 $('openBtn').addEventListener('click', function () { $('menu').open = false; $('fileIn').click(); });
+$('worldBtn').addEventListener('click', function () { $('menu').open = false; $('worldIn').click(); });
+$('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
+$('worldArea').addEventListener('click', function () { wioArea(); });
+$('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
   var f = e.target.files && e.target.files[0]; if (!f) return;
   if (/\.(mcstructure|schem)$/i.test(f.name)) {
@@ -2260,13 +2303,14 @@ async function start() {
   initThree(); bindCanvas();
   loadPacks().then(function () { if (packs.length) applyTextures(); });
   var ok = false;
-  if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} }
+  if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }
+  if (!ok) ok = await wioRestore();
   if (!ok) { busy('Abrindo a construção salva…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
   if (!ok) { newWorld(SX, SY, SZ); buildSample(); dirtyAll(); }
   resetCamera(); changed(); updateStatus();
   if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
-  window.__bab = { name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rulerVis: function () { return !!(rulerObj && rulerObj.visible); }, measVis: function () { return !!measureObj; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
+  window.__bab = { ev: function (src) { return eval(src); }, name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rulerVis: function () { return !!(rulerObj && rulerObj.visible); }, measVis: function () { return !!measureObj; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
 }
 })();
 </script>

@@ -162,7 +162,8 @@ function autosave() {
   var meta = projectMeta(); meta.v = 2;
   idbDo('readwrite', function (st) {
     if (clear) st.delete(IDBKeyRange.bound('w:c:', 'w:c:\uffff'));
-    recs.forEach(function (r) { if (r[1]) st.put(r[1], 'w:c:' + r[0]); else st.delete('w:c:' + r[0]); });
+    // num mundo do jogo, o chunk que ficou vazio também é guardado: ao reabrir, a área vem do mundo e o vazio tem de apagá-la
+    recs.forEach(function (r) { if (r[1]) st.put(r[1], 'w:c:' + r[0]); else if (wio && wio.area) st.put({ c: r[0].split(',').map(Number), empty: 1 }, 'w:c:' + r[0]); else st.delete('w:c:' + r[0]); });
     st.put(meta, 'w:meta');
   }).then(function () {
     autosaveBusy = false;

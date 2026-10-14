@@ -22,6 +22,7 @@ data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote v
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
+src/worldio.js          Mundo do jogo (Bedrock .mcworld): leitor e gravador de LevelDB, sub-chunks, mapa, área, exportação
 src/measure.js          Medidas (cotas X, Y e Z) na tela
 src/world.js            Mundo em chunks esparsos com paleta, desfazer compacto, salvar no IndexedDB
 src/symmetry.js         Simetria (espelho) em X, Y e Z
@@ -34,6 +35,9 @@ scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de m
 scripts/gen_shapes.js   Regera shapes.json (minecraft-assets 26.1, minecraft-data Java 1.21.11 e blocksJ2B do Bedrock 1.26)
 scripts/build.js        Junta template + exportadores + blocos e gera os dois HTML em dist/
 tests/test_export.js    Gera um .schem e um .mcstructure e lê os dois de volta com prismarine-nbt
+tests/test_world.js     Lê o mundo de teste (índice do LevelDB, sub-chunks, dados de blocos) e grava/relê um .log
+tests/fixtures/mundo-teste.mcworld  Mundo pequeno do Bedrock para os testes e as capturas (scripts/gen_testworld.py)
+scripts/gen_testworld.py  Gera o mundo de teste com o LevelDB da Mojang (pip install amulet-leveldb)
 dist/bloco-a-bloco.html Versão local (Three.js embutido), downloads diretos
 dist/artifact.html      Versão para publicar como artefato do Claude (Three.js via CDN)
 ```
@@ -107,6 +111,18 @@ Projeto > Abrir projeto ou estrutura… aceita `.json` (projeto), `.mcstructure`
 - Ida e volta (exportar e importar de novo) testada: idêntica nos dois formatos, com escadas, portas, redstone, cercas, camas e cubos girados.
 - O espaço passa a ter o tamanho da estrutura (sem cortar), respeitando o limite de células. Limites: nomes antigos (antes da 1.13 no Java, ou nomes Bedrock antigos como `wool` com estado de cor) ficam de fora, com aviso; conteúdo de baús, texto de placas e comandos não são importados; a segunda camada do `.mcstructure` (água dentro do bloco) é ignorada.
 
+## Mundo do jogo (.mcworld)
+
+Projeto > Abrir mundo do jogo aceita o `.mcworld` exportado pelo Bedrock, um `.zip` com a pasta do mundo (em qualquer subpasta) ou um `.zip` com o `.mcworld` dentro. Tudo em `src/worldio.js`:
+
+- **LevelDB da Mojang**: lê `CURRENT`, o `MANIFEST` (tabelas vivas, número do log, última sequência), as tabelas `.ldb` (blocos com deflate puro, tipo 4, ou zlib, tipo 2) e os `.log`. O índice guarda, para cada chave, onde está o valor mais novo; os blocos de dados são descomprimidos só quando pedidos (cache de 48 blocos). Chaves fora da borda do mundo (o jogo grava uma em −2³¹) são ignoradas.
+- **Sub-chunks** (chave x, z, [dimensão], 0x2f, y; versões 8 e 9): camadas com paleta em NBT little-endian e índices empacotados em palavras de 32 bits (posição x·256 + z·16 + y). A paleta é guardada crua: blocos que o editor não conhece viram o bloco "Bloco do jogo" (`bab_preserved#n`, índice numa lista do mundo) e voltam com os bytes originais.
+- **Área**: até 512 × 512, altura toda da dimensão (−64 a 319, 0 a 127, 0 a 255), alinhada a chunks. Camada 2 (água dentro do bloco) aparece quando a camada 1 está vazia. Cor da cama vem dos dados de blocos (0x31).
+- **Gravação**: ao trocar de área ou exportar, cada pedaço editado é comparado, posição por posição, com o original (ou com a versão já gravada); só as posições diferentes mudam (camada 2 vira ar nelas). Dados de blocos das posições mudadas saem (camas novas ganham os seus), o mapa de alturas (0x2b, `z·16 + x`, altura − mínimo + 1) é refeito nas colunas mexidas e a soma de verificação antiga (0x3b) é apagada. Chunks não gerados pelo jogo não recebem nada.
+- **Exportação**: copia as entradas do zip original sem descomprimir (só o cabeçalho é refeito, sem a pasta de cima) e acrescenta `db/NNNNNN.log` com as chaves novas (número de arquivo e sequência depois dos do banco, registros com CRC32C mascarado, lotes de até 1 MB cortados em blocos de 32 KB). O jogo aplica o log ao abrir.
+- **Sessão**: o arquivo do mundo, as mudanças gravadas e a área ficam no IndexedDB (`wio:file`, `wio:patches`, `wio:meta`); o salvamento automático guarda só os pedaços editados da área (vazios incluídos), e ao recarregar a área é lida do mundo e os pedaços salvos vão por cima.
+- **Validação**: o `.mcworld` exportado foi aberto com o LevelDB da Mojang (pacote `amulet-leveldb`, o mesmo código de recuperação do jogo) e comparado com o original: num mundo real de 94 mil chaves, só mudaram as posições editadas e o mapa de alturas dos dois chunks. Falta abrir no jogo.
+
 ## Exportação
 
 - `.schem`: NBT gzip, Sponge v3, DataVersion 4671 (Java 1.21.11). Folhas saem com `persistent=true`.
@@ -116,6 +132,7 @@ Projeto > Abrir projeto ou estrutura… aceita `.json` (projeto), `.mcstructure`
 
 ## Não testado ainda
 
+- Abrir no jogo um `.mcworld` exportado pelo site (validado só com o LevelDB da Mojang). Baú colocado pelo site num mundo entra sem dados de entidade (o jogo costuma criar).
 - Formas no jogo, principalmente no Bedrock: blocos com entidade (baú, placa, cama, estandarte, cabeça) saem sem os dados de entidade no `.mcstructure`; o jogo costuma criar os padrões, mas vale conferir. Baús lado a lado aparecem duplos no Java (`type=left/right`); no Bedrock o par depende da entidade e pode sair como dois baús simples.
 - O clique numa forma acerta a célula inteira (o alvo não segue o formato da laje ou da escada).
 
