@@ -22,6 +22,8 @@ data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote v
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
+src/symmetry.js         Simetria (espelho) em X, Y e Z
+src/sculpt.js           Pincel de escultura de terreno
 src/maskbrush.js        Pincel de troca (pincel 3D com máscara)
 src/fluids.js           Água e lava escorrendo (simulação como no Java)
 src/trees.js            Árvores que crescem com Usar nas mudas (geradores por tipo)
@@ -63,6 +65,8 @@ npm test         # valida os exportadores
 - Bloco de luz: `setRaw` mantém o conjunto das células de luz (`lightSet`); com a luz no espaço ativo da hotbar, `updateLightLabels` mostra o nível de cada uma num sprite (refeito quando muda a versão, a camada ou o bloco ativo).
 - Formas: linha, caixa e caixa oca têm três cliques (`anchor`, `anchor2` e a altura); a altura vem de `heightAt`, o ponto da coluna vertical em (x, z) mais perto do raio do ponteiro. Borracha com `eraseSize` 1, 2 ou 3 (quadrado no plano da face clicada). Projeto > Preencher o chão cobre camadas inteiras do espaço.
 - Pincel de troca (`src/maskbrush.js`, ferramenta M): `maskBrush(centro, raio, forma, máscara, destino)` varre a esfera (dx²+dy²+dz² ≤ (r+0,5)²) ou o cubo em volta do bloco atingido pelo raio do ponteiro e troca só as células cujo bloco é a máscara (`convertCell` mantém as propriedades em comum); ar e outros blocos ficam. As trocas entram no lote do traço (`editSet` marca os pedaços da malha); a prévia destaca os voxels que vão mudar.
+- Simetria (`src/symmetry.js`): `editSet` passa por `symPoints`, que gera as posições espelhadas (x' = P - x, P = dobro da posição do plano) e o estado espelhado (`mirrorCell`: lados, rotation de 16 passos, dobradiça, metade/topo no eixo Y). Desfazer e a água (que usam `setRaw`) não são espelhados.
+- Esculpir terreno (`src/sculpt.js`): mapa de alturas por coluna com alturas fracionárias durante o traço; cada pincelada (clique e a cada 70 ms) aplica elevar/afundar/suavizar/aplainar com atenuação (1 - t²)² e converte as colunas de volta para voxels.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)

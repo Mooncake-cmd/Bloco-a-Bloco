@@ -125,7 +125,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
   <div class="facts">
     <div class="fact"><b>1.088</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
-    <div class="fact"><b>12</b><span>ferramentas, com seleção, colar, substituir e pincel de troca</span></div>
+    <div class="fact"><b>13</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>categorias de blocos</span></div>
     <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
     <div class="fact"><b>64 mi</b><span>blocos de espaço no máximo (ex.: 400 × 400 × 400)</span></div>
@@ -190,7 +190,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="strip-wrap"><div class="strip">
     <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
     <div class="marks">
-      <span class="pin" style="left:2.9%">1</span><span class="pin" style="left:6.4%">2</span><span class="pin" style="left:9.9%">3</span><span class="pin" style="left:13.4%">4</span><span class="pin" style="left:16.9%">5</span><span class="pin" style="left:20.4%">6</span><span class="pin" style="left:23.9%">7</span><span class="pin" style="left:27.4%">8</span><span class="pin" style="left:30.9%">9</span><span class="pin" style="left:34.4%">10</span><span class="pin" style="left:37.9%">11</span><span class="pin" style="left:41.4%">12</span><span class="pin" style="left:45.7%">13</span><span class="pin" style="left:49.2%">14</span><span class="pin" style="left:55.0%">15</span><span class="pin" style="left:62.2%">16</span>
+      <span class="pin" style="left:2.8%">1</span><span class="pin" style="left:6.1%">2</span><span class="pin" style="left:9.4%">3</span><span class="pin" style="left:12.7%">4</span><span class="pin" style="left:15.9%">5</span><span class="pin" style="left:19.2%">6</span><span class="pin" style="left:22.5%">7</span><span class="pin" style="left:25.8%">8</span><span class="pin" style="left:29.1%">9</span><span class="pin" style="left:32.4%">10</span><span class="pin" style="left:35.7%">11</span><span class="pin" style="left:39.0%">12</span><span class="pin" style="left:42.3%">13</span><span class="pin" style="left:46.4%">14</span><span class="pin" style="left:49.7%">15</span><span class="pin" style="left:55.2%">16</span><span class="pin" style="left:62.2%">17</span>
     </div>
   </div></div>
   <div class="tbl"><table>
@@ -208,8 +208,9 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
       <tr><td>11</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
       <tr><td>12</td><td><b>Pincel de troca</b></td><td><kbd>M</kbd></td><td>Pinta trocando só um tipo de bloco (a máscara) pelo bloco da hotbar, dentro de uma esfera ou cubo; o resto fica igual (veja abaixo).</td><td>Escolhe a máscara: o bloco clicado.</td></tr>
-      <tr><td>13–14</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
-      <tr><td>15–16</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
+      <tr><td>13</td><td><b>Esculpir terreno</b></td><td><kbd>K</kbd></td><td>Segure para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave (veja abaixo).</td><td>Troca elevar por afundar (e vice-versa) durante o traço.</td></tr>
+      <tr><td>14–15</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
+      <tr><td>16–17</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
     </tbody>
   </table></div>
 
@@ -253,6 +254,36 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Um traço inteiro (do clique até soltar) é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>; ao soltar, o aviso diz quantos blocos foram trocados.</li>
     <li>O raio e a forma ficam guardados no navegador; a máscara vale até você escolher outra.</li>
     <li>Para trocar numa área retangular inteira de uma vez, use <b>Selecionar → Substituir…</b> (abaixo).</li>
+  </ul>
+
+  <h3>Esculpir terreno</h3>
+  <figure><img src="img/esculpir.jpg" alt="Terreno de grama com dois morros arredondados ligados por uma encosta suavizada, um vale afundado e o disco azul do pincel sobre o chão" width="972" height="718" loading="lazy"><figcaption>Dois morros feitos com <b>Elevar</b>, a encosta entre eles com <b>Suavizar</b> e um vale com <b>Afundar</b>. O disco azul mostra onde o pincel vai agir.</figcaption></figure>
+  <p>Em vez de pôr bloco por bloco, o <b>Esculpir terreno</b> (<kbd>K</kbd>) trata o chão como um mapa de alturas e o deforma de forma gradual: segure o botão e o terreno vai subindo (ou descendo) aos poucos, mais no centro e quase nada na borda do pincel.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Modo</th><th>O que faz</th></tr></thead>
+    <tbody>
+      <tr><td>Elevar</td><td>Ergue o chão em forma de morro arredondado. Os blocos novos são o bloco da hotbar (escolha grama para um morro natural); a grama que fica coberta vira terra.</td></tr>
+      <tr><td>Afundar</td><td>Abaixa o chão, abrindo vales e buracos. A grama do topo desce junto.</td></tr>
+      <tr><td>Suavizar</td><td>Aproxima cada coluna da média das vizinhas: arredonda degraus, picos e paredões.</td></tr>
+      <tr><td>Aplainar</td><td>Leva o chão à altura do ponto onde o traço começou: bom para abrir um platô para construir.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="plain">
+    <li><b>Raio</b> (1 a 16, também nas teclas <kbd>-</kbd> e <kbd>+</kbd>) e <b>Força</b> (1 a 5) ficam no aviso do canto e guardados no navegador.</li>
+    <li>O efeito segue uma curva suave: no centro, a força inteira; perto da borda, quase nada. Segurar mais tempo aumenta o efeito; arrastar espalha.</li>
+    <li>Com <kbd>Shift</kbd>, Elevar vira Afundar (e o contrário) só naquele traço.</li>
+    <li>O pincel mexe no bloco mais alto de cada coluna: se houver uma construção dentro do raio, ela também sobe ou desce. Use a Camada para limitar a altura.</li>
+    <li>Um traço inteiro é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+  </ul>
+
+  <h3>Simetria (espelho)</h3>
+  <figure><img src="img/simetria.jpg" alt="Planos de simetria vermelho (X) e azul (Z) cruzando o terreno; um canto de muro com torre construído num quadrante aparece repetido nos outros três" width="972" height="718" loading="lazy"><figcaption>Simetria em X (plano vermelho) e Z (plano azul): o canto de muro com a torre foi construído uma vez e apareceu, espelhado, nos quatro cantos.</figcaption></figure>
+  <ul class="plain">
+    <li>Ligue em <b>Projeto → Simetria (espelho)</b> ou com <kbd>X</kbd>. No aviso do canto, escolha os eixos: <b>X</b> (plano vermelho, espelha leste e oeste), <b>Z</b> (azul, norte e sul) e <b>Y</b> (verde, em cima e embaixo). Dá para ligar mais de um: com X e Z, cada bloco aparece quatro vezes.</li>
+    <li>Tudo o que muda blocos é espelhado na hora: pincel, borracha, formas, colar, substituir, pincel de troca, esculpir, preencher o chão, árvores e água colocada.</li>
+    <li>O estado também espelha: escada, fornalha e porta viram para o lado oposto, a dobradiça da porta troca de lado e, no espelho de altura, laje e escada ficam de cabeça para baixo.</li>
+    <li>Posição do plano: <b>Centro</b> põe no meio do espaço; <b>−½</b> e <b>+½</b> movem meio bloco; <kbd>P</kbd> põe o plano no bloco apontado (apertar de novo põe entre ele e o vizinho). Com o plano no meio de um bloco, a construção fica com um bloco central; entre dois blocos, com número par de blocos.</li>
+    <li>Desfazer volta o original e as cópias de uma vez. <b>Desligar</b> (ou <kbd>X</kbd> de novo) tira os planos.</li>
   </ul>
 
   <h3>Formas: linha e caixas com altura</h3>
@@ -461,13 +492,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="472" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="508" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
         <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar.</td></tr>
         <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
         <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
@@ -607,6 +639,9 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>B</kbd> <kbd>E</kbd> <kbd>I</kbd> <kbd>U</kbd> <kbd>T</kbd></td><td>Pincel, borracha, conta-gotas, usar, girar</td></tr>
         <tr><td><kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>O</kbd></td><td>Linha, caixa, caixa oca, esfera, esfera oca</td></tr>
         <tr><td><kbd>V</kbd></td><td>Selecionar área</td></tr>
+        <tr><td><kbd>K</kbd></td><td>Esculpir terreno (<kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> inverte)</td></tr>
+        <tr><td><kbd>X</kbd></td><td>Liga e desliga a simetria (espelho)</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Com a simetria ligada: plano no bloco apontado</td></tr>
         <tr><td><kbd>M</kbd></td><td>Pincel de troca (<kbd>Shift</kbd> + clique escolhe a máscara; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio)</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>
         <tr><td><kbd>Delete</kbd></td><td>Apagar a seleção</td></tr>
@@ -633,6 +668,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados de forma simplificada (o jogo os desenha de um jeito especial): o estandarte tem o mastro, a barra e o pano inteiro da cor, mas sem padrões. O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia fica só nesta aba do navegador (não vai para a área de transferência do sistema e some ao recarregar a página). Girar é só de 90° na horizontal; espelhar ainda não existe.</td></tr>
+      <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
