@@ -3932,7 +3932,7 @@ function setMeasure(on) {
   measureOn = on; try { localStorage.setItem('bloco-a-bloco-measure', on ? '1' : '0'); } catch (e) {}
   $('measureBtn').textContent = 'Mostrar medidas: ' + (on ? 'sim' : 'não');
   $('measTbtn').setAttribute('aria-pressed', String(on));
-  measureKey = null; requestRender();
+  measureKey = undefined; if (typeof updateRulerChip === "function") updateRulerChip(); requestRender(); // undefined força refazer (null é o valor de "desligado" e pularia a remoção)
 }
 /* Caixa dos blocos na altura y (só os chunks dessa faixa) */
 function sliceBounds(y) {
@@ -4001,6 +4001,8 @@ function addDim(group, a, b, n, size, ext) {
 }
 function updateMeasure(force) {
   if (!scene) return;
+  // As cotas da régua seguem o botão Medidas; com a régua na mão, aparecem sempre (senão ela não serviria com as medidas desligadas)
+  if (rulerObj) rulerObj.visible = measureOn || tool === 'ruler';
   var zb = Math.round(Math.log2(Math.max(4, cam.dist)) * 3); // a grossura acompanha o zoom (refaz a cada ~25% de zoom)
   var key = measureOn && blockCount ? [verCounter, layerOn, layerY, zb].join('|') : null;
   if (!force && key === measureKey) return;
@@ -4053,7 +4055,7 @@ function rulerDraw(hover) {
     if (A[0] === B[0] && A[1] === B[1] && A[2] === B[2]) return;
     addDim(g, A, B, rulerFmt(sg), size, null);
   });
-  rulerObj = g; scene.add(g); requestRender();
+  rulerObj = g; g.visible = measureOn || tool === 'ruler'; scene.add(g); requestRender();
 }
 function rulerAdd(t) {
   var c = t && (t.hit || t.place); if (!c) return;
@@ -4070,7 +4072,7 @@ function rulerHover(t) {
   rulerDraw(c);
 }
 function updateRulerChip() {
-  var c = $('rulerChip'), on = tool === 'ruler' || rulerPts.length > 0;
+  var c = $('rulerChip'), on = tool === 'ruler' || (rulerPts.length > 0 && measureOn);
   c.hidden = !on; if (!on) return;
   var segs = [], tot = 0, L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (var i = 1; i < rulerPts.length; i++) {
@@ -4574,7 +4576,7 @@ async function start() {
   resetCamera(); changed(); updateStatus();
   if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
-  window.__bab = { name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
+  window.__bab = { name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rulerVis: function () { return !!(rulerObj && rulerObj.visible); }, measVis: function () { return !!measureObj; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
 }
 })();
 </script>

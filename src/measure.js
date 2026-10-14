@@ -8,7 +8,7 @@ function setMeasure(on) {
   measureOn = on; try { localStorage.setItem('bloco-a-bloco-measure', on ? '1' : '0'); } catch (e) {}
   $('measureBtn').textContent = 'Mostrar medidas: ' + (on ? 'sim' : 'não');
   $('measTbtn').setAttribute('aria-pressed', String(on));
-  measureKey = null; requestRender();
+  measureKey = undefined; if (typeof updateRulerChip === "function") updateRulerChip(); requestRender(); // undefined força refazer (null é o valor de "desligado" e pularia a remoção)
 }
 /* Caixa dos blocos na altura y (só os chunks dessa faixa) */
 function sliceBounds(y) {
@@ -77,6 +77,8 @@ function addDim(group, a, b, n, size, ext) {
 }
 function updateMeasure(force) {
   if (!scene) return;
+  // As cotas da régua seguem o botão Medidas; com a régua na mão, aparecem sempre (senão ela não serviria com as medidas desligadas)
+  if (rulerObj) rulerObj.visible = measureOn || tool === 'ruler';
   var zb = Math.round(Math.log2(Math.max(4, cam.dist)) * 3); // a grossura acompanha o zoom (refaz a cada ~25% de zoom)
   var key = measureOn && blockCount ? [verCounter, layerOn, layerY, zb].join('|') : null;
   if (!force && key === measureKey) return;
@@ -129,7 +131,7 @@ function rulerDraw(hover) {
     if (A[0] === B[0] && A[1] === B[1] && A[2] === B[2]) return;
     addDim(g, A, B, rulerFmt(sg), size, null);
   });
-  rulerObj = g; scene.add(g); requestRender();
+  rulerObj = g; g.visible = measureOn || tool === 'ruler'; scene.add(g); requestRender();
 }
 function rulerAdd(t) {
   var c = t && (t.hit || t.place); if (!c) return;
@@ -146,7 +148,7 @@ function rulerHover(t) {
   rulerDraw(c);
 }
 function updateRulerChip() {
-  var c = $('rulerChip'), on = tool === 'ruler' || rulerPts.length > 0;
+  var c = $('rulerChip'), on = tool === 'ruler' || (rulerPts.length > 0 && measureOn);
   c.hidden = !on; if (!on) return;
   var segs = [], tot = 0, L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (var i = 1; i < rulerPts.length; i++) {

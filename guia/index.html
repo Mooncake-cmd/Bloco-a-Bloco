@@ -501,7 +501,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Como num desenho técnico, linhas com setas mostram quantos blocos a construção tem em <b>X</b> (leste–oeste, ao longo da frente sul), <b>Z</b> (norte–sul, ao longo do lado oeste) e <b>Y</b> (altura, no canto sudeste). As medidas são da caixa que contém todos os blocos, as mesmas do campo Construção.</li>
     <li>Com a <b>Camada</b> ligada, as cotas mostram só X e Z dos blocos <b>naquela camada</b> (a altura escolhida no controle), desenhadas por cima dela: bom para medir um andar ou uma planta.</li>
     <li>Os números têm sempre o mesmo tamanho na tela; as linhas engrossam ao afastar a câmera. Elas aparecem por cima dos blocos para não sumirem atrás da construção.</li>
-    <li>Liga e desliga no botão <b>Medidas</b> da barra do topo (ao lado de desfazer/refazer; aceso = ligado), em <b>Projeto → Mostrar medidas</b> ou com a tecla <kbd>D</kbd> (fica guardado no navegador).</li>
+    <li>Liga e desliga no botão <b>Medidas</b> da barra do topo (ao lado de desfazer/refazer; aceso = ligado; também esconde as cotas da Régua quando ela não está em uso), em <b>Projeto → Mostrar medidas</b> ou com a tecla <kbd>D</kbd> (fica guardado no navegador).</li>
   </ul>
   <h3>Régua: medir de um bloco a outro</h3>
   <figure><img src="img/regua.jpg" alt="Régua medindo um muro: 23 blocos de A a B, 19 de B a C e 29,5 na diagonal de C até o topo de um tronco" width="972" height="772" loading="lazy"><figcaption>Quatro cliques: A e B no começo e no fim do muro (23), C na outra ponta (19) e D no topo do tronco (29,5 na diagonal).</figcaption></figure>
@@ -510,7 +510,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Quando os dois blocos estão na mesma linha (só X, só Y ou só Z muda), o número conta os blocos <b>incluindo os dois das pontas</b>, como contar blocos no jogo: de x = 8 a x = 30 dá 23. A cota vai de face a face.</li>
     <li>Em diagonal, o número é a distância em linha reta entre os <b>centros</b> dos blocos, com uma casa decimal (ex.: 29,5).</li>
     <li>O aviso no canto lista cada trecho (A→B, B→C...) com o eixo, a diferença ΔX, ΔY e ΔZ entre o primeiro e o último ponto e o caminho total. <b>Desfazer ponto</b> tira o último; <b>Limpar</b> ou <kbd>Esc</kbd> apaga tudo.</li>
-    <li>A régua só mede: não muda nenhum bloco nem entra no desfazer. As cotas continuam na tela ao trocar de ferramenta; <kbd>Esc</kbd> as apaga de qualquer ferramenta.</li>
+    <li>A régua só mede: não muda nenhum bloco nem entra no desfazer. As cotas continuam na tela ao trocar de ferramenta, mas seguem o botão <b>Medidas</b>: com ele desligado, só aparecem enquanto a Régua está escolhida. <kbd>Esc</kbd> as apaga de qualquer ferramenta.</li>
   </ul>
 </section>
 
