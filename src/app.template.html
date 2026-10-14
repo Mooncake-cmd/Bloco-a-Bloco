@@ -170,6 +170,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="openBtn">Abrir projeto ou estrutura…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
+          <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
@@ -1752,6 +1753,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%MASK_JS%%*/
 /*%%SYM_JS%%*/
 /*%%SCULPT_JS%%*/
+/*%%MEASURE_JS%%*/
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
@@ -2033,6 +2035,7 @@ function openHelp() {
     '<span><kbd>B E I U T L R H S O V M K</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar, pincel de troca, esculpir</span>' +
     '<span>Linha e caixas (<kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd>)</span><span>Três cliques: o início, o ponto oposto e a altura (suba ou desça o ponteiro). Para uma linha de pé, clique duas vezes no mesmo ponto e suba. Esferas: dois cliques (centro e raio).</span>' +
     '<span>Esculpir terreno (<kbd>K</kbd>)</span><span>Segure o botão para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave; <kbd>Shift</kbd> inverte elevar/afundar; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
+    '<span>Medidas (<kbd>D</kbd>)</span><span>Mostra ou esconde as cotas com o número de blocos em X, Y e Z da construção (com a Camada ligada, X e Z da camada).</span>' +
     '<span>Simetria (<kbd>X</kbd>)</span><span>Liga o espelho: tudo o que você fizer se repete do outro lado dos planos X, Y e/ou Z. <kbd>P</kbd> põe o plano no bloco apontado (de novo: entre dois blocos).</span>' +
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
@@ -2082,6 +2085,8 @@ $('fileIn').addEventListener('change', function (e) {
   rd.readAsText(f); e.target.value = '';
 });
 $('sizeBtn').addEventListener('click', function () { $('menu').open = false; openSize(); });
+$('measureBtn').addEventListener('click', function () { setMeasure(!measureOn); $('menu').open = false; });
+setMeasure(measureOn);
 $('symBtn').addEventListener('click', function () { $('menu').open = false; toggleSymChip(); });
 $('floorBtn').addEventListener('click', function () { $('menu').open = false; openFloor(); });
 /* Preencher o chão: cobre uma ou mais camadas do espaço inteiro com um bloco, de uma vez */
@@ -2141,6 +2146,7 @@ window.addEventListener('keydown', function (e) {
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }
   if (tool === 'sculpt' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setSculptR(sculpt.r + (k === '-' ? -1 : 1)); return; }
   if (k === 'x' && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleSymChip(); return; }
+  if (k === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) { setMeasure(!measureOn); toast(measureOn ? 'Medidas visíveis.' : 'Medidas escondidas.'); return; }
   if (k === 'p' && !$('symChip').hidden && !e.ctrlKey && !e.metaKey) { symAtTarget(hoverT); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
@@ -2206,6 +2212,7 @@ function frame() {
   updateView();
   rebuildDirty();
   updateLightLabels();
+  updateMeasure();
   renderer.render(scene, camera);
 }
 

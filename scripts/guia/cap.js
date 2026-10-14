@@ -23,6 +23,9 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await p.waitForFunction(() => /blocos com textura/.test(document.getElementById('toast').textContent), null, { timeout: 300000 });
   await p.waitForTimeout(1500); await hideToast(); await cam(VIEW);
   await shot('visao-geral', null, await rectsOf(p, { tools: '#tools', undo: '#undo', layer: '#layerBtn', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary', view: '#viewport', hotbar: '#hotbar', status: '#status', search: '#search', chips: '#chips', list: '#list' }));
+  await cam({ yaw: 0.6, pitch: 0.42, dist: 26, tx: 12, ty: 3, tz: 12 }); await hideToast();
+  await shot('medidas', { x: 0, y: 54, width: 972, height: 718 });
+  await cam(VIEW);
   // barra de ferramentas
   const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere', 'select', 'mask', 'sculpt']) tsel[t] = '[data-tool="' + t + '"]';
   Object.assign(tsel, { undo: '#undo', redo: '#redo', layer: '#layerBtn', range: '#layerRange', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary' });
@@ -67,6 +70,8 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await p.click('#layerBtn'); await p.evaluate(() => { const r = document.getElementById('layerRange'); r.value = 2; r.dispatchEvent(new Event('input')); }); await p.waitForTimeout(800);
   await cam({ yaw: 0.55, pitch: 0.9, dist: 26, tx: 11, ty: 2, tz: 12 });
   await shot('camada', null);
+  await cam({ yaw: 0.55, pitch: 1.2, dist: 30, tx: 12, ty: 2, tz: 12 }); await hideToast();
+  await shot('medidas-camada', { x: 0, y: 54, width: 972, height: 718 });
   await p.click('#layerBtn'); await p.waitForTimeout(300);
   // menu projeto
   await p.click('#menu summary'); await p.waitForTimeout(300);

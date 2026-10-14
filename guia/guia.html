@@ -385,6 +385,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li><kbd>[</kbd> desce e <kbd>]</kbd> sobe uma camada (ligando o corte se estiver desligado).</li>
       <li>Com o corte ligado, as ferramentas só agem até essa altura, e o chão de colocação passa a ser a camada. Serve para fazer andares, pisos e interiores sem o telhado atrapalhar.</li>
       <li>Nada é apagado: desligar o corte mostra tudo de novo.</li>
+      <li>Com as medidas ligadas, a Camada mostra a largura (X) e a profundidade (Z) dos blocos da camada escolhida (cap. 08).</li>
     </ul>
   </div>
 </section>
@@ -487,18 +488,30 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Blocos</td><td>Total de blocos colocados.</td></tr>
     </tbody>
   </table></div>
+  <h3>Medidas na tela</h3>
+  <div class="grid2">
+    <figure><img src="img/medidas.jpg" alt="Casa de exemplo com cotas brancas e setas mostrando 24 blocos de largura, de profundidade e a altura" width="972" height="718" loading="lazy"><figcaption>As cotas em volta da construção: largura (X), profundidade (Z) e altura (Y), em blocos.</figcaption></figure>
+    <figure><img src="img/medidas-camada.jpg" alt="Vista de cima com a Camada ligada e as cotas de X e Z da camada visível" width="972" height="718" loading="lazy"><figcaption>Com a Camada ligada: só X e Z dos blocos daquela camada, como numa planta.</figcaption></figure>
+  </div>
+  <ul class="plain">
+    <li>Como num desenho técnico, linhas com setas mostram quantos blocos a construção tem em <b>X</b> (leste–oeste, ao longo da frente sul), <b>Z</b> (norte–sul, ao longo do lado oeste) e <b>Y</b> (altura, no canto sudeste). As medidas são da caixa que contém todos os blocos, as mesmas do campo Construção.</li>
+    <li>Com a <b>Camada</b> ligada, as cotas mostram só X e Z dos blocos <b>naquela camada</b> (a altura escolhida no controle), desenhadas por cima dela: bom para medir um andar ou uma planta.</li>
+    <li>Os números têm sempre o mesmo tamanho na tela; as linhas engrossam ao afastar a câmera. Elas aparecem por cima dos blocos para não sumirem atrás da construção.</li>
+    <li>Liga e desliga em <b>Projeto → Mostrar medidas</b> ou com a tecla <kbd>D</kbd> (fica guardado no navegador).</li>
+  </ul>
 </section>
 
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="508" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="264" height="544" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
         <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar.</td></tr>
         <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
@@ -647,6 +660,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>V</kbd></td><td>Selecionar área</td></tr>
         <tr><td><kbd>K</kbd></td><td>Esculpir terreno (<kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> inverte)</td></tr>
         <tr><td><kbd>X</kbd></td><td>Liga e desliga a simetria (espelho)</td></tr>
+        <tr><td><kbd>D</kbd></td><td>Mostra e esconde as medidas (X, Y e Z)</td></tr>
         <tr><td><kbd>P</kbd></td><td>Com a simetria ligada: plano no bloco apontado</td></tr>
         <tr><td><kbd>M</kbd></td><td>Pincel de troca (<kbd>Shift</kbd> + clique escolhe a máscara; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio)</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>

@@ -22,6 +22,7 @@ data/bedrock_textures.json  Nome curto de textura Bedrock -> caminho no pacote v
 data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, propriedades, tabela Java -> Bedrock, texturas
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
+src/measure.js          Medidas (cotas X, Y e Z) na tela
 src/world.js            Mundo em chunks esparsos com paleta, desfazer compacto, salvar no IndexedDB
 src/symmetry.js         Simetria (espelho) em X, Y e Z
 src/sculpt.js           Pincel de escultura de terreno
@@ -70,6 +71,7 @@ npm test         # valida os exportadores
 - Esculpir terreno (`src/sculpt.js`): mapa de alturas por coluna com alturas fracionárias durante o traço; cada pincelada (clique e a cada 70 ms) aplica elevar/afundar/suavizar/aplainar com atenuação (1 - t²)² e converte as colunas de volta para voxels.
 - Air (apagar): entrada extra no fim dos cubos (`AIR_BI`, categoria Técnicos); `mkCell(AIR_BI)` devolve 0, então qualquer ferramenta que põe o bloco da hotbar (pincel vira borracha, formas, preencher, pincel de troca) põe ar. Nunca fica guardado nem é exportado.
 - União de faces (greedy meshing, `buildChunk`/`emitFace`): faces visíveis de cubos com sombra igual nos 4 cantos entram numa máscara por direção e camada (chave: bloco, textura de origem, giro, sombra, tipo de malha) e são fundidas em retângulos; o UV vai em unidades de bloco e o atributo `tileRect` diz o ladrilho no atlas, que o shader repete com `fract` (no WebGL2, `textureGrad` com a derivada do UV contínuo evita linhas nas emendas). Faces com sombra diferente nos cantos e as formas continuam uma a uma (formas com `tileRect` zero usam o UV do atlas direto). Sem pacote, a leve variação de cor por bloco saiu (a textura de ruído repete por bloco).
+- Medidas (`src/measure.js`): cotas com setas e números em X, Z e Y da caixa da construção (`bbox`); com a Camada, X e Z dos blocos da camada (`sliceBounds`). Traços como caixas finas brancas sobre contorno escuro (sem teste de profundidade), números em sprite de tamanho fixo na tela. Refeitas quando muda a construção, a camada ou o zoom. Tecla D / Projeto > Mostrar medidas.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)
