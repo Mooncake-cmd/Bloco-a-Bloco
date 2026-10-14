@@ -124,7 +124,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p class="lead">O editor 3D de construções de Minecraft que roda no navegador: monte bloco a bloco, veja com as texturas do seu pacote e leve para o jogo como <code>.mcstructure</code> (Bedrock) ou <code>.schem</code> (Java). Este guia passa por todas as funções do site, com capturas da própria tela.</p>
   <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
   <div class="facts">
-    <div class="fact"><b>1.088</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
+    <div class="fact"><b>1.089</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
     <div class="fact"><b>13</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>categorias de blocos</span></div>
     <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json</span></div>
@@ -253,6 +253,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>O centro do volume é o bloco apontado pelo ponteiro (a partir da câmera). Com a Camada ligada, nada acima dela muda.</li>
     <li>Um traço inteiro (do clique até soltar) é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>; ao soltar, o aviso diz quantos blocos foram trocados.</li>
     <li>O raio e a forma ficam guardados no navegador; a máscara vale até você escolher outra.</li>
+    <li><b>Apagar só um tipo de bloco</b>: ponha o <b>Air (apagar)</b> na hotbar (categoria Técnicos e só Bedrock) e use-o como destino. Ex.: máscara Tijolos + Air apaga só os tijolos dentro do pincel, sem tocar no resto da construção. Ótimo para limpar um material de uma construção grande.</li>
     <li>Para trocar numa área retangular inteira de uma vez, use <b>Selecionar → Substituir…</b> (abaixo).</li>
   </ul>
 
@@ -393,7 +394,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="paleta">
   <h2><span class="n">06</span>Paleta e hotbar</h2>
   <div class="grid4">
-    <figure><img src="img/paleta.jpg" alt="Paleta em Todos" width="308" height="800" loading="lazy"><figcaption>Todos (1.088)</figcaption></figure>
+    <figure><img src="img/paleta.jpg" alt="Paleta em Todos" width="308" height="800" loading="lazy"><figcaption>Todos (1.089)</figcaption></figure>
     <figure><img src="img/paleta-formas.jpg" alt="Paleta na categoria Formas" width="308" height="800" loading="lazy"><figcaption>Formas (267)</figcaption></figure>
     <figure><img src="img/paleta-busca.jpg" alt="Busca por stairs" width="308" height="800" loading="lazy"><figcaption>Busca “stairs”</figcaption></figure>
     <figure><img src="img/paleta-tecnicos.jpg" alt="Categoria Técnicos e só Bedrock" width="308" height="800" loading="lazy"><figcaption>Técnicos e só Bedrock (21)</figcaption></figure>
@@ -417,7 +418,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Redstone</td><td>Pó, repetidor, comparador, alavanca, botões, placas de pressão, trilhos, pistões, linha de armadilha, TNT…</td><td class="num">58</td></tr>
       <tr><td>Plantas</td><td>Flores, mudas, plantações, cogumelos, corais, cipós, folhagens</td><td class="num">160</td></tr>
       <tr><td>Decoração</td><td>Camas, baús, placas, estandartes, cabeças, lanternas, bolo, bigorna, caldeirão, velas, moldura do portal do Fim, estante entalhada, núcleo pesado…</td><td class="num">199</td></tr>
-      <tr><td>Técnicos e só Bedrock</td><td>Blocos de comando, estrutura, quebra-cabeça, luz, água, lava e os 11 blocos que só existem no Bedrock</td><td class="num">21</td></tr>
+      <tr><td>Técnicos e só Bedrock</td><td>Ar (para apagar), blocos de comando, estrutura, quebra-cabeça, luz, água, lava e os 11 blocos que só existem no Bedrock</td><td class="num">22</td></tr>
       <tr><td>Outros</td><td>O que não se encaixa acima (estantes, mesas de trabalho, blocos especiais)</td><td class="num">43</td></tr>
     </tbody>
   </table></div>
@@ -468,6 +469,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <h3>Técnicos e só Bedrock</h3>
   <figure><img src="img/inventario.jpg" alt="Os 32 itens do inventário de teste, incluindo blocos de comando, portais, fogo, água e blocos só do Bedrock" width="972" height="640" loading="lazy"><figcaption>Blocos técnicos e só do Bedrock no editor.</figcaption></figure>
   <ul class="plain">
+    <li><b>Air (apagar)</b>: não é um bloco de verdade, é o “nada”. Com ele na hotbar, o pincel apaga (como a borracha, com os mesmos tamanhos), as formas apagam a área, o pincel de troca apaga só o bloco da máscara e Preencher o chão sem “só nos espaços vazios” limpa a camada. Nunca vai para a construção nem para a exportação.</li>
     <li><b>Técnicos</b> (existem nos dois jogos): bloco de comando (normal, em cadeia, repetidor), bloco de estrutura, quebra-cabeça, vazio de estrutura, bloco de luz (níveis 0 a 15), rocha-mãe, água, lava, cabeça de pistão. Saem sem comando e sem configuração.</li>
     <li><b>Só Bedrock</b> (marcados “só Bedrock” no nome): allow, deny, border, camera, obsidiana brilhante, núcleo do reator do Nether, rocha-mãe invisível e, da Education Edition, calor químico, vidro reforçado, painel de vidro reforçado e tocha subaquática. Vão no .mcstructure; ficam de fora do .schem, com aviso.</li>
     <li>Luz, vazio de estrutura e rocha-mãe invisível são invisíveis no jogo; aqui aparecem como cubinhos translúcidos. Água e lava escorrem também aqui (veja acima).</li>

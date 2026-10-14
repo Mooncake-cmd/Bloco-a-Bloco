@@ -230,12 +230,19 @@ var BLOCKS = BLOCKS_RAW.map(function (r) {
     jt: jt, bt: r[8] ? six(r[8]) : null, tint: tint6(r[9] || 0), ori: r[10] || null, bst: r[11] || null,
     tile: jt.map(function () { return -1; }), solid: r[6] !== 1, icon: '' };
 });
+/* "Ar": não é um bloco de verdade e nunca fica guardado no mundo (mkCell devolve 0). Com ele na hotbar, o pincel apaga
+   e as formas, o preencher e o pincel de troca põem ar no lugar (ex.: máscara Pedra + Ar = apagar só a pedra). */
+var AIR_GREY = [214, 222, 226];
+BLOCKS.push({ java: 'air', name: 'Air (apagar)', bedrock: 'air', top: AIR_GREY, side: AIR_GREY, bottom: AIR_GREY, kind: 1, glass: true,
+  jt: [], bt: [], tint: tint6(0), ori: null, bst: null, tile: [], solid: false, icon: '', isAir: true });
+var AIR_BI = BLOCKS.length - 1;
 /* Célula do mundo (32 bits): bits 0-11 = índice do bloco + 1; acima disso, o estado: índice em ori.o nos cubos que giram,
    ou as propriedades guardadas das formas (base mista, ver stateIndex) */
 var OSH = 12, IMASK = 4095;
 function cellBlock(v) { return (v & IMASK) - 1; }
 function cellOri(v) { return Math.floor(v / 4096); }
 function mkCell(bi, o) {
+  if (bi === AIR_BI) return 0;
   var b = BLOCKS[bi], s = 0;
   if (b.shape) s = o == null || o < 0 ? defaultState(b) : o;
   else if (b.ori) s = o == null || o < 0 ? b.ori.d : o;
@@ -354,6 +361,7 @@ var CATS = [
 ];
 function catOf(b) {
   var n = b.java;
+  if (b.isAir) return 'tecnico';
   if (b.shape) {
     if (b.bo || /^(command_block|chain_command_block|repeating_command_block|structure_block|structure_void|jigsaw|light|water|lava|piston_head)$/.test(n)) return 'tecnico';
     if (/redstone|repeater|comparator|lever|_button|pressure_plate|tripwire|rail$|piston|daylight|target|hopper|lightning_rod|sculk_sensor|lectern|tnt/.test(n)) return 'redstone';
@@ -372,6 +380,7 @@ function catOf(b) {
 BLOCKS.forEach(function (b) { b.cat = catOf(b); b.hay = (b.java + ' ' + b.name).toLowerCase(); });
 function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
 function swatch(b) {
+  if (b.isAir) return 'background:repeating-linear-gradient(45deg,transparent 0 5px,rgba(200,60,40,.35) 5px 7px),' + rgb(b.side);
   if (b.icon) return 'background:' + b.icon + ' 0 0/100% 100% no-repeat,' + rgb(b.side) + ';image-rendering:pixelated';
   return 'background:linear-gradient(to bottom,' + rgb(b.top) + ' 0,' + rgb(b.top) + ' 28%,' + rgb(b.side) + ' 28%,' + rgb(b.side) + ' 100%)';
 }
@@ -854,7 +863,7 @@ function targetAt(cx, cy) {
 /* Visual do alvo */
 var hoverT = null, hoverXY = null;
 function setBoxAt(mesh, c) { mesh.position.set(c[0] + 0.5, c[1] + 0.5, c[2] + 0.5); }
-function effTool(shift) { return tool === 'place' && shift ? 'erase' : tool; }
+function effTool(shift) { return tool === 'place' && (shift || curBlock() === AIR_BI) ? 'erase' : tool; }
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
@@ -1044,7 +1053,7 @@ function commitShape(kind, a, b, erase, t) {
     editSet(c[0], c[1], c[2], v);
   }
   endBatch();
-  toast((erase ? 'Apagados ' : 'Colocados ') + cells.length + ' blocos');
+  toast((erase || !v ? 'Apagados ' : 'Colocados ') + cells.length + ' blocos');
 }
 function pressAt(cx, cy, shift) {
   var t = targetAt(cx, cy); hoverT = t; lastShift = shift;
@@ -1103,7 +1112,7 @@ function dragAt(cx, cy) {
 }
 function releaseStroke() {
   if (stroke && stroke.mode === 'sculpt') sculptEnd();
-  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + ' trocados por ' + BLOCKS[curBlock()].name + '.' : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
+  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
 }
 
 /* ---------- Ponteiro ---------- */
@@ -1419,7 +1428,7 @@ async function importPack(src, name, depth, prog) {
     BLOCKS.forEach(function (b) {
       // Blocos com frente usam o mapeamento embutido, que já está girado para o estado exportado
       // A abóbora inteira: o blocks.json do Bedrock põe o rosto nela, mas no jogo ela aparece sem rosto
-      var e = !b.ori && !b.shape && b.java !== 'pumpkin' && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
+      var e = !b.ori && !b.shape && !b.isAir && b.java !== 'pumpkin' && (blk[b.java === 'grass_block' ? 'grass' : b.bedrock] || blk[b.bedrock]);
       if (e && e.textures) pack.bmap[b.java] = beFaces(e.textures);
       (pack.bmap[b.java] || b.bt || []).forEach(function (n) { if (n) shorts[n] = 1; });
     });

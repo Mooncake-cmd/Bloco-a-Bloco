@@ -68,6 +68,7 @@ npm test         # valida os exportadores
 - Pincel de troca (`src/maskbrush.js`, ferramenta M): `maskBrush(centro, raio, forma, máscara, destino)` varre a esfera (dx²+dy²+dz² ≤ (r+0,5)²) ou o cubo em volta do bloco atingido pelo raio do ponteiro e troca só as células cujo bloco é a máscara (`convertCell` mantém as propriedades em comum); ar e outros blocos ficam. As trocas entram no lote do traço (`editSet` marca os pedaços da malha); a prévia destaca os voxels que vão mudar.
 - Simetria (`src/symmetry.js`): `editSet` passa por `symPoints`, que gera as posições espelhadas (x' = P - x, P = dobro da posição do plano) e o estado espelhado (`mirrorCell`: lados, rotation de 16 passos, dobradiça, metade/topo no eixo Y). Desfazer e a água (que usam `setRaw`) não são espelhados.
 - Esculpir terreno (`src/sculpt.js`): mapa de alturas por coluna com alturas fracionárias durante o traço; cada pincelada (clique e a cada 70 ms) aplica elevar/afundar/suavizar/aplainar com atenuação (1 - t²)² e converte as colunas de volta para voxels.
+- Air (apagar): entrada extra no fim dos cubos (`AIR_BI`, categoria Técnicos); `mkCell(AIR_BI)` devolve 0, então qualquer ferramenta que põe o bloco da hotbar (pincel vira borracha, formas, preencher, pincel de troca) põe ar. Nunca fica guardado nem é exportado.
 - Câmera orbital própria (botão direito gira, botão do meio ou Shift + direito move, roda dá zoom). Toque: um dedo gira, dois dedos movem e dão zoom.
 
 ## Blocos que não são cubos (formas)
