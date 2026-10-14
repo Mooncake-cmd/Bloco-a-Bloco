@@ -308,6 +308,7 @@ function emitShape(b, s, x, y, z, O, C, G) {
       T.p.push(x + p[0], y + p[1], z + p[2]);
       T.c.push(cr, cg, cb);
       T.u.push(uvT[0] + (uvT[2] - uvT[0]) * u[0] / 16, uvT[3] - (uvT[3] - uvT[1]) * u[1] / 16);
+      T.t.push(0, 0, 0, 0);
     }
     T.i.push(bi, bi + 3, bi + 2, bi, bi + 2, bi + 1);
     T.n += 4;

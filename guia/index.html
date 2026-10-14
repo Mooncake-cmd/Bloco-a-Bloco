@@ -601,6 +601,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>A janela mostra quantos blocos e pedaços a construção tem e quanta memória eles ocupam.</li>
       <li><b>Distância de desenho</b>: só os pedaços até essa distância do centro da câmera são desenhados (padrão 384 blocos). Os de longe continuam na construção e voltam quando a câmera chega perto. Numa construção enorme, diminua se a tela ficar lenta; “Tudo” desenha a construção inteira.</li>
       <li>Ao diminuir o espaço, os blocos que ficarem de fora são apagados. Ao aumentar, a construção fica no canto de origem.</li>
+      <li><b>União de faces</b>: faces iguais lado a lado (um chão, uma parede, um telhado do mesmo bloco) são desenhadas como um retângulo só, com a textura repetida bloco a bloco. Na tela fica igual, mas a placa de vídeo trabalha bem menos: num terreno plano de 4 milhões de blocos, a parte desenhada passou de cerca de 1 milhão de triângulos para menos de 8 mil. Escadas, plantas, água e outros blocos que não são cubos continuam um a um.</li>
       <li>Em construções grandes a cena é montada aos poucos, para a tela não travar. Com o espaço maior que 512 blocos, a câmera inicial olha para a construção (ou para o meio, de perto), e a grade do chão passa a ter uma linha a cada 16 blocos.</li>
       <li>Para não estourar a memória do desfazer, “Preencher o chão” e “Substituir” com preenchimento aceitam até 16 milhões de espaços de uma vez, e copiar aceita áreas de até 64 milhões de espaços.</li>
     </ul>

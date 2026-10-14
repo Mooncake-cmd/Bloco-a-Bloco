@@ -1095,6 +1095,31 @@ function shapeCells(kind, a, b) {
 var THREE_OK = typeof THREE !== 'undefined';
 var viewport = $('viewport');
 var renderer, scene, camera, atlasTex, matOpaque, matCutout, matGlass;
+/* Shader dos chunks: com tileRect (canto e tamanho do ladrilho no atlas), o UV em unidades de bloco é repetido
+   dentro do ladrilho (fract), para a união de faces; sem ele (formas), usa o UV do atlas direto. No WebGL2 o nível de
+   mipmap vem da derivada do UV contínuo, para não aparecer linha nas emendas entre blocos. */
+function tileShader(m) {
+  if (renderer && renderer.capabilities.isWebGL2) m.defines = Object.assign(m.defines || {}, { BAB_GRAD: '' });
+  m.onBeforeCompile = function (sh) {
+    sh.vertexShader = sh.vertexShader.replace('#include <uv_pars_vertex>', '#include <uv_pars_vertex>\nattribute vec4 tileRect;\nvarying vec4 vTile;')
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\nvTile = tileRect;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nvarying vec4 vTile;')
+      .replace('#include <map_fragment>', [
+        '#ifdef USE_MAP',
+        '  vec4 texelColor;',
+        '  if (vTile.z != 0.0) {',
+        '    vec2 tuv = vTile.xy + fract(vUv) * vTile.zw;',
+        '    #ifdef BAB_GRAD',
+        '    texelColor = textureGrad(map, tuv, dFdx(vUv) * vTile.zw, dFdy(vUv) * vTile.zw);',
+        '    #else',
+        '    texelColor = texture2D(map, tuv);',
+        '    #endif',
+        '  } else texelColor = texture2D(map, vUv);',
+        '  texelColor = mapTexelToLinear(texelColor);',
+        '  diffuseColor *= texelColor;',
+        '#endif'].join('\n'));
+  };
+}
 var chunks = new Map();
 var helpers = [];
 var ghostEdges, ghostFill, previewInst, previewEdges;
@@ -1114,6 +1139,7 @@ function initThree() {
   matOpaque = new THREE.MeshBasicMaterial({ vertexColors: true });
   matCutout = new THREE.MeshBasicMaterial({ vertexColors: true, alphaTest: 0.5 });
   matGlass = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false });
+  [matOpaque, matCutout, matGlass].forEach(tileShader);
   buildAtlas([]);
   var box = new THREE.BoxGeometry(1.004, 1.004, 1.004);
   ghostEdges = new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color: 0xffffff }));
@@ -1193,58 +1219,73 @@ function vis(x, y, z) {
   return gget(x, y, z);
 }
 function solidAt(x, y, z) { var v = vis(x, y, z); if (!v) return 0; var b = BLOCKS[cellBlock(v)]; return !b.glass && !b.shape ? 1 : 0; }
+/* União de faces (greedy meshing): as faces visíveis dos cubos são agrupadas por direção e camada; faces vizinhas
+   iguais (mesmo bloco, mesma textura e giro, mesma sombra nos 4 cantos) viram um retângulo só, com a textura repetida
+   bloco a bloco pelo shader (atributo tileRect: canto e tamanho do ladrilho no atlas). Faces com sombra diferente
+   nos cantos e as formas (escadas, plantas, água...) continuam uma a uma. */
+var GREEDY_MASK = new Int32Array(16 * 16);
+function newBuf() { return { p: [], c: [], u: [], t: [], i: [], n: 0 }; }
 function buildChunk(cx, cy, cz) {
   var key = cx + ',' + cy + ',' + cz;
   var old = chunks.get(key);
   if (old) { old.forEach(function (m) { scene.remove(m); m.geometry.dispose(); }); chunks.delete(key); }
   var x0 = cx * CS, y0 = cy * CS, z0 = cz * CS;
   var x1 = Math.min(x0 + CS, SX), z1 = Math.min(z0 + CS, SZ), y1 = Math.min(y0 + CS, SY, layerMax() + 1);
-  var O = { p: [], c: [], u: [], i: [], n: 0 }, G = { p: [], c: [], u: [], i: [], n: 0 }, C = { p: [], c: [], u: [], i: [], n: 0 };
+  var O = newBuf(), G = newBuf(), C = newBuf(), BUFS = [O, C, G];
   built.add(key);
   var wc = W.get(ckey(cx, cy, cz)); if (!wc) return; // chunk vazio: só some com a malha antiga
+  // faces por direção: chave numérica (0 = sem face) em [f][camada][16 x 16]
+  var faceKeys = [null, null, null, null, null, null];
   for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
     var v = wc.d ? wc.pal[wc.d[((y & 15) << 8) | ((z & 15) << 4) | (x & 15)]] : wc.u;
     if (!v) continue;
-    var b = BLOCKS[cellBlock(v)], T = b.glass ? G : b.solid ? O : C;
+    var bi = cellBlock(v), b = BLOCKS[bi], buf = b.glass ? 2 : b.solid ? 0 : 1;
     if (b.shape) { emitShape(b, cellOri(v), x, y, z, O, C, G); continue; }
     var fm = b.ori ? b.ori.o[cellOri(v)] && b.ori.o[cellOri(v)][2] : 0;
-    var h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; h = h - Math.floor(h);
-    var jit = 0.965 + h * 0.07;
     for (var f = 0; f < 6; f++) {
       var F = FACES[f];
       var nx = x + F.n[0], ny = y + F.n[1], nz = z + F.n[2];
       var nv = vis(nx, ny, nz);
       if (nv) {
         var nb = BLOCKS[cellBlock(nv)];
-        if (nb.solid || (b.glass && nb.glass && cellBlock(nv) === cellBlock(v))) continue;
+        if (nb.solid || (b.glass && nb.glass && cellBlock(nv) === bi)) continue;
       }
       // face de origem no modelo e giro da textura, conforme a direção do bloco
       var src = fm ? fm[F.t * 2] : F.t, rk = fm ? fm[F.t * 2 + 1] : 0;
-      var tl = b.tile[src], col = tl >= 0 ? WHITE : src === 0 ? b.top : src === 1 ? b.bottom : b.side, jj = tl >= 0 ? 1 : jit, ao = [];
-      if (tl < 0) tl = b.glass ? 1 : 0;
-      var uv = tileUV[tl];
-      var ax = F.n[0] ? 0 : F.n[1] ? 1 : 2;
-      var ob = ax === 0 ? 1 : 0, oc = ax === 2 ? 1 : 2;
+      var ax = F.n[0] ? 0 : F.n[1] ? 1 : 2, ob = ax === 0 ? 1 : 0, oc = ax === 2 ? 1 : 2, ao = [];
       for (var q = 0; q < 4; q++) {
-        var vv = F.v[q];
-        var db = vv[ob] ? 1 : -1, dc = vv[oc] ? 1 : -1;
-        var base = [nx, ny, nz];
-        var s1 = base.slice(), s2 = base.slice(), cr = base.slice();
+        var vv = F.v[q], db = vv[ob] ? 1 : -1, dc = vv[oc] ? 1 : -1;
+        var base = [nx, ny, nz], s1 = base.slice(), s2 = base.slice(), cr = base.slice();
         s1[ob] += db; s2[oc] += dc; cr[ob] += db; cr[oc] += dc;
         var a1 = solidAt(s1[0], s1[1], s1[2]), a2 = solidAt(s2[0], s2[1], s2[2]), a3 = solidAt(cr[0], cr[1], cr[2]);
         ao.push(a1 && a2 ? 0 : 3 - (a1 + a2 + a3));
       }
-      var bi = T.n;
-      for (q = 0; q < 4; q++) {
-        var p = F.v[q], l = F.s * jj * AO_L[ao[q]] / 255;
-        T.p.push(x + p[0], y + p[1], z + p[2]);
-        T.c.push(col[0] * l, col[1] * l, col[2] * l);
-        var uq = UVS[(q + rk) % 4];
-        T.u.push(uv[uq[0] * 2], uv[1 + uq[1] * 2]);
+      var lc = [x - x0, y - y0, z - z0];
+      if (ao[0] === ao[1] && ao[0] === ao[2] && ao[0] === ao[3]) {
+        // vai para a máscara: bloco, textura de origem, giro, sombra e tipo de malha
+        var fk = faceKeys[f] || (faceKeys[f] = new Int32Array(16 * 256));
+        fk[lc[ax] * 256 + lc[oc] * 16 + lc[ob]] = ((bi + 1) << 10) | (src << 6) | (rk << 4) | (ao[0] << 2) | buf;
+      } else emitFace(BUFS[buf], b, f, src, rk, ao, x, y, z, 1, 1);
+    }
+  }
+  // varredura gulosa de cada camada de cada direção
+  for (f = 0; f < 6; f++) {
+    var fk2 = faceKeys[f]; if (!fk2) continue;
+    var F2 = FACES[f], ax2 = F2.n[0] ? 0 : F2.n[1] ? 1 : 2, ob2 = ax2 === 0 ? 1 : 0, oc2 = ax2 === 2 ? 1 : 2;
+    for (var d = 0; d < 16; d++) {
+      var M = GREEDY_MASK, any = false;
+      for (var k = 0; k < 256; k++) { M[k] = fk2[d * 256 + k]; if (M[k]) any = true; }
+      if (!any) continue;
+      for (var jy = 0; jy < 16; jy++) for (var ix = 0; ix < 16; ix++) {
+        var kk = M[jy * 16 + ix]; if (!kk) continue;
+        var w = 1; while (ix + w < 16 && M[jy * 16 + ix + w] === kk) w++;
+        var h = 1, ok = true;
+        while (jy + h < 16 && ok) { for (var t = 0; t < w; t++) if (M[(jy + h) * 16 + ix + t] !== kk) { ok = false; break; } if (ok) h++; }
+        for (var r = 0; r < h; r++) for (t = 0; t < w; t++) M[(jy + r) * 16 + ix + t] = 0;
+        var pos = [0, 0, 0]; pos[ax2] = d; pos[ob2] = ix; pos[oc2] = jy;
+        var aoU = (kk >> 2) & 3;
+        emitFace(BUFS[kk & 3], BLOCKS[(kk >> 10) - 1], f, (kk >> 6) & 15, (kk >> 4) & 3, [aoU, aoU, aoU, aoU], x0 + pos[0], y0 + pos[1], z0 + pos[2], w, h);
       }
-      if (ao[0] + ao[2] < ao[1] + ao[3]) T.i.push(bi + 1, bi + 2, bi + 3, bi + 1, bi + 3, bi);
-      else T.i.push(bi, bi + 1, bi + 2, bi, bi + 2, bi + 3);
-      T.n += 4;
     }
   }
   var meshes = [];
@@ -1255,11 +1296,37 @@ function buildChunk(cx, cy, cz) {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(T.p, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(T.c, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(T.u, 2));
+    geo.setAttribute('tileRect', new THREE.Float32BufferAttribute(T.t, 4));
     geo.setIndex(new THREE.BufferAttribute(new Uint32Array(T.i), 1));
     geo.computeBoundingSphere();
     var m = new THREE.Mesh(geo, e[1]); m.renderOrder = e[2]; scene.add(m); meshes.push(m);
   });
   if (meshes.length) chunks.set(key, meshes);
+}
+/* Uma face (ou um retângulo de w x h faces) de cubo. w vai ao longo do eixo ob da face, h ao longo de oc.
+   UV em unidades de bloco (0..w, 0..h, girado como a textura) + o ladrilho do atlas em tileRect. */
+var FACE_UAX = FACES.map(function (F) { // eixo em que o vértice 0 -> 1 anda (o "u" sem giro)
+  for (var a = 0; a < 3; a++) if (F.v[0][a] !== F.v[1][a]) return a;
+});
+function emitFace(T, b, f, src, rk, ao, x, y, z, w, h) {
+  var F = FACES[f], ax = F.n[0] ? 0 : F.n[1] ? 1 : 2, ob = ax === 0 ? 1 : 0, oc = ax === 2 ? 1 : 2;
+  var tl = b.tile[src], col = tl >= 0 ? WHITE : src === 0 ? b.top : src === 1 ? b.bottom : b.side;
+  if (tl < 0 || tl == null) tl = b.glass ? 1 : 0;
+  var uv = tileUV[tl], ext = [1, 1, 1]; ext[ob] = w; ext[oc] = h;
+  var uA = FACE_UAX[f], vA = uA === ob ? oc : ob;
+  if (rk & 1) { var tt = uA; uA = vA; vA = tt; }
+  var bi = T.n;
+  for (var q = 0; q < 4; q++) {
+    var p = F.v[q], l = F.s * AO_L[ao[q]] / 255;
+    T.p.push(x + p[0] * ext[0], y + p[1] * ext[1], z + p[2] * ext[2]);
+    T.c.push(col[0] * l, col[1] * l, col[2] * l);
+    var uq = UVS[(q + rk) % 4];
+    T.u.push(uq[0] * ext[uA], uq[1] * ext[vA]);
+    T.t.push(uv[0], uv[1], uv[2] - uv[0], uv[3] - uv[1]);
+  }
+  if (ao[0] + ao[2] < ao[1] + ao[3]) T.i.push(bi + 1, bi + 2, bi + 3, bi + 1, bi + 3, bi);
+  else T.i.push(bi, bi + 1, bi + 2, bi, bi + 2, bi + 3);
+  T.n += 4;
 }
 /* Refaz os pedaços alterados; em espaços grandes, aos poucos (até ~25 ms por quadro) para a tela não travar */
 /* Distância de desenho: só os chunks perto do centro da câmera ficam montados; os de longe soltam a malha
@@ -2520,6 +2587,7 @@ function emitShape(b, s, x, y, z, O, C, G) {
       T.p.push(x + p[0], y + p[1], z + p[2]);
       T.c.push(cr, cg, cb);
       T.u.push(uvT[0] + (uvT[2] - uvT[0]) * u[0] / 16, uvT[3] - (uvT[3] - uvT[1]) * u[1] / 16);
+      T.t.push(0, 0, 0, 0);
     }
     T.i.push(bi, bi + 3, bi + 2, bi, bi + 2, bi + 1);
     T.n += 4;
