@@ -4181,6 +4181,7 @@ function sliceOutline(g, sb, y, zb) {
     if (run2 && s2 !== run2.s) { segs.push({ a: [x2, run2.z], b: [x2, z2], n: z2 - run2.z, d: [run2.s, 0] }); run2 = null; }
     if (s2 && !run2) run2 = { z: z2, s: s2 };
   }
+  segs = thinWalls(segs);
   if (segs.length > 400) segs = segs.sort(function (p, q) { return q.n - p.n; }).slice(0, 400); // planta muito recortada: os lados maiores
   var size = Math.max(Math.pow(2, zb / 3) * 0.03, 0.5), w = size * 0.035, yy = y + 1.02, inset = size * 0.75;
   segs.forEach(function (sg) {
@@ -4192,6 +4193,28 @@ function sliceOutline(g, sb, y, zb) {
     g.add(lb);
   });
   return true;
+}
+
+/* Paredes finas (até 2 blocos de espessura): o lado de fora e o de dentro são quase iguais e os números ficariam
+   colados. Fica só o maior dos dois, e as pontas da parede (o "1" ou "2" que liga um lado ao outro) somem. */
+function thinWalls(segs) {
+  var by = new Map(), drop = new Set(), ends = new Set();
+  segs.forEach(function (sg, i) {
+    var hz = sg.d[0] === 0, c = hz ? sg.a[1] : sg.a[0], s = hz ? sg.d[1] : sg.d[0], k = (hz ? 'h' : 'v') + c + ':' + s;
+    if (!by.has(k)) by.set(k, []); by.get(k).push(i);
+  });
+  segs.forEach(function (sg, i) {
+    var hz = sg.d[0] === 0, s = hz ? sg.d[1] : sg.d[0]; if (s !== 1) return; // dentro do lado de +: procura o par logo à frente
+    var c = hz ? sg.a[1] : sg.a[0], lo = hz ? sg.a[0] : sg.a[1], hi = hz ? sg.b[0] : sg.b[1];
+    for (var t = 1; t <= 2; t++) (by.get((hz ? 'h' : 'v') + (c + t) + ':-1') || []).forEach(function (j) {
+      var o = segs[j], lo2 = hz ? o.a[0] : o.a[1], hi2 = hz ? o.b[0] : o.b[1], ov = Math.min(hi, hi2) - Math.max(lo, lo2);
+      if (ov < 0.5 * Math.min(sg.n, o.n) || Math.min(sg.n, o.n) <= t) return; // parede: comprida em relação à espessura (um degrau curto não é parede)
+      drop.add(sg.n >= o.n ? j : i);
+      [sg, o].forEach(function (q) { ends.add(q.a.join()); ends.add(q.b.join()); });
+    });
+  });
+  segs.forEach(function (sg, i) { if (sg.n <= 2 && ends.has(sg.a.join()) && ends.has(sg.b.join())) drop.add(i); });
+  return segs.filter(function (sg, i) { return !drop.has(i); });
 }
 
 /* ---------- Formas: medidas temporárias ---------- */
