@@ -194,7 +194,7 @@ function shapeDimsClear() {
   shapeDimKey = '';
 }
 function shapeDims(kind, a, b) {
-  var zb = Math.round(Math.log2(Math.max(4, cam.dist)) * 3), key = [kind, a, b, zb].join('|');
+  var zb = Math.round(Math.log2(Math.max(4, cam.dist)) * 3), key = [kind, a, b, zb, kind === 'shape2' ? shape2.type : ''].join('|');
   if (key === shapeDimKey) return;
   shapeDimsClear(); shapeDimKey = key;
   if (!MEAS_W) {
@@ -205,6 +205,10 @@ function shapeDims(kind, a, b) {
   if (kind === 'sphere' || kind === 'hsphere') {
     var r = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]));
     lo = [a[0] - r, a[1] - r, a[2] - r]; hi = [a[0] + r, a[1] + r, a[2] + r];
+  } else if (kind === 'shape2') { // mais formas: a caixa dos blocos da forma
+    lo = [1e9, 1e9, 1e9]; hi = [-1e9, -1e9, -1e9];
+    shape2Cells(a, b).forEach(function (c) { for (var i = 0; i < 3; i++) { if (c[i] < lo[i]) lo[i] = c[i]; if (c[i] > hi[i]) hi[i] = c[i]; } });
+    if (lo[0] > hi[0]) { shapeDimObj = g; scene.add(g); return; }
   } else { lo = [0, 1, 2].map(function (i) { return Math.min(a[i], b[i]); }); hi = [0, 1, 2].map(function (i) { return Math.max(a[i], b[i]); }); }
   var X0 = lo[0], X1 = hi[0] + 1, Y0 = lo[1], Y1 = hi[1] + 1, Z0 = lo[2], Z1 = hi[2] + 1;
   var big = Math.max(X1 - X0, Y1 - Y0, Z1 - Z0), size = Math.max(Math.min(8, big * 0.09), Math.pow(2, zb / 3) * 0.03, 0.5), off = Math.max(1, Math.min(big * 0.12, size * 1.2));
@@ -214,8 +218,9 @@ function shapeDims(kind, a, b) {
     if (sg.aligned && n > 1) { var s = sg.d[sg.ax] >= 0 ? 1 : -1; A[sg.ax] -= 0.5 * s; B[sg.ax] += 0.5 * s; }
     if (n > 1) addDim(g, A, B, n, size, null);
   } else {
-    if (X1 - X0 > 1 || kind !== 'box' && kind !== 'hbox') addDim(g, [X0, Y0 + 0.02, Z1 + off], [X1, Y0 + 0.02, Z1 + off], X1 - X0, size, [0, 0, off]);
-    if (kind === 'box' || kind === 'hbox') {
+    var boxy = kind === 'box' || kind === 'hbox' || kind === 'shape2';
+    if (X1 - X0 > 1 || !boxy) addDim(g, [X0, Y0 + 0.02, Z1 + off], [X1, Y0 + 0.02, Z1 + off], X1 - X0, size, [0, 0, off]);
+    if (boxy) {
       if (Z1 - Z0 > 1) addDim(g, [X0 - off, Y0 + 0.02, Z0], [X0 - off, Y0 + 0.02, Z1], Z1 - Z0, size, [-off, 0, 0]);
       if (Y1 - Y0 > 1) addDim(g, [X1 + off, Y0, Z1 + off], [X1 + off, Y1, Z1 + off], Y1 - Y0, size, [off, 0, off]);
     }

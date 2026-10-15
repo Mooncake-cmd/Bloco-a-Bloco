@@ -75,7 +75,7 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#worldChip,#maskChip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#worldChip,#maskChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
 .chip .mbtns button#worldExp{background:var(--accent);color:var(--accent-fg)}
@@ -181,7 +181,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
         <output id="layerOut">–</output>
       </div>
       <div class="spacer"></div>
-      <button class="tbtn txt" id="matBtn" title="Lista de materiais">Materiais</button>
+      <button class="tbtn" id="matBtn" title="Materiais: lista de blocos usados" aria-label="Materiais"><svg viewBox="0 0 20 20"><path class="f" d="M4 3h12v14H4z"/><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h4"/></svg></button>
       <button class="tbtn txt primary" id="exportBtn" title="Exportar .schem / .mcstructure">Exportar</button>
       <details class="menu" id="menu">
         <summary class="tbtn txt" role="button" aria-label="Menu do projeto">Projeto ▾</summary>
@@ -208,7 +208,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -495,6 +495,8 @@ var TOOLS = [
   ['hbox', 'Caixa oca (paredes)', 'H', '<path d="M3 3h14v14H3zM7.5 7.5h5v5h-5z"/>'],
   ['sphere', 'Esfera sólida', 'S', '<circle class="f" cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="7"/>'],
   ['hsphere', 'Esfera oca', 'O', '<circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="7" ry="2.6" stroke-dasharray="2 2"/>'],
+  ['shape2', 'Mais formas: cilindro, cone, pirâmide, cúpula e arco', 'C', '<ellipse cx="10" cy="5" rx="6" ry="2.3"/><path class="f" d="M4 5v10a6 2.3 0 0012 0V5"/><path d="M4 5v10a6 2.3 0 0012 0V5"/>'],
+  ['fill', 'Balde: encher uma área fechada (Shift troca a região do mesmo bloco)', 'F', '<path class="f" d="M4 9l6-6 7 7-6 6z"/><path d="M4 9l6-6 7 7-6 6zM4 9h13M17.5 13.5c0 1.2-.7 2.2-1.5 2.2s-1.5-1-1.5-2.2c0-1 1.5-3 1.5-3s1.5 2 1.5 3z"/>'],
   ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>'],
   ['mask', 'Pincel de troca: troca só o bloco da máscara dentro do raio (Shift + clique escolhe a máscara)', 'M', '<path d="M4 16c2 0 3-1 3-3l6-6 2 2-6 6c0 2-1 3-3 3"/><circle cx="14.5" cy="5.5" r="2.5" class="f"/><path d="M3 3l3 3M17 13l-2 4"/>'],
   ['sculpt', 'Esculpir terreno: elevar, afundar, suavizar ou aplainar com um pincel suave (Shift inverte)', 'K', '<path class="f" d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2v5H2z"/><path d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2"/><path d="M13 3v5M10.5 5.5L13 3l2.5 2.5"/>'],
@@ -510,14 +512,16 @@ function renderTools() {
 }
 function setTool(t) { tool = t; anchor = null; anchor2 = null; if (t !== 'ruler' && rulerPts.length) { rulerHoverKey = null; rulerDraw(); } if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
 $('tools').addEventListener('click', function (e) { var b = e.target.closest('[data-tool]'); if (b) setTool(b.getAttribute('data-tool')); });
-function isShape(t) { return t === 'line' || t === 'box' || t === 'hbox' || t === 'sphere' || t === 'hsphere'; }
+function isShape(t) { return t === 'line' || t === 'box' || t === 'hbox' || t === 'sphere' || t === 'hsphere' || t === 'shape2'; }
 /* Linha, caixa e caixa oca têm três cliques: início, ponto oposto (a base) e a altura */
 var anchor2 = null;
-function hasHeightStep(k) { return k === 'line' || k === 'box' || k === 'hbox'; }
+function hasHeightStep(k) { return k === 'line' || k === 'box' || k === 'hbox' || (k === 'shape2' && shape2Height(shape2.type)); }
 function updateAnchorChip() {
   if (!anchor) anchor2 = null;
   $('anchorChip').hidden = !anchor;
-  if (anchor2) $('anchorTxt').textContent = (tool === 'line' ? 'Fim ' + anchor2.join(', ') : 'Base ' + (Math.abs(anchor[0] - anchor2[0]) + 1) + ' × ' + (Math.abs(anchor[2] - anchor2[2]) + 1)) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
+  if (anchor2 && tool === 'shape2') $('anchorTxt').textContent = (shape2.type === 'arch' ? 'Vão ' + (Math.max(Math.abs(anchor[0] - anchor2[0]), Math.abs(anchor[2] - anchor2[2])) + 1) : 'Raio ' + Math.round(Math.hypot(anchor[0] - anchor2[0], anchor[2] - anchor2[2]))) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
+  else if (anchor2) $('anchorTxt').textContent = (tool === 'line' ? 'Fim ' + anchor2.join(', ') : 'Base ' + (Math.abs(anchor[0] - anchor2[0]) + 1) + ' × ' + (Math.abs(anchor[2] - anchor2[2]) + 1)) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
+  else if (anchor && tool === 'shape2') $('anchorTxt').textContent = ({ cyl: 'Centro ', cone: 'Centro ', dome: 'Centro ', arch: 'Pé ', pyr: 'Canto ' }[shape2.type]) + anchor.join(', ') + ' · toque ' + ({ cyl: 'na borda (o raio)', cone: 'na borda (o raio)', dome: 'na borda (o raio)', arch: 'no outro pé', pyr: 'no canto oposto' }[shape2.type]) + (hasHeightStep(tool) ? '' : ' (Shift apaga)');
   else if (anchor) $('anchorTxt').textContent = 'Início ' + anchor.join(', ') + ' · toque no ' + (hasHeightStep(tool) ? 'ponto oposto' : 'ponto final') + (hasHeightStep(tool) ? '' : ' (Shift apaga)');
 }
 /* Altura apontada: o ponto da coluna vertical em (x, z) mais perto do raio do ponteiro */
@@ -560,6 +564,7 @@ $('eraseBtns').addEventListener('click', function (e) { var b = e.target.closest
 $('anchorCancel').addEventListener('click', function () { anchor = null; updateAnchorChip(); updatePreview(); requestRender(); });
 
 function shapeCells(kind, a, b) {
+  if (kind === 'shape2') return shape2Cells(a, b);
   var out = [];
   var x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
   var y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
@@ -983,7 +988,7 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  updateEraseChip(); updateMaskChip(); updateSculptChip(); updateRulerChip();
+  updateEraseChip(); updateMaskChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip();
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
@@ -1013,6 +1018,8 @@ function updatePreview1(t) {
     ec.forEach(function (p) { for (var k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], p[k]); hi[k] = Math.max(hi[k], p[k]); } });
     ghostEdges.material.color.copy(danger); ghostEdges.scale.set(hi[0] - lo[0] + 1, hi[1] - lo[1] + 1, hi[2] - lo[2] + 1);
     ghostEdges.position.set((lo[0] + hi[0]) / 2 + 0.5, (lo[1] + hi[1]) / 2 + 0.5, (lo[2] + hi[2]) / 2 + 0.5); ghostEdges.visible = true;
+  } else if (et === 'fill') {
+    fillPreview(t, lastShift ? info : accent);
   } else if (et === 'tp') {
     cell = t.hit || t.place; if (cell) { ghostEdges.material.color.copy(info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true; }
   } else if (et === 'erase' || et === 'pick' || et === 'rotate' || et === 'use') {
@@ -1189,6 +1196,7 @@ function pressAt(cx, cy, shift) {
   else if (et === 'sculpt') { if (t) sculptStart(t, shift); }
   else if (et === 'ruler') { rulerAdd(t); }
   else if (et === 'tp') { teleportTo(t); }
+  else if (et === 'fill') { fillAt(t, shift); }
   else if (et === 'mask') {
     if (shift) maskPick(t);
     else if (t && t.hit) { stroke = { mode: 'mask', cells: new Set(), n: 0 }; beginBatch(); maskApply(t); stroke.last = t.hit; stroke.on = true; }
@@ -1841,6 +1849,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%MASK_JS%%*/
 /*%%SYM_JS%%*/
 /*%%SCULPT_JS%%*/
+/*%%SHAPES2_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /* ---------- Projeto ---------- */
@@ -2130,8 +2139,10 @@ function openHelp() {
     '<span><kbd>Botão dir.</kbd> arrastar</span><span>Girar a câmera (clique simples cancela a forma)</span>' +
     '<span><kbd>Botão do meio</kbd> ou <kbd>Shift</kbd> + dir.</span><span>Mover a câmera</span>' +
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
-    '<span><kbd>B E I U T L R H S O V M K N J</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar, pincel de troca, esculpir, régua, teleporte</span>' +
+    '<span><kbd>B E I U T L R H S O C F V M K N J</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, mais formas, balde, selecionar, pincel de troca, esculpir, régua, teleporte</span>' +
     '<span>Linha e caixas (<kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd>)</span><span>Três cliques: o início, o ponto oposto e a altura (suba ou desça o ponteiro). Para uma linha de pé, clique duas vezes no mesmo ponto e suba. Esferas: dois cliques (centro e raio).</span>' +
+    '<span>Mais formas (<kbd>C</kbd>)</span><span>Cilindro, cone, pirâmide, cúpula e arco (escolha no aviso do canto; Oco faz só a casca). Cilindro, cone e arco: três cliques (centro ou pé, borda ou outro pé, altura); pirâmide e cúpula: dois.</span>' +
+    '<span>Balde (<kbd>F</kbd>)</span><span>Clique num bloco: enche o espaço fechado ao lado da face clicada (o piso de uma sala, por exemplo). <kbd>Shift</kbd> + clique troca a região ligada do mesmo bloco.</span>' +
     '<span>Esculpir terreno (<kbd>K</kbd>)</span><span>Segure o botão para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave; <kbd>Shift</kbd> inverte elevar/afundar; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Medidas (<kbd>D</kbd>)</span><span>Mostra ou esconde as cotas com o número de blocos em X, Y e Z da construção (com a Camada ligada, o contorno da camada com a medida de cada lado). Também no botão ao lado de Camada.</span>' +
     '<span>Régua (<kbd>N</kbd>)</span><span>Clique num bloco (A), depois em outro (B), depois em outro (C)…: cada trecho ganha uma cota. Alinhados, conta os blocos de ponta a ponta; em diagonal, a distância entre os centros. <kbd>Esc</kbd> limpa.</span>' +
@@ -2139,7 +2150,7 @@ function openHelp() {
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
-    '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
+    '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças; no jogo, ela vira um mundo novo.</span>' +
@@ -2257,7 +2268,7 @@ window.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', k: 'sculpt', n: 'ruler', j: 'tp' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }

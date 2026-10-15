@@ -26,7 +26,7 @@ function updateSelChip() {
   if (pasting && clip) {
     c.hidden = false;
     $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). Clique para colar.';
-    $('selBtns').innerHTML = '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="cancel">Cancelar</button>';
+    $('selBtns').innerHTML = '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="flipx" title="Espelhar: leste e oeste trocam de lado (F)">Espelhar ↔</button><button data-s="flipz" title="Espelhar: norte e sul trocam de lado (Shift+F)">Espelhar ↕</button><button data-s="cancel">Cancelar</button>';
   } else if (sel) {
     var d = selSize(sel);
     c.hidden = false;
@@ -164,6 +164,20 @@ function rotateClip() {
   updateSelChip(); updatePreview();
 }
 
+/* Espelhar a cópia (eixo 0 = X, leste-oeste; 2 = Z, norte-sul): posições e estados (escadas, portas com a dobradiça
+   do outro lado) pela mesma regra da simetria */
+function flipClip(a) {
+  if (!clip) return;
+  var w = clip.w, h = clip.h, l = clip.l, out = new Uint32Array(clip.cells.length);
+  for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
+    var nx = a === 0 ? w - 1 - x : x, nz = a === 2 ? l - 1 - z : z;
+    out[(y * l + nz) * w + nx] = mirrorCell(clip.cells[(y * l + z) * w + x], a);
+  }
+  clip = { w: w, h: h, l: l, cells: out, n: clip.n };
+  updateSelChip(); updatePreview();
+  toast(a === 0 ? 'Cópia espelhada: leste e oeste trocaram de lado.' : 'Cópia espelhada: norte e sul trocaram de lado.');
+}
+
 /* Colar: a prévia fica centralizada no ponto apontado, apoiada nele */
 function pasteOrigin(t) {
   var c = t && t.place; if (!c || !clip) return null;
@@ -261,7 +275,7 @@ $('selBtns').addEventListener('click', function (e) {
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
-  else if (a === 'repl') openReplace(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip();
+  else if (a === 'repl') openReplace(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
   else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
 });
 /* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */
@@ -272,6 +286,7 @@ function selectionKey(e, k) {
   if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
   if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
   if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
+  if (pasting && k === 'f' && !ctrl) { flipClip(e.shiftKey ? 2 : 0); return true; }
   // com a ferramenta Selecionar e uma área marcada, as setas e Page Up/Down movem os blocos (Shift: 5 de cada vez)
   var mk = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k];
   if (mk && sel && tool === 'select' && !pasting && !ctrl) { e.preventDefault(); moveSel(moveDir(mk), e.shiftKey ? 5 : 1); return true; }

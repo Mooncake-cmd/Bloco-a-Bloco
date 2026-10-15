@@ -27,6 +27,7 @@ src/measure.js          Medidas (cotas X, Y e Z) na tela
 src/world.js            Mundo em chunks esparsos com paleta, desfazer compacto, salvar no IndexedDB
 src/symmetry.js         Simetria (espelho) em X, Y e Z
 src/sculpt.js           Pincel de escultura de terreno
+src/shapes2.js          Mais formas (cilindro, cone, pirâmide, cúpula, arco) e o balde (encher área fechada)
 src/maskbrush.js        Pincel de troca (pincel 3D com máscara)
 src/fluids.js           Água e lava escorrendo (simulação como no Java)
 src/trees.js            Árvores que crescem com Usar nas mudas (geradores por tipo)
