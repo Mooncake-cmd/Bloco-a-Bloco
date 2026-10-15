@@ -49,7 +49,12 @@ button{cursor:pointer}
 .tbtn.primary:hover{filter:brightness(1.08)}
 .spacer{flex:1 1 0}
 .layer{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-.layer input[type=range]{width:60px;accent-color:var(--accent)}
+.layer{gap:4px}
+.tbtn.lstep{min-width:16px;padding:0}
+#layerBtn{padding:0 5px}
+.tbtn.lstep svg{width:16px;height:16px}
+.tbtn.lstep:disabled{opacity:.35}
+.layer input[type=range]{width:32px;accent-color:var(--accent)}
 .layer output{font-family:var(--font-mono);min-width:38px;color:var(--fg)}
 details.menu{position:relative}
 details.menu summary{list-style:none}
@@ -168,7 +173,9 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <div class="layer">
         <button class="tbtn" id="measTbtn" aria-pressed="true" title="Mostrar medidas da construção (D)" aria-label="Mostrar medidas"><svg viewBox="0 0 20 20"><path d="M3 15h14M3 12v6M17 12v6"/><path d="M5 15l-1.5-1.2M5 15l-1.5 1.2M15 15l1.5-1.2M15 15l1.5 1.2"/><path class="f" d="M5 3h10v6H5z"/><path d="M5 3h10v6H5z"/></svg></button>
         <button class="tbtn txt" id="layerBtn" aria-pressed="false" title="Mostrar só até uma altura ( [ e ] )">Camada</button>
+        <button class="tbtn lstep" id="layerDown" title="Descer uma camada ( [ )" aria-label="Descer uma camada" disabled><svg viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg></button>
         <input type="range" id="layerRange" min="0" max="31" value="0" disabled aria-label="Altura da camada">
+        <button class="tbtn lstep" id="layerUp" title="Subir uma camada ( ] )" aria-label="Subir uma camada" disabled><svg viewBox="0 0 20 20"><path d="M5 12l5-5 5 5"/></svg></button>
         <output id="layerOut">–</output>
       </div>
       <div class="spacer"></div>
@@ -959,6 +966,9 @@ function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
   updateEraseChip(); updateMaskChip(); updateSculptChip(); updateRulerChip();
   var t = hoverT;
+  try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
+}
+function updatePreview1(t) {
   if (selA) drawSelBox();
   if (!t) { requestRender(); return; }
   if (pasting) { pastePreview(t); requestRender(); return; }
@@ -1000,6 +1010,7 @@ function updatePreview() {
       for (var i = 0; i < n; i++) { m.setPosition(cells[i][0] + 0.5, cells[i][1] + 0.5, cells[i][2] + 0.5); previewInst.setMatrixAt(i, m); }
       previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
       previewInst.material.color.copy(lastShift ? danger : accent);
+      shapeDims(et, anchor, cell); updatePreview.sd = true; // medidas temporárias da forma
     }
   }
   requestRender();
@@ -1307,6 +1318,7 @@ function pan(dx, dy) {
 function syncLayerUI() {
   $('layerBtn').setAttribute('aria-pressed', String(layerOn));
   $('layerRange').disabled = !layerOn;
+  $('layerDown').disabled = !layerOn || layerY <= 0; $('layerUp').disabled = !layerOn || layerY >= SY - 1;
   $('layerRange').max = String(SY - 1);
   $('layerRange').value = String(layerY);
   $('layerOut').textContent = layerOn ? 'Y ' + layerY : '–';
@@ -1323,6 +1335,8 @@ function topY() {
 }
 $('layerBtn').addEventListener('click', function () { setLayer(!layerOn, layerOn ? null : (layerY || topY())); });
 $('layerRange').addEventListener('input', function (e) { setLayer(true, +e.target.value); });
+$('layerDown').addEventListener('click', function () { setLayer(true, layerY - 1); });
+$('layerUp').addEventListener('click', function () { setLayer(true, layerY + 1); });
 
 /* ---------- Texturas de pacote de recursos ---------- */
 /* O usuário escolhe um pacote (Bedrock .mcpack/.zip/pasta ou Java .zip). Só as texturas dos blocos da lista são
@@ -2097,7 +2111,7 @@ function openHelp() {
     '<span><kbd>B E I U T L R H S O V M K N</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, selecionar, pincel de troca, esculpir, régua</span>' +
     '<span>Linha e caixas (<kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd>)</span><span>Três cliques: o início, o ponto oposto e a altura (suba ou desça o ponteiro). Para uma linha de pé, clique duas vezes no mesmo ponto e suba. Esferas: dois cliques (centro e raio).</span>' +
     '<span>Esculpir terreno (<kbd>K</kbd>)</span><span>Segure o botão para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave; <kbd>Shift</kbd> inverte elevar/afundar; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
-    '<span>Medidas (<kbd>D</kbd>)</span><span>Mostra ou esconde as cotas com o número de blocos em X, Y e Z da construção (com a Camada ligada, X e Z da camada). Também no botão ao lado de Camada.</span>' +
+    '<span>Medidas (<kbd>D</kbd>)</span><span>Mostra ou esconde as cotas com o número de blocos em X, Y e Z da construção (com a Camada ligada, o contorno da camada com a medida de cada lado). Também no botão ao lado de Camada.</span>' +
     '<span>Régua (<kbd>N</kbd>)</span><span>Clique num bloco (A), depois em outro (B), depois em outro (C)…: cada trecho ganha uma cota. Alinhados, conta os blocos de ponta a ponta; em diagonal, a distância entre os centros. <kbd>Esc</kbd> limpa.</span>' +
     '<span>Simetria (<kbd>X</kbd>)</span><span>Liga o espelho: tudo o que você fizer se repete do outro lado dos planos X, Y e/ou Z. <kbd>P</kbd> põe o plano no bloco apontado (de novo: entre dois blocos).</span>' +
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
@@ -2108,7 +2122,7 @@ function openHelp() {
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças; no jogo, ela vira um mundo novo.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
-    '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível</span>' +
+    '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +

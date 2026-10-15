@@ -190,7 +190,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="strip-wrap"><div class="strip">
     <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
     <div class="marks">
-      <span class="pin" style="left:2.7%">1</span><span class="pin" style="left:5.8%">2</span><span class="pin" style="left:8.8%">3</span><span class="pin" style="left:11.9%">4</span><span class="pin" style="left:15.0%">5</span><span class="pin" style="left:18.1%">6</span><span class="pin" style="left:21.2%">7</span><span class="pin" style="left:24.3%">8</span><span class="pin" style="left:27.4%">9</span><span class="pin" style="left:30.5%">10</span><span class="pin" style="left:33.5%">11</span><span class="pin" style="left:36.6%">12</span><span class="pin" style="left:39.7%">13</span><span class="pin" style="left:42.8%">14</span><span class="pin" style="left:46.7%">15</span><span class="pin" style="left:49.8%">16</span><span class="pin" style="left:53.5%">17</span><span class="pin" style="left:58.6%">18</span><span class="pin" style="left:65.5%">19</span>
+      <span class="pin" style="left:2.7%">1</span><span class="pin" style="left:5.8%">2</span><span class="pin" style="left:8.8%">3</span><span class="pin" style="left:11.9%">4</span><span class="pin" style="left:15.0%">5</span><span class="pin" style="left:18.1%">6</span><span class="pin" style="left:21.2%">7</span><span class="pin" style="left:24.3%">8</span><span class="pin" style="left:27.4%">9</span><span class="pin" style="left:30.5%">10</span><span class="pin" style="left:33.5%">11</span><span class="pin" style="left:36.6%">12</span><span class="pin" style="left:39.7%">13</span><span class="pin" style="left:42.8%">14</span><span class="pin" style="left:46.7%">15</span><span class="pin" style="left:49.8%">16</span><span class="pin" style="left:53.5%">17</span><span class="pin" style="left:58.2%">18</span><span class="pin" style="left:65.3%">19</span>
     </div>
   </div></div>
   <div class="tbl"><table>
@@ -212,7 +212,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>14</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
       <tr><td>15–16</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
       <tr><td>17</td><td><b>Medidas</b></td><td><kbd>D</kbd></td><td>Liga e desliga as cotas de largura, altura e profundidade em volta da construção (cap. 08). Aceso = ligado.</td><td>—</td></tr>
-      <tr><td>18–19</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura e escolhe a altura no controle deslizante (cap. 05).</td><td>—</td></tr>
+      <tr><td>18–19</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura. As setas ao lado do controle descem e sobem uma camada por clique; o controle deslizante pula direto para uma altura (cap. 05).</td><td>—</td></tr>
     </tbody>
   </table></div>
 
@@ -295,8 +295,9 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Para uma caixa achatada (um piso), clique o terceiro sem subir o ponteiro.</li>
     <li>Para uma <b>linha de pé</b> (de baixo para cima), clique duas vezes no mesmo ponto e suba o ponteiro. Se o segundo ponto for longe, a linha sai inclinada até a altura escolhida.</li>
     <li><b>Esferas</b> continuam com dois cliques: o centro e um ponto da borda.</li>
+    <li>Enquanto a forma está sendo desenhada, <b>medidas temporárias</b> mostram o tamanho da prévia: largura, profundidade e altura da caixa, o comprimento da linha em blocos e o diâmetro da esfera. Elas somem ao colocar os blocos ou cancelar, e aparecem mesmo com o botão Medidas desligado.</li>
   </ul>
-  <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida no passo da altura, com o aviso Base e a instrução de subir o ponteiro no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida no passo da altura: a base já foi marcada com dois cliques e a prévia laranja sobe junto com o ponteiro. O aviso no canto superior esquerdo mostra o tamanho da base e tem o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
+  <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida no passo da altura, com o aviso Base e a instrução de subir o ponteiro no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida no passo da altura: a base já foi marcada com dois cliques e a prévia laranja sobe junto com o ponteiro, com as medidas temporárias (8 de largura, 5 de altura). O aviso no canto superior esquerdo mostra o tamanho da base e tem o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
 
   <h3>Selecionar, copiar e colar</h3>
   <figure><img src="img/selecao.jpg" alt="Árvore marcada por uma caixa azul de seleção, com o aviso Seleção 5 × 6 × 5 e os botões Copiar, Recortar, Apagar, Substituir e Limpar" width="972" height="718" loading="lazy"><figcaption>Com <b>Selecionar</b> (<kbd>V</kbd>): o primeiro clique marca um canto, a caixa azul acompanha o mouse e o segundo clique fecha a área. O aviso no canto mostra o tamanho e os botões de ação; a barra de status também mostra o tamanho da seleção.</figcaption></figure>
@@ -385,11 +386,11 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="side">
     <figure><img src="img/camada.jpg" alt="Casa cortada na altura 2, mostrando o interior com baús" width="1280" height="800" loading="lazy"><figcaption>Camada ligada na altura 2: o telhado e a parte de cima das paredes somem, e a grade sobe para essa altura.</figcaption></figure>
     <ul class="plain">
-      <li>O botão <b>Camada</b> liga o corte; o controle ao lado escolhe a altura, mostrada em número.</li>
-      <li><kbd>[</kbd> desce e <kbd>]</kbd> sobe uma camada (ligando o corte se estiver desligado).</li>
+      <li>O botão <b>Camada</b> liga o corte; a altura aparece em número ao lado.</li>
+      <li>As <b>setas</b> dos dois lados do controle descem (▼) e sobem (▲) uma camada por clique; o controle deslizante pula direto para uma altura. No teclado, <kbd>[</kbd> desce e <kbd>]</kbd> sobe (ligando o corte se estiver desligado).</li>
       <li>Com o corte ligado, as ferramentas só agem até essa altura, e o chão de colocação passa a ser a camada. Serve para fazer andares, pisos e interiores sem o telhado atrapalhar.</li>
       <li>Nada é apagado: desligar o corte mostra tudo de novo.</li>
-      <li>Com as medidas ligadas, a Camada mostra a largura (X) e a profundidade (Z) dos blocos da camada escolhida (cap. 08).</li>
+      <li>Com as medidas ligadas, a Camada mostra o contorno dos blocos daquela altura com a medida de cada lado, como numa planta baixa (cap. 08).</li>
     </ul>
   </div>
 </section>
@@ -495,13 +496,13 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <h3>Medidas na tela</h3>
   <div class="grid2">
     <figure><img src="img/medidas.jpg" alt="Casa de exemplo com cotas brancas e setas mostrando 24 blocos de largura, de profundidade e a altura" width="972" height="718" loading="lazy"><figcaption>As cotas em volta da construção: largura (X), profundidade (Z) e altura (Y), em blocos.</figcaption></figure>
-    <figure><img src="img/medidas-camada.jpg" alt="Vista de cima com a Camada ligada e as cotas de X e Z da camada visível" width="972" height="718" loading="lazy"><figcaption>Com a Camada ligada: só X e Z dos blocos daquela camada, como numa planta.</figcaption></figure>
+    <figure><img src="img/medidas-camada.jpg" alt="Vista de cima com a Camada ligada: contorno das paredes da casa com o número de blocos de cada lado" width="972" height="718" loading="lazy"><figcaption>Com a Camada ligada: o contorno dos blocos daquela camada e o tamanho de cada lado, como numa planta baixa.</figcaption></figure>
   </div>
   <ul class="plain">
     <li>Como num desenho técnico, linhas com setas mostram quantos blocos a construção tem em <b>X</b> (leste–oeste, ao longo da frente sul), <b>Z</b> (norte–sul, ao longo do lado oeste) e <b>Y</b> (altura, no canto sudeste). As medidas são da caixa que contém todos os blocos, as mesmas do campo Construção.</li>
-    <li>Com a <b>Camada</b> ligada, as cotas mostram só X e Z dos blocos <b>naquela camada</b> (a altura escolhida no controle), desenhadas por cima dela: bom para medir um andar ou uma planta.</li>
+    <li>Com a <b>Camada</b> ligada, as cotas viram uma <b>planta baixa</b>: uma linha contorna os blocos <b>daquela camada</b> e cada lado reto ganha o seu número de blocos, escrito do lado de dentro. Espaços fechados por dentro (um pátio cercado por paredes) contam como parte da planta; uma abertura até o lado de fora (uma porta) faz o contorno entrar por ela. Até 400 lados aparecem (os maiores); numa camada enorme, só a largura e a profundidade totais.</li>
     <li>Os números têm sempre o mesmo tamanho na tela; as linhas engrossam ao afastar a câmera. Elas aparecem por cima dos blocos para não sumirem atrás da construção.</li>
-    <li>Liga e desliga no botão <b>Medidas</b> da barra do topo (ao lado de desfazer/refazer; aceso = ligado; também esconde as cotas da Régua quando ela não está em uso), em <b>Projeto → Mostrar medidas</b> ou com a tecla <kbd>D</kbd> (fica guardado no navegador).</li>
+    <li>Liga e desliga no botão <b>Medidas</b> da barra do topo (ao lado de desfazer/refazer; aceso = ligado), em <b>Projeto → Mostrar medidas</b> ou com a tecla <kbd>D</kbd> (fica guardado no navegador).</li>
   </ul>
   <h3>Régua: medir de um bloco a outro</h3>
   <figure><img src="img/regua.jpg" alt="Régua medindo um muro: 23 blocos de A a B, 19 de B a C e 29,5 na diagonal de C até o topo de um tronco" width="972" height="772" loading="lazy"><figcaption>Quatro cliques: A e B no começo e no fim do muro (23), C na outra ponta (19) e D no topo do tronco (29,5 na diagonal).</figcaption></figure>
@@ -510,7 +511,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Quando os dois blocos estão na mesma linha (só X, só Y ou só Z muda), o número conta os blocos <b>incluindo os dois das pontas</b>, como contar blocos no jogo: de x = 8 a x = 30 dá 23. A cota vai de face a face.</li>
     <li>Em diagonal, o número é a distância em linha reta entre os <b>centros</b> dos blocos, com uma casa decimal (ex.: 29,5).</li>
     <li>O aviso no canto lista cada trecho (A→B, B→C...) com o eixo, a diferença ΔX, ΔY e ΔZ entre o primeiro e o último ponto e o caminho total. <b>Desfazer ponto</b> tira o último; <b>Limpar</b> ou <kbd>Esc</kbd> apaga tudo.</li>
-    <li>A régua só mede: não muda nenhum bloco nem entra no desfazer. As cotas continuam na tela ao trocar de ferramenta, mas seguem o botão <b>Medidas</b>: com ele desligado, só aparecem enquanto a Régua está escolhida. <kbd>Esc</kbd> as apaga de qualquer ferramenta.</li>
+    <li>A régua só mede: não muda nenhum bloco nem entra no desfazer. As cotas continuam na tela ao trocar de ferramenta, mesmo com o botão Medidas desligado (ele vale só para as medidas da construção). <kbd>Esc</kbd> ou Limpar as apagam.</li>
   </ul>
 </section>
 
