@@ -75,9 +75,13 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#worldChip,#maskChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
+#crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5;background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
+body.walking #viewport canvas{cursor:none}
+.chip kbd{font-size:10px;padding:0 4px}
+.chip .mbtns button#ghostOn[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
 .chip .mbtns button#worldExp{background:var(--accent);color:var(--accent-fg)}
 .chip .mbtns button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
 #symChip .mbtns button[data-sa="0"][aria-pressed=true]{background:#e0533d;color:#fff}
@@ -215,7 +219,8 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -707,7 +712,7 @@ function buildHelpers() {
   [['N', SX / 2, -2.2], ['S', SX / 2, SZ + 2.2], ['L', SX + 2.2, SZ / 2], ['O', -2.2, SZ / 2]].forEach(function (l) {
     // letras da bússola crescem com o espaço, para continuarem legíveis de longe
     var ls = Math.max(3, Math.max(SX, SZ) / 12), s = labelSprite(l[0], fg);
-    s.scale.set(ls, ls, 1); s.position.set(l[1] + Math.sign(l[1] - SX / 2) * (ls - 3) * 0.6, 0.2, l[2] + Math.sign(l[2] - SZ / 2) * (ls - 3) * 0.6); scene.add(s); helpers.push(s);
+    s.scale.set(ls, ls, 1); s.position.set(l[1] + Math.sign(l[1] - SX / 2) * (ls - 3) * 0.6, 0.2, l[2] + Math.sign(l[2] - SZ / 2) * (ls - 3) * 0.6); s._compass = true; s.visible = !walk; scene.add(s); helpers.push(s);
   });
   positionGrid();
 }
@@ -884,6 +889,7 @@ function clearChunks() {
 
 /* Câmera */
 function updateCamera() {
+  if (walk) { walkCamera(); return; } // primeira pessoa: câmera nos olhos do jogador
   var cp = Math.cos(cam.pitch);
   camera.position.set(cam.tx + cam.dist * cp * Math.sin(cam.yaw), cam.ty + cam.dist * Math.sin(cam.pitch), cam.tz + cam.dist * cp * Math.cos(cam.yaw));
   camera.lookAt(cam.tx, cam.ty, cam.tz);
@@ -995,7 +1001,7 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  updateEraseChip(); updateMaskChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip();
+  updateEraseChip(); updateMaskChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
@@ -1205,7 +1211,7 @@ function pressAt(cx, cy, shift) {
   if (et === 'select') selectPress(t);
   else if (et === 'sculpt') { if (t) sculptStart(t, shift); }
   else if (et === 'ruler') { rulerAdd(t); }
-  else if (et === 'tp') { teleportTo(t); }
+  else if (et === 'tp') { if (shift && t && (t.hit || t.place)) walkStart(t.hit || [t.place[0], t.place[1] - 1, t.place[2]]); else teleportTo(t); }
   else if (et === 'fill') { fillAt(t, shift); }
   else if (et === 'mask') {
     if (shift) maskPick(t);
@@ -1266,6 +1272,7 @@ var ptrs = new Map(), mode = null, moved = 0, lastPinch = null, downInfo = null;
 var cv = null;
 function bindCanvas() {
   cv = renderer.domElement;
+  walkBind(cv); // primeira pessoa: os cliques e a roda vão para a caminhada antes dos gestos do editor
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   cv.addEventListener('wheel', function (e) {
     e.preventDefault();
@@ -1358,6 +1365,7 @@ function pan(dx, dy) {
 function syncLayerUI() {
   $('layerBtn').setAttribute('aria-pressed', String(layerOn));
   $('layerRange').disabled = !layerOn;
+  updateGhostChip();
   $('layerDown').disabled = !layerOn || layerY <= 0; $('layerUp').disabled = !layerOn || layerY >= SY - 1;
   $('layerRange').max = String(SY - 1);
   $('layerRange').value = String(layerY);
@@ -1861,6 +1869,8 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SCULPT_JS%%*/
 /*%%SHAPES2_JS%%*/
 /*%%LIBRARY_JS%%*/
+/*%%WALK_JS%%*/
+/*%%GHOST_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /* ---------- Projeto ---------- */
@@ -2171,7 +2181,9 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
-    '<span>Teleporte (<kbd>J</kbd>)</span><span>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo.</span>' +
+    '<span>Teleporte (<kbd>J</kbd>)</span><span>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo. <kbd>Shift</kbd> + clique (ou o botão Primeira pessoa do aviso): anda dentro da construção.</span>' +
+    '<span>Primeira pessoa</span><span>Mouse olha; <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> anda; <kbd>Espaço</kbd> pula; <kbd>F</kbd> liga o voo (<kbd>Espaço</kbd> sobe, <kbd>Shift</kbd> desce); clique esquerdo quebra, direito coloca, roda e 1 a 9 trocam o bloco; <kbd>Esc</kbd> sai.</span>' +
+    '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
@@ -2191,6 +2203,13 @@ $('saveBtn').addEventListener('click', async function () {
   try { var nm = 'projeto-bloco-a-bloco.json'; var r = await saveBytes(nm, new TextEncoder().encode(JSON.stringify(serialize())), 'application/json'); reportSave(r, nm); } catch (e) { reportErr(e); }
 });
 $('openBtn').addEventListener('click', function () { $('menu').open = false; $('fileIn').click(); });
+$('walkExit').addEventListener('click', function () { walkStop(); });
+$('tpWalk').addEventListener('click', function () {
+  // entra no ponto que a câmera está olhando: em cima do bloco mais alto daquela coluna
+  var x = Math.max(0, Math.min(SX - 1, Math.floor(cam.tx))), z = Math.max(0, Math.min(SZ - 1, Math.floor(cam.tz))), y = -1;
+  for (var yy = layerMax(); yy >= 0; yy--) if (gget(x, yy, z)) { y = yy; break; }
+  walkStart([x, y, z]);
+});
 $('libBtn').addEventListener('click', function () { $('menu').open = false; openLibrary(); });
 $('worldBtn').addEventListener('click', function () { $('menu').open = false; $('worldIn').click(); });
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
@@ -2343,6 +2362,7 @@ function frame() {
   rebuildDirty();
   updateLightLabels();
   updateMeasure();
+  updateGhost();
   renderer.render(scene, camera);
 }
 

@@ -27,7 +27,10 @@ src/measure.js          Medidas (cotas X, Y e Z) na tela
 src/world.js            Mundo em chunks esparsos com paleta, desfazer compacto, salvar no IndexedDB
 src/symmetry.js         Simetria (espelho) em X, Y e Z
 src/sculpt.js           Pincel de escultura de terreno
-src/shapes2.js          Mais formas (cilindro, cone, pirâmide, cúpula, arco) e o balde (encher área fechada)
+src/shapes2.js          Mais formas (cilindro, cone, pirâmide, cúpula, arco, arestas) e o balde (encher área fechada)
+src/library.js          Biblioteca de construções (IndexedDB 'lib:'), miniatura, arquivo .biblioteca.json
+src/walk.js             Primeira pessoa: pointer lock, WASD, pulo, voo, colisão 0,6 x 1,8, quebrar e colocar
+src/ghost.js            Camada fantasma: blocos de uma camada de baixo, translúcidos, na altura da camada
 src/maskbrush.js        Pincel de troca (pincel 3D com máscara)
 src/fluids.js           Água e lava escorrendo (simulação como no Java)
 src/trees.js            Árvores que crescem com Usar nas mudas (geradores por tipo)

@@ -212,7 +212,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>14</td><td><b>Pincel de troca</b></td><td><kbd>M</kbd></td><td>Pinta trocando só um tipo de bloco (a máscara) pelo bloco da hotbar, dentro de uma esfera ou cubo; o resto fica igual (veja abaixo).</td><td>Escolhe a máscara: o bloco clicado.</td></tr>
       <tr><td>15</td><td><b>Esculpir terreno</b></td><td><kbd>K</kbd></td><td>Segure para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave (veja abaixo).</td><td>Troca elevar por afundar (e vice-versa) durante o traço.</td></tr>
       <tr><td>16</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
-      <tr><td>17</td><td><b>Teleporte</b></td><td><kbd>J</kbd></td><td>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo (cap. 04).</td><td>—</td></tr>
+      <tr><td>17</td><td><b>Teleporte</b></td><td><kbd>J</kbd></td><td>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo (cap. 04).</td><td>Entra em <b>primeira pessoa</b> em cima do bloco clicado (cap. 04).</td></tr>
       <tr><td>18–19</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
       <tr><td>20</td><td><b>Medidas</b></td><td><kbd>D</kbd></td><td>Liga e desliga as cotas de largura, altura e profundidade em volta da construção (cap. 08). Aceso = ligado.</td><td>—</td></tr>
       <tr><td>21–22</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura. As setas ao lado do controle descem e sobem uma camada por clique; o controle deslizante pula direto para uma altura (cap. 05).</td><td>—</td></tr>
@@ -431,6 +431,15 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   </table></div>
   <p>Um clique simples com o botão direito (sem arrastar) cancela uma forma em andamento. A bússola no chão mostra <b>N</b>orte, <b>S</b>ul, <b>L</b>este e <b>O</b>este; elas são as mesmas direções do jogo, então uma porta virada para o norte aqui fica virada para o norte no mundo (em relação à posição em que a estrutura é carregada). Em espaços grandes, as letras crescem e o zoom afasta mais.</p>
   <p><b>Teleporte</b> (<kbd>J</kbd>, o último ícone das ferramentas): clique num bloco e a câmera desliza até ele em menos de meio segundo, ficando em cima dele e mais perto (até 16 blocos de distância), com o mesmo ângulo de antes. Serve para atravessar uma construção ou uma área grande do mundo sem arrastar a vista. Clicando no vazio, vai para o ponto do chão apontado. Um aviso mostra as coordenadas (as do jogo, com um mundo aberto). <kbd>Home</kbd> volta à vista geral.</p>
+  <h3>Primeira pessoa: andar dentro da construção</h3>
+  <figure><img src="img/primeira-pessoa.jpg" alt="Vista em primeira pessoa da frente da casa de exemplo, com a porta, as janelas e as tochas, a mira no centro e o aviso Primeira pessoa no canto" width="972" height="772" loading="lazy"><figcaption>Em primeira pessoa, na frente da casa de exemplo: a mira no centro e o aviso com a posição e os comandos.</figcaption></figure>
+  <ul class="plain">
+    <li><b>Entrar</b>: com o <b>Teleporte</b> (<kbd>J</kbd>), <kbd>Shift</kbd> + clique num bloco (você aparece em cima dele), ou o botão <b>Primeira pessoa</b> do aviso do Teleporte (aparece no ponto para onde a câmera está olhando).</li>
+    <li>O mouse fica preso na tela e gira a visão. <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> anda, <kbd>Espaço</kbd> pula. <kbd>F</kbd> liga e desliga o <b>voo</b>: voando, <kbd>Espaço</kbd> sobe e <kbd>Shift</kbd> desce.</li>
+    <li>O jogador bate nos blocos como no jogo (1,8 de altura, 0,6 de largura) e sobe degraus de 1 bloco sozinho. Escada de mão, trepadeira e andaime sobem com <kbd>Espaço</kbd> ou <kbd>W</kbd>; na água, <kbd>Espaço</kbd> nada para cima. Portas, alçapões, portões, plantas, tochas e afins deixam passar.</li>
+    <li>Também dá para construir como no jogo: clique <b>esquerdo quebra</b>, <b>direito coloca</b> o bloco da hotbar e o botão do meio pega o bloco apontado (alcance de 8 blocos). A roda do mouse e <kbd>1</kbd>…<kbd>9</kbd> trocam o bloco. Cada clique é um <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+    <li><kbd>Esc</kbd> (ou <b>Sair</b> no aviso) volta à câmera normal, girando em volta de onde você estava. Com a Camada ligada, nada acima do corte existe para o jogador.</li>
+  </ul>
 </section>
 
 <section id="camada">
@@ -442,9 +451,11 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>As <b>setas</b> dos dois lados do controle descem (▼) e sobem (▲) uma camada por clique; o controle deslizante pula direto para uma altura. No teclado, <kbd>[</kbd> desce e <kbd>]</kbd> sobe (ligando o corte se estiver desligado).</li>
       <li>Com o corte ligado, as ferramentas só agem até essa altura, e o chão de colocação passa a ser a camada. Serve para fazer andares, pisos e interiores sem o telhado atrapalhar.</li>
       <li>Nada é apagado: desligar o corte mostra tudo de novo.</li>
+      <li><b>Fantasma</b>: com a Camada ligada aparece o aviso <b>Fantasma</b>. Ligado, ele mostra em azul translúcido, na altura da camada atual, os blocos de uma camada de baixo, como papel vegetal sobre a planta do andar de baixo. Assim dá para alinhar as paredes do andar de cima com as de baixo mesmo com o piso no meio. − e + escolhem qual camada serve de referência (começa 1 abaixo; para pular o piso, use 2). Onde você já construiu, o fantasma some. A escolha fica guardada.</li>
       <li>Com as medidas ligadas, a Camada mostra o contorno dos blocos daquela altura com a medida de cada lado, como numa planta baixa (cap. 08).</li>
     </ul>
   </div>
+<figure><img src="img/fantasma.jpg" alt="Andar de cima começando sobre um piso de tábuas, com as paredes do térreo aparecendo em azul translúcido por cima do piso" width="972" height="640" loading="lazy" style="max-width:760px"><figcaption>Fantasma ligado, 2 camadas abaixo: as paredes do térreo aparecem em azul sobre o piso, e as de tijolo do andar de cima são construídas em cima delas.</figcaption></figure>
 </section>
 
 <section id="paleta">
@@ -754,7 +765,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>X</kbd></td><td>Liga e desliga a simetria (espelho)</td></tr>
         <tr><td><kbd>D</kbd></td><td>Mostra e esconde as medidas (X, Y e Z); o mesmo que o botão Medidas</td></tr>
         <tr><td><kbd>N</kbd></td><td>Régua: clique no bloco A, depois B, C... (<kbd>Esc</kbd> limpa)</td></tr>
-        <tr><td><kbd>J</kbd></td><td>Teleporte: a câmera vai até o bloco clicado</td></tr>
+        <tr><td><kbd>J</kbd></td><td>Teleporte: a câmera vai até o bloco clicado (<kbd>Shift</kbd> + clique: primeira pessoa)</td></tr>
+        <tr><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>, <kbd>Espaço</kbd>, <kbd>F</kbd></td><td>Em primeira pessoa: andar, pular, voar (<kbd>Esc</kbd> sai)</td></tr>
         <tr><td><kbd>P</kbd></td><td>Com a simetria ligada: plano no bloco apontado</td></tr>
         <tr><td><kbd>M</kbd></td><td>Pincel de troca (<kbd>Shift</kbd> + clique escolhe a máscara; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio)</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>
@@ -791,6 +803,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
+      <tr><td>Primeira pessoa</td><td>Precisa de teclado e mouse (no celular dá para olhar arrastando, mas não andar). Lajes, escadas e cercas contam como bloco inteiro (o degrau de 1 bloco é subido sozinho); portas e portões deixam passar abertos ou fechados.</td></tr>
       <tr><td>Mundo do jogo</td><td>Só Bedrock (o .mcworld); mundos do Java ainda não. No máximo 512 × 512 por vez (troque de área para editar mais). Pedaços num formato muito antigo do jogo ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Ainda não foi conferido dentro do jogo: teste primeiro numa cópia do mundo.</td></tr>
       <tr><td>Importação</td><td>Nomes de versões antigas (Java antes da 1.13, nomes antigos do Bedrock) e o .schematic do MCEdit não abrem. A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
       <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>
