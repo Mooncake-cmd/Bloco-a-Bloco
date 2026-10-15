@@ -123,6 +123,12 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 .wtabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .wtabs button:disabled{opacity:.45}
 .dialog p.wmhelp{font-size:12px}
+.lib{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
+.libit{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);flex-wrap:wrap}
+.libit img{width:64px;height:64px;border-radius:6px;background:var(--bg);image-rendering:pixelated;flex:none}
+.libit .nm{flex:1;min-width:160px;display:flex;flex-direction:column;gap:2px}
+.libit .nm small{color:var(--muted);font:12px var(--font-mono)}
+.libit .btn{height:32px;padding:0 10px}
 .dialog h3{margin:0;font:700 20px var(--font-display);letter-spacing:-.01em}
 .dialog p{margin:0;color:var(--muted)}
 .dialog .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -192,6 +198,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="saveBtn">Salvar projeto (.json)</button>
           <button class="tbtn txt" id="openBtn">Abrir projeto ou estrutura…</button>
           <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (.mcworld)…</button>
+          <button class="tbtn txt" id="libBtn">Biblioteca de construções…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
@@ -210,7 +217,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
@@ -1055,9 +1062,9 @@ function hasHeightStep(k) { return k === 'line' || k === 'box' || k === 'hbox' |
 function updateAnchorChip() {
   if (!anchor) anchor2 = null;
   $('anchorChip').hidden = !anchor;
-  if (anchor2 && tool === 'shape2') $('anchorTxt').textContent = (shape2.type === 'arch' ? 'Vão ' + (Math.max(Math.abs(anchor[0] - anchor2[0]), Math.abs(anchor[2] - anchor2[2])) + 1) : 'Raio ' + Math.round(Math.hypot(anchor[0] - anchor2[0], anchor[2] - anchor2[2]))) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
+  if (anchor2 && tool === 'shape2') $('anchorTxt').textContent = (shape2.type === 'edge' ? 'Base ' + (Math.abs(anchor[0] - anchor2[0]) + 1) + ' × ' + (Math.abs(anchor[2] - anchor2[2]) + 1) : shape2.type === 'arch' ? 'Vão ' + (Math.max(Math.abs(anchor[0] - anchor2[0]), Math.abs(anchor[2] - anchor2[2])) + 1) : 'Raio ' + Math.round(Math.hypot(anchor[0] - anchor2[0], anchor[2] - anchor2[2]))) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
   else if (anchor2) $('anchorTxt').textContent = (tool === 'line' ? 'Fim ' + anchor2.join(', ') : 'Base ' + (Math.abs(anchor[0] - anchor2[0]) + 1) + ' × ' + (Math.abs(anchor[2] - anchor2[2]) + 1)) + ' · suba ou desça o ponteiro para a altura e clique (Shift apaga)';
-  else if (anchor && tool === 'shape2') $('anchorTxt').textContent = ({ cyl: 'Centro ', cone: 'Centro ', dome: 'Centro ', arch: 'Pé ', pyr: 'Canto ' }[shape2.type]) + anchor.join(', ') + ' · toque ' + ({ cyl: 'na borda (o raio)', cone: 'na borda (o raio)', dome: 'na borda (o raio)', arch: 'no outro pé', pyr: 'no canto oposto' }[shape2.type]) + (hasHeightStep(tool) ? '' : ' (Shift apaga)');
+  else if (anchor && tool === 'shape2') $('anchorTxt').textContent = ({ cyl: 'Centro ', cone: 'Centro ', dome: 'Centro ', arch: 'Pé ', pyr: 'Canto ', edge: 'Canto ' }[shape2.type]) + anchor.join(', ') + ' · toque ' + ({ cyl: 'na borda (o raio)', cone: 'na borda (o raio)', dome: 'na borda (o raio)', arch: 'no outro pé', pyr: 'no canto oposto', edge: 'no canto oposto' }[shape2.type]) + (hasHeightStep(tool) ? '' : ' (Shift apaga)');
   else if (anchor) $('anchorTxt').textContent = 'Início ' + anchor.join(', ') + ' · toque no ' + (hasHeightStep(tool) ? 'ponto oposto' : 'ponto final') + (hasHeightStep(tool) ? '' : ' (Shift apaga)');
 }
 /* Altura apontada: o ponto da coluna vertical em (x, z) mais perto do raio do ponteiro */
@@ -2995,7 +3002,7 @@ function updateSelChip() {
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
     $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
       '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
-      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button>' +
+      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
     c.hidden = false;
@@ -3237,7 +3244,7 @@ $('selBtns').addEventListener('click', function (e) {
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
-  else if (a === 'repl') openReplace(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
+  else if (a === 'repl') openReplace(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
   else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
 });
 /* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */
@@ -4072,11 +4079,13 @@ function sculptPreview(t, accent) {
      Arco: um pé, o outro pé (na mesma linha) e a altura do topo.
      Pirâmide: dois cantos da base; a altura sai sozinha (cada camada recua um bloco de cada lado).
      Cúpula: centro e um ponto da borda; meia esfera para cima.
+     Arestas: como a caixa (dois cantos da base e a altura), mas só as 12 arestas; com uma das medidas igual a 1,
+     vira uma moldura (o contorno de um retângulo).
    Oco: cilindro vira tubo (sem tampas, como uma torre); cone, pirâmide e cúpula viram casca sem chão. */
 var shape2 = { type: 'cyl', hollow: false };
 try { var s20 = JSON.parse(localStorage.getItem('bloco-a-bloco-shape2') || 'null'); if (s20) shape2 = Object.assign(shape2, s20); } catch (e) {}
-var SHAPE2_NAMES = { cyl: 'Cilindro', cone: 'Cone', pyr: 'Pirâmide', dome: 'Cúpula', arch: 'Arco' };
-function shape2Height(t) { return t === 'cyl' || t === 'cone' || t === 'arch'; }
+var SHAPE2_NAMES = { cyl: 'Cilindro', cone: 'Cone', pyr: 'Pirâmide', dome: 'Cúpula', arch: 'Arco', edge: 'Arestas' };
+function shape2Height(t) { return t === 'cyl' || t === 'cone' || t === 'arch' || t === 'edge'; }
 function shape2Save() { try { localStorage.setItem('bloco-a-bloco-shape2', JSON.stringify(shape2)); } catch (e) {} }
 /* Células da forma: a = primeiro clique; b = segundo clique (com a altura escolhida, nas formas de três cliques) */
 function shape2Cells(a, b) {
@@ -4099,6 +4108,14 @@ function shape2Cells(a, b) {
   } else if (t === 'pyr') {
     var x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), z0 = Math.min(a[2], b[2]), z1 = Math.max(a[2], b[2]);
     for (var k = 0; x0 + k <= x1 - k && z0 + k <= z1 - k; k++) for (var z2 = z0 + k; z2 <= z1 - k; z2++) for (var x2 = x0 + k; x2 <= x1 - k; x2++) add(x2, a[1] + k, z2);
+  } else if (t === 'edge') {
+    // arestas da caixa: blocos que estão na borda em pelo menos dois dos três eixos
+    var ex0 = Math.min(a[0], b[0]), ex1 = Math.max(a[0], b[0]), ez0 = Math.min(a[2], b[2]), ez1 = Math.max(a[2], b[2]);
+    for (var ey = y0; ey <= y1; ey++) for (var ez = ez0; ez <= ez1; ez++) for (var ex = ex0; ex <= ex1; ex++) {
+      var n = (ex === ex0 || ex === ex1 ? 1 : 0) + (ey === y0 || ey === y1 ? 1 : 0) + (ez === ez0 || ez === ez1 ? 1 : 0);
+      if (n >= 2) add(ex, ey, ez);
+    }
+    return out;
   } else if (t === 'arch') {
     // os dois pés na linha do eixo mais comprido; o arco é um anel de 1 bloco (meia elipse) do chão até o topo
     var ax = Math.abs(b[0] - a[0]) >= Math.abs(b[2] - a[2]) ? 0 : 2, lo = Math.min(a[ax], b[ax]), L = Math.abs(b[ax] - a[ax]) + 1, H = Math.max(1, y1 - a[1]);
@@ -4127,7 +4144,7 @@ function updateShape2Chip() {
   var c = $('shape2Chip'), on = tool === 'shape2'; c.hidden = !on; if (!on) return;
   c.querySelectorAll('[data-s2]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-s2') === shape2.type); });
   $('shape2Hollow').setAttribute('aria-pressed', String(shape2.hollow));
-  $('shape2Hollow').disabled = shape2.type === 'arch';
+  $('shape2Hollow').disabled = shape2.type === 'arch' || shape2.type === 'edge';
 }
 $('shape2Chip').addEventListener('click', function (e) {
   var b = e.target.closest('button'); if (!b) return;
@@ -4178,6 +4195,148 @@ function fillPreview(t, color) {
   if (!t || !t.hit) return;
   var n = t.normal || [0, 1, 0], c = lastShift ? t.hit : t.place;
   ghostEdges.material.color.copy(color); setBoxAt(ghostEdges, c); ghostEdges.visible = true;
+}
+
+/* ---------- Biblioteca de construções ---------- */
+/* Guarda construções com nome no navegador (IndexedDB, chaves 'lib:<id>'), separadas do projeto: valem para qualquer
+   projeto, estrutura importada ou mundo do jogo aberto depois, e continuam depois de recarregar a página.
+   Cada item: { id, name, w, h, l, n (blocos), t (data), pal: [nome da célula], d: índices (y, z, x), pres: [NBT em
+   base64 dos blocos do jogo que o editor não conhece], thumb (miniatura vista de cima, PNG em base64) }.
+   Os blocos ficam por nome (como no projeto .json), então sobrevivem a mudanças na lista de blocos. */
+function libKeyRange() { return IDBKeyRange.bound('lib:', 'lib:￿'); }
+function libAll() { return idbDo('readonly', function (st) { return st.getAll(libKeyRange()); }).then(function (l) { return (l || []).sort(function (a, b) { return b.t - a.t; }); }, function () { return []; }); }
+function libPut(it) { return idbDo('readwrite', function (st) { st.put(it, 'lib:' + it.id); }); }
+function libDel(id) { return idbDo('readwrite', function (st) { st.delete('lib:' + id); }); }
+/* Miniatura: vista pelo lado de maior área (de cima para um piso, de frente para uma parede ou torre); em cada ponto,
+   o primeiro bloco visto, mais escuro quanto mais longe */
+function libThumb(c) {
+  var S = 96, dims = [c.w, c.h, c.l];
+  var view = c.w * c.l >= Math.max(c.w * c.h, c.l * c.h) ? 1 : c.w * c.h >= c.l * c.h ? 2 : 0; // eixo da profundidade
+  var ua = view === 0 ? 2 : 0, va = view === 1 ? 2 : 1, U = dims[ua], V = dims[va], D = dims[view];
+  var cv = document.createElement('canvas'); cv.width = cv.height = S;
+  var g = cv.getContext('2d'), sc = S / Math.max(U, V), ox = (S - U * sc) / 2, oy = (S - V * sc) / 2;
+  for (var v = 0; v < V; v++) for (var u = 0; u < U; u++) for (var k = 0; k < D; k++) {
+    var p = [0, 0, 0]; p[ua] = u; p[va] = view === 1 ? v : V - 1 - v; p[view] = view === 1 ? D - 1 - k : k; // de cima: do alto para baixo; de frente: de perto para longe
+    var cell = c.cells[(p[1] * c.l + p[2]) * c.w + p[0]]; if (!cell) continue;
+    var b = BLOCKS[cellBlock(cell)], col = (b && (view === 1 ? b.top : b.side)) || [150, 150, 150], f = 1 - 0.4 * (D > 1 ? k / (D - 1) : 0);
+    g.fillStyle = 'rgb(' + Math.round(col[0] * f) + ',' + Math.round(col[1] * f) + ',' + Math.round(col[2] * f) + ')';
+    g.fillRect(ox + u * sc, oy + v * sc, Math.ceil(sc), Math.ceil(sc)); break;
+  }
+  return cv.toDataURL('image/png');
+}
+/* Cópia (clip) -> item da biblioteca */
+function libFromClip(c, name) {
+  var pal = [''], map = new Map([[0, 0]]), pres = [], presMap = new Map(), vol = c.cells.length, big = false;
+  var d = new Uint16Array(vol);
+  for (var i = 0; i < vol; i++) {
+    var v = c.cells[i]; if (!v) continue;
+    var pi = map.get(v);
+    if (pi === undefined) {
+      var nm = cellName(v);
+      if (cellBlock(v) === PRES_BI) { // bloco do jogo: leva os bytes junto, para colar em outro mundo
+        var e = wio && wio.pres[cellOri(v)], pk = e ? b64(e.raw) : null;
+        if (pk != null) { if (!presMap.has(pk)) { presMap.set(pk, pres.length); pres.push(pk); } nm = 'bab_preserved#' + presMap.get(pk); }
+      }
+      pi = pal.length; pal.push(nm); map.set(v, pi);
+      if (pal.length > 65535) { big = true; break; }
+    }
+    d[i] = pi;
+  }
+  if (big) throw new Error('Blocos diferentes demais nessa seleção para a biblioteca.');
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, w: c.w, h: c.h, l: c.l, n: c.n, t: Date.now(), pal: pal, d: d, pres: pres, thumb: libThumb(c) };
+}
+/* Item -> cópia pronta para colar; blocos do jogo voltam para a lista do mundo aberto (sem mundo, ficam de fora) */
+function libToClip(it) {
+  var lost = 0, vals = it.pal.map(function (nm) {
+    if (!nm) return 0;
+    var m = /^bab_preserved#(\d+)$/.exec(nm);
+    if (m) {
+      var raw = it.pres && it.pres[+m[1]] ? unb64(it.pres[+m[1]]) : null;
+      if (!raw || !wio) return -1;
+      var k = wioStr(raw), j = wio.presMap.get(k);
+      if (j === undefined) { j = wio.pres.length; wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); wio.presMap.set(k, j); }
+      return (PRES_BI + 1) + j * 4096;
+    }
+    return cellFromName(nm) || -1;
+  });
+  var d = it.d instanceof Uint16Array ? it.d : new Uint16Array(it.d.buffer || it.d), cells = new Uint32Array(d.length), n = 0;
+  for (var i = 0; i < d.length; i++) { var v = vals[d[i]]; if (v > 0) { cells[i] = v; n++; } else if (v < 0) lost++; }
+  return { clip: { w: it.w, h: it.h, l: it.l, cells: cells, n: n }, lost: lost };
+}
+function libSaveSel() {
+  if (!sel) { toast('Selecione a construção primeiro (ferramenta Selecionar, V).'); return; }
+  var d = selSize(sel);
+  openDialog('<h3>Salvar na biblioteca</h3><p>Área de ' + d[0] + ' × ' + d[1] + ' × ' + d[2] + '. Fica guardada neste navegador para colar em qualquer projeto ou mundo, mesmo depois de fechar a página.</p>' +
+    '<label>Nome<input type="text" id="lbName" maxlength="60" placeholder="ex.: torre de vigia"></label><p id="lbErr" class="err" hidden></p>' +
+    '<div class="row"><button class="btn primary" id="lbOk">Salvar</button><button class="btn" id="lbNo">Cancelar</button></div>', function () {
+    $('lbNo').onclick = closeDialog;
+    var go = function () {
+      var nm = $('lbName').value.trim(); if (!nm) { $('lbErr').hidden = false; $('lbErr').textContent = 'Dê um nome para a construção.'; return; }
+      var prev = clip; copySel(false); var c = clip; clip = prev || c; updateSelChip(); // a área copiada do usuário continua a mesma
+      if (!c || !c.n) { closeDialog(); toast('A seleção está vazia: não há blocos para guardar.'); return; }
+      var it; try { it = libFromClip(c, nm); } catch (e) { $('lbErr').hidden = false; $('lbErr').textContent = e.message; return; }
+      libPut(it).then(function () { closeDialog(); toast('“' + nm + '” salva na biblioteca (' + c.n + ' blocos). Projeto → Biblioteca para colar.', 6000); },
+        function () { $('lbErr').hidden = false; $('lbErr').textContent = 'O navegador não deixou guardar (espaço cheio?).'; });
+    };
+    $('lbOk').onclick = go; $('lbName').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+  });
+}
+function libPaste(it) {
+  var r = libToClip(it);
+  if (!r.clip.n) { toast(r.lost ? 'Esta construção só tem blocos do jogo que o editor não conhece: eles só colam com um mundo do jogo aberto (Projeto → Abrir mundo do jogo).' : 'Nada para colar: os blocos desta construção não existem aqui.', 7000); return; }
+  clip = r.clip; closeDialog(); startPaste();
+  toast('Colando “' + it.name + '”: clique onde quer pôr. R gira, F espelha, Esc termina.' + (r.lost ? ' ' + r.lost + ' blocos do jogo ficaram de fora (só colam com um mundo do jogo aberto).' : ''), 7000);
+}
+/* Arquivo para levar a outro navegador ou aparelho */
+function libFile(it) {
+  var o = Object.assign({}, it, { kind: 'bloco-a-bloco-biblioteca', v: 1, d: b64(new Uint8Array((it.d.buffer ? it.d : new Uint16Array(it.d)).buffer)) });
+  return new TextEncoder().encode(JSON.stringify(o));
+}
+function libFromFile(txt) {
+  var o = JSON.parse(txt);
+  if (o.kind !== 'bloco-a-bloco-biblioteca' || !o.pal || !o.d) throw new Error('Este arquivo não é uma construção da biblioteca.');
+  var u = unb64(o.d); o.d = new Uint16Array(u.buffer, 0, u.length >> 1);
+  o.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); o.t = Date.now(); delete o.kind; delete o.v;
+  return o;
+}
+function openLibrary() {
+  libAll().then(function (list) {
+    var rows = list.map(function (it) {
+      return '<div class="libit" data-id="' + it.id + '"><img src="' + (it.thumb || '') + '" alt=""><div class="nm"><b>' + esc(it.name) + '</b><small>' + it.w + ' × ' + it.h + ' × ' + it.l + ' · ' + it.n.toLocaleString('pt-BR') + ' blocos · ' + new Date(it.t).toLocaleDateString('pt-BR') + (it.pres && it.pres.length ? ' · com blocos do jogo' : '') + '</small></div>' +
+        '<div class="row"><button class="btn primary" data-lb="paste">Colar</button><button class="btn" data-lb="ren">Renomear</button><button class="btn" data-lb="dl">Baixar</button><button class="btn" data-lb="del">Apagar</button></div></div>';
+    }).join('');
+    openDialog('<h3>Biblioteca de construções</h3>' +
+      '<p>Construções guardadas neste navegador. Para pôr uma aqui: selecione com <b>Selecionar</b> (V) e use <b>Salvar na biblioteca</b> no aviso da seleção. <b>Colar</b> funciona em qualquer projeto ou mundo aberto.</p>' +
+      (rows ? '<div class="lib">' + rows + '</div>' : '<div class="info">A biblioteca está vazia.</div>') +
+      '<div class="row"><button class="btn" id="lbImp">Importar arquivo…</button>' + (sel ? '<button class="btn" id="lbSave">Salvar a seleção atual</button>' : '') + '<button class="btn" id="lbClose">Fechar</button></div>' +
+      '<input type="file" id="lbIn" accept=".json,application/json" hidden>', function () {
+      overlayRoot.querySelector('.dialog').classList.add('wide');
+      $('lbClose').onclick = closeDialog;
+      if ($('lbSave')) $('lbSave').onclick = function () { closeDialog(); libSaveSel(); };
+      $('lbImp').onclick = function () { $('lbIn').click(); };
+      $('lbIn').onchange = function (e) {
+        var f = e.target.files && e.target.files[0]; if (!f) return;
+        f.text().then(function (t) { var it = libFromFile(t); return libPut(it).then(function () { toast('“' + it.name + '” entrou na biblioteca.'); openLibrary(); }); })
+          .catch(function (x) { toast(x.message || 'Não foi possível importar.', 6000); });
+      };
+      overlayRoot.querySelectorAll('.libit').forEach(function (row) {
+        var it = list.find(function (q) { return q.id === row.getAttribute('data-id'); });
+        row.addEventListener('click', function (e) {
+          var b = e.target.closest('[data-lb]'); if (!b) return;
+          var a = b.getAttribute('data-lb');
+          if (a === 'paste') libPaste(it);
+          else if (a === 'del') {
+            if (b.dataset.armed) libDel(it.id).then(openLibrary);
+            else { b.dataset.armed = '1'; b.textContent = 'Confirmar'; b.classList.add('danger'); }
+          } else if (a === 'ren') {
+            var nm = prompt('Novo nome:', it.name); if (nm && nm.trim()) { it.name = nm.trim(); libPut(it).then(openLibrary); }
+          } else if (a === 'dl') {
+            saveBytes(cleanName(it.name) + '.biblioteca.json', libFile(it), 'application/json').then(function (r) { reportSave(r, cleanName(it.name) + '.biblioteca.json'); }, reportErr);
+          }
+        });
+      });
+    });
+  });
 }
 
 /* ---------- Medidas na tela ---------- */
@@ -5533,7 +5692,7 @@ function openHelp() {
     '<span><kbd>Roda</kbd></span><span>Zoom</span>' +
     '<span><kbd>B E I U T L R H S O C F V M K N J</kbd></span><span>Pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, mais formas, balde, selecionar, pincel de troca, esculpir, régua, teleporte</span>' +
     '<span>Linha e caixas (<kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd>)</span><span>Três cliques: o início, o ponto oposto e a altura (suba ou desça o ponteiro). Para uma linha de pé, clique duas vezes no mesmo ponto e suba. Esferas: dois cliques (centro e raio).</span>' +
-    '<span>Mais formas (<kbd>C</kbd>)</span><span>Cilindro, cone, pirâmide, cúpula e arco (escolha no aviso do canto; Oco faz só a casca). Cilindro, cone e arco: três cliques (centro ou pé, borda ou outro pé, altura); pirâmide e cúpula: dois.</span>' +
+    '<span>Mais formas (<kbd>C</kbd>)</span><span>Cilindro, cone, pirâmide, cúpula, arco e arestas (escolha no aviso do canto; Oco faz só a casca). Arestas: como a caixa, mas só as 12 arestas (com 1 de espessura, uma moldura). Cilindro, cone e arco: três cliques (centro ou pé, borda ou outro pé, altura); pirâmide e cúpula: dois.</span>' +
     '<span>Balde (<kbd>F</kbd>)</span><span>Clique num bloco: enche o espaço fechado ao lado da face clicada (o piso de uma sala, por exemplo). <kbd>Shift</kbd> + clique troca a região ligada do mesmo bloco.</span>' +
     '<span>Esculpir terreno (<kbd>K</kbd>)</span><span>Segure o botão para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave; <kbd>Shift</kbd> inverte elevar/afundar; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Medidas (<kbd>D</kbd>)</span><span>Mostra ou esconde as cotas com o número de blocos em X, Y e Z da construção (com a Camada ligada, o contorno da camada com a medida de cada lado). Também no botão ao lado de Camada.</span>' +
@@ -5542,6 +5701,7 @@ function openHelp() {
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
+    '<span>Biblioteca</span><span>Com uma área selecionada, <b>Salvar na biblioteca</b> guarda a construção com nome neste navegador. Projeto → Biblioteca de construções lista tudo para colar em qualquer projeto ou mundo, baixar como arquivo e importar.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
@@ -5571,6 +5731,7 @@ $('saveBtn').addEventListener('click', async function () {
   try { var nm = 'projeto-bloco-a-bloco.json'; var r = await saveBytes(nm, new TextEncoder().encode(JSON.stringify(serialize())), 'application/json'); reportSave(r, nm); } catch (e) { reportErr(e); }
 });
 $('openBtn').addEventListener('click', function () { $('menu').open = false; $('fileIn').click(); });
+$('libBtn').addEventListener('click', function () { $('menu').open = false; openLibrary(); });
 $('worldBtn').addEventListener('click', function () { $('menu').open = false; $('worldIn').click(); });
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });

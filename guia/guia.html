@@ -204,7 +204,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>8</td><td><b>Caixa oca</b> (paredes)</td><td><kbd>H</kbd></td></tr>
       <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td><td rowspan="2">Dois cliques: o centro e um ponto da borda (o raio).</td></tr>
       <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
-      <tr><td>11</td><td><b>Mais formas</b></td><td><kbd>C</kbd></td><td>Cilindro, cone, pirâmide, cúpula e arco, escolhidos no aviso do canto, com a opção Oco (veja abaixo).</td><td>No último clique, apaga a forma.</td></tr>
+      <tr><td>11</td><td><b>Mais formas</b></td><td><kbd>C</kbd></td><td>Cilindro, cone, pirâmide, cúpula, arco e arestas, escolhidos no aviso do canto, com a opção Oco (veja abaixo).</td><td>No último clique, apaga a forma.</td></tr>
       <tr><td>12</td><td><b>Balde</b></td><td><kbd>F</kbd></td><td>Clique num bloco: enche o espaço fechado ao lado da face clicada, até bater nos blocos (veja abaixo).</td><td>Troca a região ligada do mesmo bloco clicado pelo bloco da hotbar.</td></tr>
       <tr><td>13</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: mover, copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
       <tr><td>14</td><td><b>Pincel de troca</b></td><td><kbd>M</kbd></td><td>Pinta trocando só um tipo de bloco (a máscara) pelo bloco da hotbar, dentro de uma esfera ou cubo; o resto fica igual (veja abaixo).</td><td>Escolhe a máscara: o bloco clicado.</td></tr>
@@ -301,7 +301,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   </ul>
   <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida no passo da altura, com o aviso Base e a instrução de subir o ponteiro no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida no passo da altura: a base já foi marcada com dois cliques e a prévia laranja sobe junto com o ponteiro, com as medidas temporárias (8 de largura, 5 de altura). O aviso no canto superior esquerdo mostra o tamanho da base e tem o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
 
-  <h3>Mais formas: cilindro, cone, pirâmide, cúpula e arco</h3>
+  <h3>Mais formas: cilindro, cone, pirâmide, cúpula, arco e arestas</h3>
   <figure><img src="img/mais-formas.jpg" alt="Torre de tijolos de pedra (cilindro oco) com telhado em cone, pirâmide de arenito, arco de quartzo e cúpula de vidro sobre a grama" width="972" height="772" loading="lazy"><figcaption>Uma de cada: torre (cilindro oco) com telhado em cone, pirâmide, arco e cúpula de vidro (oca). O aviso no canto escolhe a forma.</figcaption></figure>
   <ul class="plain">
     <li>A ferramenta <b>Mais formas</b> (<kbd>C</kbd>, o cilindro na barra) desenha a forma escolhida no aviso do canto, com o bloco da hotbar. Como nas outras formas, há prévia laranja, medidas temporárias, <kbd>Shift</kbd> no último clique apaga e <kbd>Esc</kbd> cancela.</li>
@@ -309,8 +309,10 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><b>Arco</b>: três cliques. Um pé, o outro pé (na mesma linha, em X ou em Z) e a altura do topo. Sai um arco de 1 bloco de espessura, em meia elipse, com os blocos encostados face com face.</li>
     <li><b>Pirâmide</b>: dois cliques, os cantos da base. Cada camada recua um bloco de cada lado até fechar, então a altura sai sozinha.</li>
     <li><b>Cúpula</b>: dois cliques, o centro e um ponto da borda. É meia esfera, para cima.</li>
-    <li><b>Oco</b>: o cilindro vira um tubo sem tampas (uma torre); cone, pirâmide e cúpula viram só a casca, sem chão. A escolha da forma e do Oco fica guardada.</li>
+    <li><b>Arestas</b>: três cliques, como a caixa (dois cantos da base e a altura), mas sai só o esqueleto: as 12 arestas da caixa. Com uma das medidas igual a 1 (uma caixa achatada, de pé ou deitada), vira uma <b>moldura</b>: o contorno de um retângulo.</li>
+    <li><b>Oco</b>: o cilindro vira um tubo sem tampas (uma torre); cone, pirâmide e cúpula viram só a casca, sem chão. Não vale para arco e arestas, que já são finos. A escolha da forma e do Oco fica guardada.</li>
   </ul>
+  <figure><img src="img/arestas.jpg" alt="Duas estruturas de tijolos de pedra feitas com Arestas: uma moldura quadrada de pé e o esqueleto de uma caixa" width="972" height="640" loading="lazy"><figcaption>Arestas: à esquerda, uma moldura (caixa com 1 de espessura); à direita, o esqueleto de uma caixa de 8 × 12 × 9.</figcaption></figure>
 
   <h3>Balde: encher uma área fechada</h3>
   <figure><img src="img/balde.jpg" alt="Sala de tábuas com o piso coberto de tábuas de abeto pelo balde, contornando um tapete de pedregulho no meio" width="972" height="718" loading="lazy"><figcaption>Um clique no chão dentro da sala: o balde cobriu o piso até as paredes e contornou o tapete de pedregulho.</figcaption></figure>
@@ -332,6 +334,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Recortar</td><td>Recortar</td><td><kbd>Ctrl</kbd>+<kbd>X</kbd></td><td>Copia e apaga a área.</td></tr>
       <tr><td>Colar</td><td>Colar</td><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Uma prévia azul da cópia segue o mouse, centrada no ponto apontado e apoiada nele. Cada clique cola uma cópia; <kbd>Esc</kbd>, Cancelar ou um clique simples com o botão direito terminam.</td></tr>
       <tr><td>Girar a cópia</td><td>Girar 90°</td><td><kbd>R</kbd> (colando)</td><td>Gira a cópia 90° no sentido horário, visto de cima. Os blocos giram junto: escadas, portas, troncos deitados, trilhos, placas.</td></tr>
+      <tr><td>Guardar com nome</td><td>Salvar na biblioteca</td><td>—</td><td>Guarda a construção da área na biblioteca deste navegador, para colar depois em qualquer projeto ou mundo (veja abaixo).</td></tr>
       <tr><td>Espelhar a cópia</td><td>Espelhar ↔ / Espelhar ↕</td><td><kbd>F</kbd> / <kbd>Shift</kbd>+<kbd>F</kbd> (colando)</td><td>Vira a cópia como num espelho: ↔ troca leste e oeste, ↕ troca norte e sul. Os blocos viram junto (escadas, portas com a dobradiça do outro lado), pela mesma regra da simetria. Combine com Girar 90° para qualquer posição.</td></tr>
       <tr><td>Apagar</td><td>Apagar</td><td><kbd>Delete</kbd></td><td>Apaga todos os blocos da área.</td></tr>
       <tr><td>Substituir</td><td>Substituir…</td><td>—</td><td>Troca um tipo de bloco (ou todos) por outro só dentro da área (veja abaixo).</td></tr>
@@ -355,6 +358,17 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Com a <b>simetria</b> ligada, a área espelhada (do outro lado de cada plano) anda junto: no eixo do espelho, para o lado oposto (se a seleção vai para o leste, o espelho vai para o oeste); nos outros eixos, para o mesmo lado. Os blocos dela são os que estão lá de verdade, não uma cópia da seleção. Se a seleção cruza o plano e o movimento é no eixo do espelho, só a seleção anda (um aviso explica).</li>
   </ul>
   <figure><img src="img/colar.jpg" alt="Uma cópia da árvore já colada à esquerda da casa e a prévia azul de outra cópia seguindo o mouse à direita" width="972" height="718" loading="lazy"><figcaption>Colando: à esquerda, uma cópia da árvore já colada; à direita, a prévia azul da próxima. O aviso mostra o tamanho da cópia e o botão <b>Girar 90°</b>.</figcaption></figure>
+
+  <h3>Biblioteca de construções</h3>
+  <figure><img src="img/biblioteca.jpg" alt="Janela Biblioteca de construções com três itens (Caixa de arestas, Moldura de tijolos, Torre de pedregulho), cada um com miniatura, tamanho e os botões Colar, Renomear, Baixar e Apagar" width="900" height="448" loading="lazy"><figcaption>A biblioteca: cada construção com miniatura, tamanho, número de blocos e data.</figcaption></figure>
+  <ul class="plain">
+    <li><b>Guardar</b>: selecione a construção com <b>Selecionar</b> (<kbd>V</kbd>) e clique em <b>Salvar na biblioteca</b> no aviso da seleção. Dê um nome e pronto. Só os blocos entram (o ar da seleção não).</li>
+    <li><b>Usar</b>: Projeto → <b>Biblioteca de construções…</b> e <b>Colar</b>. A construção vira a cópia do colar: a prévia segue o mouse, cada clique cola, <kbd>R</kbd> gira e <kbd>F</kbd> espelha.</li>
+    <li>A biblioteca fica <b>neste navegador</b>, separada do projeto: continua depois de recarregar a página, de usar Novo, de abrir outro projeto ou outro mundo do jogo. Dá para guardar uma casa num projeto e colar dentro de um mundo, por exemplo.</li>
+    <li><b>Baixar</b> gera um arquivo <code>.biblioteca.json</code>; <b>Importar arquivo…</b> traz de volta. Serve para levar construções para outro navegador ou para o celular, ou para guardar uma cópia de segurança.</li>
+    <li><b>Renomear</b> e <b>Apagar</b> (pede um segundo clique) organizam a lista. A miniatura mostra a construção pelo lado mais largo.</li>
+    <li>Blocos do jogo que o editor não conhece (os roxos, de um mundo aberto) vão junto e voltam iguais quando colados com um mundo do jogo aberto. Sem mundo aberto, eles ficam de fora (um aviso diz quantos).</li>
+  </ul>
 
   <h3>Substituir blocos na seleção</h3>
   <div class="side">
@@ -554,13 +568,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="580" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="616" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
         <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar. Com um mundo do jogo aberto, também fecha o mundo.</td></tr>
         <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Biblioteca de construções…</td><td>Construções guardadas com nome, para colar em qualquer projeto ou mundo (cap. 03).</td></tr>
         <tr><td>Abrir mundo do jogo (.mcworld)…</td><td>Abre um mundo do Bedrock para editar uma área dele e exportar o mundo com as mudanças (cap. 12).</td></tr>
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
@@ -744,7 +759,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>Delete</kbd></td><td>Apagar a seleção</td></tr>
         <tr><td><kbd>R</kbd> (colando)</td><td>Girar a cópia 90°</td></tr>
         <tr><td><kbd>F</kbd> / <kbd>Shift</kbd>+<kbd>F</kbd> (colando)</td><td>Espelhar a cópia (leste e oeste / norte e sul)</td></tr>
-        <tr><td><kbd>C</kbd></td><td>Mais formas: cilindro, cone, pirâmide, cúpula e arco</td></tr>
+        <tr><td><kbd>C</kbd></td><td>Mais formas: cilindro, cone, pirâmide, cúpula, arco e arestas</td></tr>
         <tr><td><kbd>F</kbd></td><td>Balde: encher uma área fechada (<kbd>Shift</kbd> troca a região do mesmo bloco)</td></tr>
         <tr><td><kbd>Shift</kbd></td><td>Pincel apaga; formas apagam; usar muda a segunda opção ou faz a árvore grande; girar volta</td></tr>
         <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Espaço da hotbar</td></tr>
@@ -768,7 +783,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <tbody>
       <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados de forma simplificada (o jogo os desenha de um jeito especial): o estandarte tem o mastro, a barra e o pano inteiro da cor, mas sem padrões. O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
-      <tr><td>Copiar e colar</td><td>A cópia fica só nesta aba do navegador (não vai para a área de transferência do sistema e some ao recarregar a página). Girar é só de 90° na horizontal (com o espelhar, cobre as 8 posições no chão).</td></tr>
+      <tr><td>Copiar e colar</td><td>A cópia do Ctrl+C fica só nesta aba (não vai para a área de transferência do sistema e some ao recarregar a página); para guardar, use a biblioteca. Girar é só de 90° na horizontal (com o espelhar, cobre as 8 posições no chão).</td></tr>
       <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>

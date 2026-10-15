@@ -4,11 +4,13 @@
      Arco: um pé, o outro pé (na mesma linha) e a altura do topo.
      Pirâmide: dois cantos da base; a altura sai sozinha (cada camada recua um bloco de cada lado).
      Cúpula: centro e um ponto da borda; meia esfera para cima.
+     Arestas: como a caixa (dois cantos da base e a altura), mas só as 12 arestas; com uma das medidas igual a 1,
+     vira uma moldura (o contorno de um retângulo).
    Oco: cilindro vira tubo (sem tampas, como uma torre); cone, pirâmide e cúpula viram casca sem chão. */
 var shape2 = { type: 'cyl', hollow: false };
 try { var s20 = JSON.parse(localStorage.getItem('bloco-a-bloco-shape2') || 'null'); if (s20) shape2 = Object.assign(shape2, s20); } catch (e) {}
-var SHAPE2_NAMES = { cyl: 'Cilindro', cone: 'Cone', pyr: 'Pirâmide', dome: 'Cúpula', arch: 'Arco' };
-function shape2Height(t) { return t === 'cyl' || t === 'cone' || t === 'arch'; }
+var SHAPE2_NAMES = { cyl: 'Cilindro', cone: 'Cone', pyr: 'Pirâmide', dome: 'Cúpula', arch: 'Arco', edge: 'Arestas' };
+function shape2Height(t) { return t === 'cyl' || t === 'cone' || t === 'arch' || t === 'edge'; }
 function shape2Save() { try { localStorage.setItem('bloco-a-bloco-shape2', JSON.stringify(shape2)); } catch (e) {} }
 /* Células da forma: a = primeiro clique; b = segundo clique (com a altura escolhida, nas formas de três cliques) */
 function shape2Cells(a, b) {
@@ -31,6 +33,14 @@ function shape2Cells(a, b) {
   } else if (t === 'pyr') {
     var x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), z0 = Math.min(a[2], b[2]), z1 = Math.max(a[2], b[2]);
     for (var k = 0; x0 + k <= x1 - k && z0 + k <= z1 - k; k++) for (var z2 = z0 + k; z2 <= z1 - k; z2++) for (var x2 = x0 + k; x2 <= x1 - k; x2++) add(x2, a[1] + k, z2);
+  } else if (t === 'edge') {
+    // arestas da caixa: blocos que estão na borda em pelo menos dois dos três eixos
+    var ex0 = Math.min(a[0], b[0]), ex1 = Math.max(a[0], b[0]), ez0 = Math.min(a[2], b[2]), ez1 = Math.max(a[2], b[2]);
+    for (var ey = y0; ey <= y1; ey++) for (var ez = ez0; ez <= ez1; ez++) for (var ex = ex0; ex <= ex1; ex++) {
+      var n = (ex === ex0 || ex === ex1 ? 1 : 0) + (ey === y0 || ey === y1 ? 1 : 0) + (ez === ez0 || ez === ez1 ? 1 : 0);
+      if (n >= 2) add(ex, ey, ez);
+    }
+    return out;
   } else if (t === 'arch') {
     // os dois pés na linha do eixo mais comprido; o arco é um anel de 1 bloco (meia elipse) do chão até o topo
     var ax = Math.abs(b[0] - a[0]) >= Math.abs(b[2] - a[2]) ? 0 : 2, lo = Math.min(a[ax], b[ax]), L = Math.abs(b[ax] - a[ax]) + 1, H = Math.max(1, y1 - a[1]);
@@ -59,7 +69,7 @@ function updateShape2Chip() {
   var c = $('shape2Chip'), on = tool === 'shape2'; c.hidden = !on; if (!on) return;
   c.querySelectorAll('[data-s2]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-s2') === shape2.type); });
   $('shape2Hollow').setAttribute('aria-pressed', String(shape2.hollow));
-  $('shape2Hollow').disabled = shape2.type === 'arch';
+  $('shape2Hollow').disabled = shape2.type === 'arch' || shape2.type === 'edge';
 }
 $('shape2Chip').addEventListener('click', function (e) {
   var b = e.target.closest('button'); if (!b) return;

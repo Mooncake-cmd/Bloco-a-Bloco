@@ -33,7 +33,7 @@ function updateSelChip() {
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
     $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
       '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
-      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button>' +
+      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
     c.hidden = false;
@@ -275,7 +275,7 @@ $('selBtns').addEventListener('click', function (e) {
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
-  else if (a === 'repl') openReplace(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
+  else if (a === 'repl') openReplace(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
   else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
 });
 /* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */

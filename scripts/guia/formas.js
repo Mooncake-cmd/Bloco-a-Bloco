@@ -43,6 +43,29 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   })()`);
   await p.mouse.move(1100, 700); await p.waitForTimeout(2500);
   await p.screenshot({ path: path.join(OUT, 'balde.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 54, width: 972, height: 718 } });
+  // arestas: uma caixa só com as arestas e uma moldura (1 de espessura), como na referência
+  await ev(`(function(){
+    newWorld(40, 20, 32); var g = cellFromName('grass_block'); for (var x = 0; x < 40; x++) for (var z = 0; z < 32; z++) { gset(x, 0, z, g); blockCount++; }
+    var v = cellFromName('stone_bricks'); shape2.type = 'edge'; beginBatch();
+    shape2Cells([6, 1, 14], [16, 11, 14]).forEach(function (c) { editSet(c[0], c[1], c[2], v); });
+    shape2Cells([22, 1, 10], [29, 12, 18]).forEach(function (c) { editSet(c[0], c[1], c[2], v); });
+    endBatch(); setTool('shape2'); verCounter++; dirtyAll(); changed();
+    Object.assign(cam, { yaw: 0.45, pitch: 0.42, dist: 44, tx: 19, ty: 6, tz: 15 }); updateCamera(); requestRender();
+  })()`);
+  await p.mouse.move(1100, 700); await p.waitForTimeout(2500); await hide();
+  await p.screenshot({ path: path.join(OUT, 'arestas.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 640 } });
+  // biblioteca: três construções guardadas (a moldura, a caixa de arestas e uma torre)
+  await ev(`(async function(){
+    var save = async function (a, b, name) { sel = selFrom(a, b); var prev = clip; copySel(false); var it = libFromClip(clip, name); it.t = Date.now() - Math.random() * 1e8; clip = prev; await libPut(it); };
+    await save([6, 1, 14], [16, 11, 14], 'Moldura de tijolos');
+    await save([22, 1, 10], [29, 12, 18], 'Caixa de arestas');
+    shape2.type = 'cyl'; shape2.hollow = true; var v = cellFromName('cobblestone'); beginBatch(); shape2Cells([33, 1, 6], [35, 8, 6]).forEach(function (c) { editSet(c[0], c[1], c[2], v); }); endBatch(); shape2.hollow = false;
+    await save([31, 1, 4], [35, 8, 8], 'Torre de pedregulho');
+    sel = null; selRefresh();
+  })()`);
+  await p.click('#menu summary'); await p.click('#libBtn'); await p.waitForSelector('.libit'); await p.waitForTimeout(400);
+  const dlg = await p.$('.dialog'); await dlg.screenshot({ path: path.join(OUT, 'biblioteca.jpg'), type: 'jpeg', quality: 82 });
+  await p.click('#lbClose');
   console.log('ok formas', errs);
   await b.close();
 })();
