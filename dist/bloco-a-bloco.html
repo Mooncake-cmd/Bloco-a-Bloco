@@ -1537,8 +1537,11 @@ function updatePreview() {
 }
 function updatePreview1(t) {
   if (selA) drawSelBox();
-  if (!t) { requestRender(); return; }
-  if (pasting) { pastePreview(t); requestRender(); return; }
+  // no passo da altura, a altura vem da posição do ponteiro na tela, não do bloco apontado: a prévia continua mesmo
+  // com o ponteiro fora do espaço (acima da caixa, no céu)
+  var hstep = anchor && anchor2 && isShape(effTool(lastShift)) && hasHeightStep(effTool(lastShift)) && hoverXY;
+  if (!t && !hstep) { requestRender(); return; }
+  if (pasting) { if (t) pastePreview(t); requestRender(); return; }
   var et = effTool(lastShift);
   var accent = new THREE.Color(cssColor('--accent')), danger = new THREE.Color(cssColor('--danger')), info = new THREE.Color(cssColor('--info'));
   var cell;
@@ -1572,7 +1575,7 @@ function updatePreview1(t) {
     cell = t.hit || t.place; if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(info); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
   } else if (isShape(et)) {
-    cell = t.place;
+    cell = t && t.place;
     if (anchor2 && hasHeightStep(et)) cell = shapeEnd(et, hoverXY && hoverXY[0], hoverXY && hoverXY[1]);
     if (!cell) { requestRender(); return; }
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
@@ -1595,7 +1598,7 @@ function updateStatus() {
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
-  if (anchor && (anchor2 || (t && t.place)) && isShape(effTool(lastShift))) {
+  if (anchor && ((anchor2 && hasHeightStep(tool)) || (t && t.place)) && isShape(effTool(lastShift))) {
     var a = anchor, b2 = anchor2 && hasHeightStep(tool) ? shapeEnd(tool, hoverXY && hoverXY[0], hoverXY && hoverXY[1]) : t.place;
     $('stSize').textContent += '  |  forma ' + (Math.abs(a[0] - b2[0]) + 1) + ' × ' + (Math.abs(a[1] - b2[1]) + 1) + ' × ' + (Math.abs(a[2] - b2[2]) + 1);
   }
@@ -1867,7 +1870,7 @@ function bindCanvas() {
   }
   cv.addEventListener('pointerup', end);
   cv.addEventListener('pointercancel', end);
-  cv.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch' && !mode) { hoverT = null; updatePreview(); updateStatus(); } });
+  cv.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch' && !mode) { hoverT = null; if (!anchor2) hoverXY = null; updatePreview(); updateStatus(); } }); // no passo da altura, guarda a última altura
 }
 function pinchState() {
   var a = Array.from(ptrs.values());
