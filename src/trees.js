@@ -351,7 +351,7 @@ function growAt(c, big) {
   if (top >= SY) { toast('Falta altura no espaço: esta árvore precisa de ' + (top - o[1] + 1) + ' blocos acima da muda. Aumente a altura em Projeto > Tamanho do espaço.', 6000); return true; }
   if (blocked) { toast('Sem espaço para a árvore crescer: há um bloco em ' + blocked.join(', ') + ' no caminho do tronco.', 5000); return true; }
   var n = 0, out = 0;
-  beginBatch();
+  beginBatch('Árvore');
   P.cells.forEach(function (q) {
     if (!inB(q.x, q.y, q.z)) { out++; return; }
     if (!q.t && !treeFree(q.x, q.y, q.z, b.java)) {

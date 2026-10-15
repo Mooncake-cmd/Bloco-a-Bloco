@@ -124,7 +124,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="facts">
     <div class="fact"><b>1.089</b><span>blocos na paleta (mais 62 variantes de parede usadas sozinhas)</span></div>
     <div class="fact"><b>17</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
-    <div class="fact"><b>13</b><span>categorias de blocos</span></div>
+    <div class="fact"><b>13</b><span>paletas de blocos prontas, editáveis, mais as que você criar</span></div>
     <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json, além de mundos inteiros do Bedrock (.mcworld)</span></div>
     <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
   </div>
@@ -137,11 +137,11 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <div class="shot">
       <img src="img/visao-geral.jpg" alt="Tela do Bloco a Bloco com uma casa de madeira, cerca, árvore e redstone, e a paleta de blocos à direita" width="1280" height="800">
       <span class="pin" style="left:19%;top:6%">1</span>
-      <span class="pin" style="left:39.8%;top:6%">2</span>
-      <span class="pin" style="left:45.5%;top:6%">3</span>
-      <span class="pin" style="left:62.2%;top:6%">4</span>
-      <span class="pin" style="left:66.4%;top:6%">5</span>
-      <span class="pin" style="left:72.4%;top:6%">6</span>
+      <span class="pin" style="left:40.4%;top:6%">2</span>
+      <span class="pin" style="left:45.1%;top:6%">3</span>
+      <span class="pin" style="left:62.5%;top:6%">4</span>
+      <span class="pin" style="left:66.6%;top:6%">5</span>
+      <span class="pin" style="left:72.5%;top:6%">6</span>
       <span class="pin" style="left:38%;top:44%">7</span>
       <span class="pin" style="left:20.4%;top:91.5%">8</span>
       <span class="pin" style="left:3%;top:96.5%">9</span>
@@ -153,7 +153,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   </figure>
   <ol class="legend">
     <li><span class="pin">1</span><span><b>Ferramentas</b>: pincel, borracha, conta-gotas, usar, girar, linha, caixa, caixa oca, esfera, esfera oca, mais formas, balde, selecionar, pincel de troca, esculpir, régua e teleporte (cap. 03).</span></li>
-    <li><span class="pin">2</span><span><b>Desfazer e refazer</b> (<kbd>Ctrl</kbd>+<kbd>Z</kbd> e <kbd>Ctrl</kbd>+<kbd>Y</kbd>), até 300 passos.</span></li>
+    <li><span class="pin">2</span><span><b>Desfazer</b>, <b>Histórico</b> (o relógio: linha do tempo com ramos) e <b>refazer</b> (<kbd>Ctrl</kbd>+<kbd>Z</kbd> e <kbd>Ctrl</kbd>+<kbd>Y</kbd>), cap. 03.</span></li>
     <li><span class="pin">3</span><span><b>Medidas</b> (liga e desliga as cotas de X, Y e Z, cap. 08) e <b>Camada</b>: mostra só até uma altura, para enxergar dentro da construção (cap. 05).</span></li>
     <li><span class="pin">4</span><span><b>Materiais</b> (ícone de lista): lista de blocos usados, em pilhas de 64 (cap. 13).</span></li>
     <li><span class="pin">5</span><span><b>Exportar</b> para .mcstructure ou .schem (cap. 11).</span></li>
@@ -162,7 +162,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><span class="pin">8</span><span><b>Hotbar</b>: 9 blocos à mão, teclas <kbd>1</kbd> a <kbd>9</kbd> (cap. 06).</span></li>
     <li><span class="pin">9</span><span><b>Barra de status</b>: posição do alvo, bloco e estado, tamanho e total de blocos (cap. 08).</span></li>
     <li><span class="pin">10</span><span><b>Busca</b> de blocos por nome em inglês ou id (ex.: <code>oak</code>, <code>glass</code>).</span></li>
-    <li><span class="pin">11</span><span><b>Categorias</b>: Todos, Favoritos, Pedra, Madeira, Cores, Minérios, Natureza, Vidro, Formas, Redstone, Plantas, Decoração, Técnicos e só Bedrock, Outros.</span></li>
+    <li><span class="pin">11</span><span><b>Paletas</b>: Todos, Favoritos, Pedra, Madeira, Cores, Minérios, Natureza, Vidro, Formas, Redstone, Plantas, Decoração, Técnicos e só Bedrock, Outros e as suas; <b>✎ Paletas</b> cria, edita e exclui (cap. 06).</span></li>
     <li><span class="pin">12</span><span><b>Lista de blocos</b>: toque para pôr no espaço ativo da hotbar; a estrela marca favorito.</span></li>
   </ol>
 </section>
@@ -188,7 +188,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="strip-wrap"><div class="strip">
     <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
     <div class="marks">
-      <span class="pin" style="left:2.6%">1</span><span class="pin" style="left:5.5%">2</span><span class="pin" style="left:8.3%">3</span><span class="pin" style="left:11.2%">4</span><span class="pin" style="left:14.1%">5</span><span class="pin" style="left:17.0%">6</span><span class="pin" style="left:19.9%">7</span><span class="pin" style="left:22.7%">8</span><span class="pin" style="left:25.6%">9</span><span class="pin" style="left:28.5%">10</span><span class="pin" style="left:31.4%">11</span><span class="pin" style="left:34.3%">12</span><span class="pin" style="left:37.1%">13</span><span class="pin" style="left:40.0%">14</span><span class="pin" style="left:42.9%">15</span><span class="pin" style="left:45.8%">16</span><span class="pin" style="left:48.7%">17</span><span class="pin" style="left:52.4%">18</span><span class="pin" style="left:55.2%">19</span><span class="pin" style="left:58.7%">20</span><span class="pin" style="left:63.3%">21</span><span class="pin" style="left:70.5%">22</span><span class="pin" style="left:81.9%">23</span>
+      <span class="pin" style="left:2.4%">1</span><span class="pin" style="left:5.1%">2</span><span class="pin" style="left:7.9%">3</span><span class="pin" style="left:10.7%">4</span><span class="pin" style="left:13.5%">5</span><span class="pin" style="left:16.3%">6</span><span class="pin" style="left:19.0%">7</span><span class="pin" style="left:21.8%">8</span><span class="pin" style="left:24.6%">9</span><span class="pin" style="left:27.4%">10</span><span class="pin" style="left:30.1%">11</span><span class="pin" style="left:32.9%">12</span><span class="pin" style="left:35.7%">13</span><span class="pin" style="left:38.5%">14</span><span class="pin" style="left:41.3%">15</span><span class="pin" style="left:44.0%">16</span><span class="pin" style="left:46.8%">17</span><span class="pin" style="left:50.4%">18</span><span class="pin" style="left:53.2%">19</span><span class="pin" style="left:56.0%">20</span><span class="pin" style="left:59.4%">21</span><span class="pin" style="left:63.9%">22</span><span class="pin" style="left:71.1%">23</span><span class="pin" style="left:82.3%">24</span>
     </div>
   </div></div>
   <div class="tbl"><table>
@@ -211,10 +211,10 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>15</td><td><b>Esculpir terreno</b></td><td><kbd>K</kbd></td><td>Segure para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave (veja abaixo).</td><td>Troca elevar por afundar (e vice-versa) durante o traço.</td></tr>
       <tr><td>16</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
       <tr><td>17</td><td><b>Teleporte</b></td><td><kbd>J</kbd></td><td>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo (cap. 04).</td><td>Entra em <b>primeira pessoa</b> em cima do bloco clicado (cap. 04).</td></tr>
-      <tr><td>18–19</td><td><b>Desfazer / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo.</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
-      <tr><td>20</td><td><b>Medidas</b></td><td><kbd>D</kbd></td><td>Liga e desliga as cotas de largura, altura e profundidade em volta da construção (cap. 08). Aceso = ligado.</td><td>—</td></tr>
-      <tr><td>21–22</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura. As setas ao lado do controle descem e sobem uma camada por clique; o controle deslizante pula direto para uma altura (cap. 05).</td><td>—</td></tr>
-      <tr><td>23</td><td><b>Materiais</b></td><td>—</td><td>Lista de blocos usados, em pilhas de 64 (cap. 13).</td><td>—</td></tr>
+      <tr><td>18–20</td><td><b>Desfazer / Histórico / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo. O relógio abre a linha do tempo com todos os passos e ramos (veja abaixo).</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
+      <tr><td>21</td><td><b>Medidas</b></td><td><kbd>D</kbd></td><td>Liga e desliga as cotas de largura, altura e profundidade em volta da construção (cap. 08). Aceso = ligado.</td><td>—</td></tr>
+      <tr><td>22–23</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura. As setas ao lado do controle descem e sobem uma camada por clique; o controle deslizante pula direto para uma altura (cap. 05).</td><td>—</td></tr>
+      <tr><td>24</td><td><b>Materiais</b></td><td>—</td><td>Lista de blocos usados, em pilhas de 64 (cap. 13).</td><td>—</td></tr>
     </tbody>
   </table></div>
 
@@ -412,6 +412,17 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   </ul>
 
   <figure><img src="img/girados.jpg" alt="Troncos de pé, deitados de leste a oeste e de norte a sul, coluna de quartzo e fornalhas viradas" width="972" height="600" loading="lazy"><figcaption><b>Girar</b> em blocos com eixo e com frente: troncos de pé e deitados (os anéis e a casca acompanham), fornalhas com a frente para lados diferentes.</figcaption></figure>
+
+  <h3>Histórico: linha do tempo com ramos</h3>
+  <figure><img src="img/historico.jpg" alt="Janela Histórico com a linha do tempo: uma fila de pontos, um ramo com o telhado de madeira, outro com o telhado escuro (o atual, cheio) e um terceiro ramo curto, e as versões marcadas com bandeirinhas" width="900" height="398" loading="lazy" style="max-width:760px"><figcaption>Uma casa com três telhados testados a partir do mesmo ponto (“Paredes prontas”): cada ramo é uma versão, e nenhuma se perde.</figcaption></figure>
+  <ul class="plain">
+    <li>O <b>relógio</b> entre desfazer e refazer (ou Projeto → Histórico) abre a linha do tempo. Cada ponto é uma ação: um traço de pincel, uma forma, colar, mover, balde, substituir, uma árvore… O ponto cheio é o momento atual; o caminho até ele fica destacado. Passando o mouse num ponto, aparece o nome da ação, quantos blocos mudou e quando.</li>
+    <li><b>Clique em qualquer ponto</b> para levar a construção àquele momento, para trás ou para a frente, em qualquer ramo. Nada é apagado: dá para voltar ao ponto de onde saiu.</li>
+    <li>Depois de voltar, uma <b>mudança nova abre um ramo</b> (uma linha embaixo) em vez de jogar fora o que vinha depois. Assim dá para testar duas ideias do mesmo ponto e trocar entre elas com um clique.</li>
+    <li><b>Marcar esta versão…</b> dá um nome ao ponto atual (aparece com uma bandeirinha). As versões marcadas ficam em botões embaixo da linha do tempo, para pular direto a elas; <b>Tirar a marca</b> remove o nome.</li>
+    <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> volta um ponto; <kbd>Ctrl</kbd>+<kbd>Y</kbd> avança pelo último ramo visitado.</li>
+    <li>A linha do tempo é salva junto com a construção e volta ao recarregar a página. Abrir outro projeto, começar um novo ou mudar o tamanho do espaço começa uma linha do tempo nova.</li>
+  </ul>
 </section>
 
 <section id="camera">
@@ -470,8 +481,24 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><b>Favoritos</b>: a estrela marca; a categoria ★ Favoritos mostra só os marcados. Ficam guardados no navegador.</li>
     <li><b>Amostras</b>: com pacote carregado, cada bloco mostra a textura (a frente, nos blocos com frente); sem pacote, a cor média.</li>
   </ul>
+  <h3>Paletas próprias e edição das paletas do site</h3>
+  <div class="side">
+    <figure><img src="img/paleta-propria.jpg" alt="Paleta Casa medieval escolhida, com pedregulho, tábuas, troncos, tijolos e outros blocos" width="308" height="800" loading="lazy" style="max-width:240px"><figcaption>Uma paleta própria (“Casa medieval”) e a Pedra renomeada para “Pedras e tijolos”.</figcaption></figure>
+    <ul class="plain">
+      <li>O aviso <b>✎ Paletas</b>, no fim das categorias (ou Projeto → Paletas de blocos…), abre a janela das paletas.</li>
+      <li><b>Nova paleta…</b>: dê um nome e marque os blocos. A busca filtra a lista; <b>Marcar os da busca</b> põe todos os achados de uma vez (ex.: busque <code>spruce</code>); <b>Pôr os blocos da construção</b> põe todos os blocos usados no projeto aberto; <b>Só os escolhidos</b> mostra só os marcados.</li>
+      <li><b>Editar</b> funciona também nas paletas do site: mude o nome, tire ou ponha blocos. <b>Excluir</b> some com a paleta (as do site voltam com <b>Trazer de volta</b>). As setas ↑ e ↓ mudam a ordem dos avisos.</li>
+      <li><b>Restaurar as do site</b> desfaz todas as mudanças nas paletas do site (nomes, blocos, ordem e as excluídas); as suas continuam.</li>
+      <li>As paletas ficam no navegador e valem para qualquer projeto ou mundo. <b>Baixar</b> gera <code>paletas.json</code>; <b>Importar…</b> traz esse arquivo em outro aparelho.</li>
+      <li>As paletas próprias aparecem com a borda tracejada. Todos fica sempre em primeiro e não muda; Favoritos é feito com as estrelas.</li>
+    </ul>
+  </div>
+  <div class="grid2">
+    <figure><img src="img/paletas.jpg" alt="Janela Paletas de blocos com a lista das paletas, cada uma com setas, Editar e Excluir" width="900" height="602" loading="lazy"><figcaption>A janela das paletas.</figcaption></figure>
+    <figure><img src="img/paleta-editar.jpg" alt="Editar a paleta: nome, busca por spruce e os blocos marcados" width="900" height="442" loading="lazy"><figcaption>Editando: busca “spruce” e os blocos marcados.</figcaption></figure>
+  </div>
   <div class="tbl"><table>
-    <thead><tr><th>Categoria</th><th>O que tem</th><th class="num">Blocos</th></tr></thead>
+    <thead><tr><th>Paleta do site</th><th>O que tem</th><th class="num">Blocos</th></tr></thead>
     <tbody>
       <tr><td>Pedra</td><td>Pedras, tijolos, ardósia, quartzo, prismarinho, cobre…</td><td class="num">109</td></tr>
       <tr><td>Madeira</td><td>Tábuas, troncos, madeiras, caules, bambu</td><td class="num">55</td></tr>
@@ -579,13 +606,15 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="616" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="688" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
         <tr><td>Novo (limpar tudo)</td><td>Apaga a construção. Pede um segundo clique em até 4 s para confirmar. Com um mundo do jogo aberto, também fecha o mundo.</td></tr>
         <tr><td>Salvar projeto (.json)</td><td>Baixa o projeto: blocos, estados, tamanho e hotbar.</td></tr>
         <tr><td>Abrir projeto ou estrutura…</td><td>Abre um projeto .json, um .mcstructure ou um .schem (cap. 12).</td></tr>
+        <tr><td>Histórico (linha do tempo)…</td><td>A linha do tempo com todas as ações e ramos; o mesmo que o relógio da barra (cap. 03).</td></tr>
+        <tr><td>Paletas de blocos…</td><td>Cria, edita, reordena e exclui paletas; o mesmo que o aviso ✎ Paletas (cap. 06).</td></tr>
         <tr><td>Biblioteca de construções…</td><td>Construções guardadas com nome, para colar em qualquer projeto ou mundo (cap. 03).</td></tr>
         <tr><td>Abrir mundo do jogo (.mcworld)…</td><td>Abre um mundo do Bedrock para editar uma área dele e exportar o mundo com as mudanças (cap. 12).</td></tr>
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
@@ -728,6 +757,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Construção atual</td><td>Salva sozinha no navegador (IndexedDB), logo depois de cada mudança</td><td>Só no aparelho e navegador em que foi feita. Só os pedaços que mudaram são gravados, então construções grandes também são salvas sem travar. Construções salvas pelas versões antigas do site são trazidas para o formato novo sozinhas.</td></tr>
       <tr><td>Projeto .json</td><td>Arquivo que você baixa</td><td>O jeito de levar a construção para outro aparelho, guardar versões ou mandar para alguém. O arquivo novo guarda a construção por pedaços (versão 2); os projetos antigos continuam abrindo.</td></tr>
       <tr><td>Pacotes de textura</td><td>Guardados no navegador (só as texturas usadas)</td><td>Carregue uma vez em cada aparelho.</td></tr>
+      <tr><td>Histórico (linha do tempo)</td><td>Junto com a construção, no navegador</td><td>Volta inteiro ao recarregar a página, com ramos e versões marcadas. Não vai no projeto .json: abrir ou começar outro projeto começa um histórico novo.</td></tr>
+      <tr><td>Paletas</td><td>Navegador</td><td>Valem para todos os projetos e mundos. <b>Baixar</b> e <b>Importar…</b>, na janela das paletas, levam para outro aparelho.</td></tr>
       <tr><td>Favoritos, tema e textura ligada/desligada</td><td>Navegador</td><td>Por aparelho.</td></tr>
     </tbody>
   </table></div>
@@ -775,7 +806,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>F</kbd></td><td>Balde: encher uma área fechada (<kbd>Shift</kbd> troca a região do mesmo bloco)</td></tr>
         <tr><td><kbd>Shift</kbd></td><td>Pincel apaga; formas apagam; usar muda a segunda opção ou faz a árvore grande; girar volta</td></tr>
         <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Espaço da hotbar</td></tr>
-        <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Desfazer / refazer</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Desfazer / refazer no ramo atual (o relógio da barra abre a linha do tempo inteira)</td></tr>
         <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Descer e subir a camada</td></tr>
         <tr><td>Setas</td><td>Mover a câmera (com Selecionar e uma área marcada: mover os blocos da área)</td></tr>
         <tr><td><kbd>Page Up</kbd> / <kbd>Page Down</kbd></td><td>Com Selecionar e uma área marcada: subir e descer os blocos da área (<kbd>Shift</kbd>: 5 blocos)</td></tr>
@@ -798,6 +829,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Copiar e colar</td><td>A cópia do Ctrl+C fica só nesta aba (não vai para a área de transferência do sistema e some ao recarregar a página); para guardar, use a biblioteca. Girar é só de 90° na horizontal (com o espelhar, cobre as 8 posições no chão).</td></tr>
       <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
+      <tr><td>Histórico</td><td>Guarda até 20 milhões de mudanças de blocos (cerca de 1.000 ações). Passando disso, saem primeiro os ramos mais antigos fora do caminho atual (as versões marcadas ficam até o fim) e depois o começo do caminho. Mudar o tamanho do espaço começa um histórico novo.</td></tr>
       <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>

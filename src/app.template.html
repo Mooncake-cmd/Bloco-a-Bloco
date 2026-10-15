@@ -34,10 +34,10 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{display:grid;grid-template-columns:minmax(0,1fr) 308px;height:100%}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0}
-#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:8px 8px;background:var(--panel);border-bottom:1px solid var(--line)}
 .brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
 .brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
-.group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--panel-2);border-radius:8px}
+.group{display:flex;align-items:center;gap:1px;padding:2px;background:var(--panel-2);border-radius:8px}
 .tbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:26px;height:34px;padding:0 3px;border:0;border-radius:6px;background:transparent;color:var(--fg)}
 .tbtn:hover{background:var(--line)}
 .tbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
@@ -55,7 +55,7 @@ button{cursor:pointer}
 .tbtn.lstep svg{width:16px;height:16px}
 .tbtn.lstep:disabled{opacity:.35}
 .layer input[type=range]{width:32px;accent-color:var(--accent)}
-.layer output{font-family:var(--font-mono);min-width:38px;color:var(--fg)}
+.layer output{font-family:var(--font-mono);min-width:34px;color:var(--fg)}
 details.menu{position:relative}
 details.menu summary{list-style:none}
 details.menu summary::-webkit-details-marker{display:none}
@@ -102,6 +102,19 @@ body.walking #viewport canvas{cursor:none}
 #chips{display:flex;flex-wrap:wrap;gap:4px}
 #chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted)}
 #chips button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
+#chips button.mine{border-style:dashed}
+#chips button.pedit{border-color:transparent;color:var(--accent);font-weight:600}
+.palit{display:flex;align-items:center;gap:12px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);flex-wrap:wrap}
+.palit.off{opacity:.6}
+.palit .nm{flex:1;min-width:160px;display:flex;flex-direction:column;gap:2px}
+.palit .nm small,.palit .row small{color:var(--muted);font-size:12px}
+.palit .btn{height:30px;padding:0 10px}
+.pelist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 10px;max-height:46vh;overflow:auto;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.dialog .peit{flex-direction:row;align-items:center;gap:6px;color:var(--fg);font-size:13px;padding:2px}
+.peit input{accent-color:var(--accent)}
+.peit .sw{width:18px;height:18px;border-radius:3px;flex:none}
+.pelist .empty{grid-column:1/-1;color:var(--muted);font-size:12px;padding:6px}
+.pen{color:var(--muted);font-size:12px}
 #list{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 8px 12px}
 .item{display:flex;align-items:center;gap:10px;width:100%;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent;text-align:left}
 .item:hover{background:var(--panel-2)}
@@ -131,6 +144,13 @@ body.walking #viewport canvas{cursor:none}
 .libit .nm{flex:1;min-width:160px;display:flex;flex-direction:column;gap:2px}
 .libit .nm small{color:var(--muted);font:12px var(--font-mono)}
 .libit .btn{height:32px;padding:0 10px}
+.hgraph{overflow:auto;max-height:46vh;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.hgraph svg{display:block}
+.hgraph .hn{cursor:pointer}
+.hgraph .hn:hover circle{stroke-width:4}
+.hmarks{margin-top:8px}
+.hmarks .btn{height:30px;padding:0 10px}
+.hmarks .btn[aria-pressed=true]{border-color:var(--accent)}
 .dialog h3{margin:0;font:700 20px var(--font-display);letter-spacing:-.01em}
 .dialog p{margin:0;color:var(--muted)}
 .dialog .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -180,6 +200,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <div class="group" id="tools"></div>
       <div class="group">
         <button class="tbtn" id="undo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><svg viewBox="0 0 20 20"><path d="M7 5L3 9l4 4M3 9h8a5 5 0 010 10h-2"/></svg></button>
+        <button class="tbtn" id="histBtn" title="Histórico: linha do tempo com ramos" aria-label="Histórico"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg></button>
         <button class="tbtn" id="redo" title="Refazer (Ctrl+Y)" aria-label="Refazer"><svg viewBox="0 0 20 20"><path d="M13 5l4 4-4 4M17 9H9a5 5 0 000 10h2"/></svg></button>
       </div>
       <div class="layer">
@@ -201,6 +222,8 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="openBtn">Abrir projeto ou estrutura…</button>
           <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (.mcworld)…</button>
           <button class="tbtn txt" id="libBtn">Biblioteca de construções…</button>
+          <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
+          <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
@@ -322,7 +345,7 @@ function idx(x, y, z) { return (y * SZ + z) * SX + x; }
 function inB(x, y, z) { return x >= 0 && y >= 0 && z >= 0 && x < SX && y < SY && z < SZ; }
 
 var verCounter = 0, bboxCache = null, bboxVer = -1;
-var undoStack = [], redoStack = [];
+
 var batch = null;
 var dirty = new Set();
 var saveTimer = 0;
@@ -353,7 +376,7 @@ function setRaw(x, y, z, v) {
   markDirty(x, y, z);
   return old;
 }
-function beginBatch() { batch = new EditLog(); }
+function beginBatch(label) { batch = new EditLog(); if (label) batch.label = label; } // o nome aparece na linha do tempo do histórico
 function editSet(x, y, z, v) {
   if (!symBusy && symAny()) { // simetria: repete a edição nas posições espelhadas
     symBusy = true;
@@ -372,9 +395,7 @@ function editSet1(x, y, z, v) {
 }
 function endBatch() {
   if (batch && batch.length) {
-    undoStack.push(batch);
-    undoTrim();
-    redoStack = [];
+    histPush(batch); // histórico em árvore (src/history.js)
     changed();
     fluidAfterBatch(batch);
   }
@@ -386,13 +407,12 @@ function applyBatch(b, undo) {
     setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
   }
 }
-function undo() { fluidStop(); var b = undoStack.pop(); if (!b) return; applyBatch(b, true); redoStack.push(b); if (b.selBefore) { sel = b.selBefore; selRefresh(); } changed(); }
-function redo() { fluidStop(); var b = redoStack.pop(); if (!b) return; applyBatch(b, false); undoStack.push(b); if (b.selAfter) { sel = b.selAfter; selRefresh(); } changed(); }
+function undo() { fluidStop(); if (histUndo()) changed(); }
+function redo() { fluidStop(); if (histRedo()) changed(); }
 function changed() {
   requestRender();
   updateStatus();
-  $('undo').disabled = !undoStack.length;
-  $('redo').disabled = !redoStack.length;
+  histUI();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(autosave, 700);
 }
@@ -437,9 +457,9 @@ var slot = 0;
 function curBlock() { return hotbar[slot]; }
 
 function renderChips() {
-  $('chips').innerHTML = CATS.map(function (c) {
-    return '<button type="button" data-cat="' + c[0] + '" aria-pressed="' + (c[0] === activeCat) + '">' + c[1] + '</button>';
-  }).join('');
+  $('chips').innerHTML = palList().map(function (c) { // paletas do site e do usuário (src/palettes.js)
+    return '<button type="button" data-cat="' + c.id + '" aria-pressed="' + (c.id === activeCat) + '"' + (c.mine ? ' class="mine"' : '') + '>' + (c.id === 'fav' ? '★ ' : '') + esc(c.name.replace(/^★\s*/, '')) + '</button>';
+  }).join('') + '<button type="button" class="pedit" id="palBtn" title="Criar, editar e excluir paletas">✎ Paletas</button>';
 }
 function renderList() {
   var q = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -447,7 +467,7 @@ function renderList() {
   for (var i = 0; i < BLOCKS.length; i++) {
     var b = BLOCKS[i];
     if (b.hide) continue;
-    if (activeCat === 'fav' ? !favs.has(b.java) : (activeCat !== 'all' && b.cat !== activeCat)) continue;
+    if (!palHas(activeCat, b)) continue;
     var ok = true;
     for (var k = 0; k < q.length; k++) if (b.hay.indexOf(q[k]) < 0) { ok = false; break; }
     if (!ok) continue;
@@ -470,6 +490,7 @@ function markSel() {
 }
 function chooseBlock(i) { hotbar[slot] = i; renderHotbar(); markSel(); updateStatus(); updateMaskChip(); requestRender(); autosave(); }
 $('chips').addEventListener('click', function (e) {
+  if (e.target.closest('#palBtn')) { openPalettes(); return; }
   var b = e.target.closest('[data-cat]'); if (!b) return;
   activeCat = b.getAttribute('data-cat'); renderChips(); renderList();
 });
@@ -1148,7 +1169,7 @@ function useAt(c, back, t) {
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
   var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
   var s2 = cycleProp(b, cellOri(v), prop, back && !b.shape.tog[1]);
-  beginBatch(); setShapeState(c, v, s2); endBatch();
+  beginBatch('Usar: ' + b.name); setShapeState(c, v, s2); endBatch();
   toast(b.name + ': ' + prop + ' = ' + stateProps(b, s2)[prop]);
 }
 /* Estante entalhada: o clique na frente põe ou tira o livro do nicho apontado (3 em cima, 3 embaixo); com Shift, enche ou esvazia todos */
@@ -1166,7 +1187,7 @@ function useBookshelf(c, v, b, back, t) {
     k = 'slot_' + (row * 3 + col) + '_occupied'; p[k] = p[k] === 'true' ? 'false' : 'true';
   }
   var s2 = stateIndex(b, p);
-  beginBatch(); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), s2)); endBatch();
+  beginBatch('Estante: livros'); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), s2)); endBatch();
   full = 0; for (i = 0; i < 6; i++) if (p['slot_' + i + '_occupied'] === 'true') full++;
   toast(b.name + ': ' + full + ' de 6 livros');
 }
@@ -1177,12 +1198,12 @@ function rotateAt(c, back) {
     if (!b.shape.ori.length) { toast(b.name + ' não tem direção para girar.'); return; }
     if (b.shape.multi && b.shape.multi.d !== 'up') { toast('Para girar a cama, apague e coloque de novo olhando para o outro lado.'); return; }
     var s2 = cycleOrient(b, cellOri(v), back);
-    beginBatch(); setShapeState(c, v, s2); endBatch();
+    beginBatch('Girar'); setShapeState(c, v, s2); endBatch();
     toast(b.name + ': ' + shapeLabel(b, s2)); return;
   }
   if (!b.ori) { toast(b.name + ' não tem direção para girar.'); return; }
   var n = b.ori.o.length, o = (cellOri(v) + (back ? n - 1 : 1)) % n;
-  beginBatch(); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), o)); endBatch();
+  beginBatch('Girar'); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), o)); endBatch();
   toast(b.name + ': ' + oriLabel(b, o));
 }
 function eraseAt(c) {
@@ -1194,7 +1215,7 @@ function eraseAt(c) {
 }
 function commitShape(kind, a, b, erase, t) {
   var cells = shapeCells(kind, a, b);
-  beginBatch();
+  beginBatch(histLabelFor(kind) + (erase ? ' (apagando)' : ''));
   var v = erase ? 0 : BLOCKS[curBlock()].shape ? (function () { var r = placeShape(curBlock(), t); return mkCell(r.bi, r.s); })() : mkCell(curBlock(), orientFor(curBlock(), t));
   for (var i = 0; i < cells.length; i++) {
     var c = cells[i];
@@ -1871,6 +1892,8 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%LIBRARY_JS%%*/
 /*%%WALK_JS%%*/
 /*%%GHOST_JS%%*/
+/*%%HISTORY_JS%%*/
+/*%%PALETTES_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /* ---------- Projeto ---------- */
@@ -1921,7 +1944,7 @@ function newWorld(sx, sy, sz) {
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
-  undoStack = []; redoStack = []; batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop();
+  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop();
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -2179,6 +2202,8 @@ function openHelp() {
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
+    '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
+    '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
     '<span>Teleporte (<kbd>J</kbd>)</span><span>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo. <kbd>Shift</kbd> + clique (ou o botão Primeira pessoa do aviso): anda dentro da construção.</span>' +
@@ -2203,6 +2228,9 @@ $('saveBtn').addEventListener('click', async function () {
   try { var nm = 'projeto-bloco-a-bloco.json'; var r = await saveBytes(nm, new TextEncoder().encode(JSON.stringify(serialize())), 'application/json'); reportSave(r, nm); } catch (e) { reportErr(e); }
 });
 $('openBtn').addEventListener('click', function () { $('menu').open = false; $('fileIn').click(); });
+$('histBtn').addEventListener('click', openHistory);
+$('histMenuBtn').addEventListener('click', function () { $('menu').open = false; openHistory(); });
+$('palMenuBtn').addEventListener('click', function () { $('menu').open = false; openPalettes(); });
 $('walkExit').addEventListener('click', function () { walkStop(); });
 $('tpWalk').addEventListener('click', function () {
   // entra no ponto que a câmera está olhando: em cima do bloco mais alto daquela coluna
@@ -2256,7 +2284,7 @@ function openFloor() {
         var v = mkCell(bi), n = 0, y1 = Math.min(SY - 1, y + h - 1);
         if (SX * SZ * (y1 - y + 1) > 16e6) { $('flErr').hidden = false; $('flErr').textContent = 'São ' + Math.round(SX * SZ * (y1 - y + 1) / 1e6) + ' milhões de blocos de uma vez: grande demais para desfazer. Diminua a espessura ou o tamanho do espaço, ou preencha por partes com Selecionar → Substituir (com “preencher os espaços vazios”).'; return; }
         if (BLOCKS[bi].shape && BLOCKS[bi].shape.multi) { $('flErr').hidden = false; $('flErr').textContent = 'Blocos de duas partes (porta, cama, plantas altas) não servem para o chão.'; return; }
-        beginBatch();
+        beginBatch('Preencher o chão');
         for (var yy = y; yy <= y1; yy++) for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) {
           if (keep && gget(x, yy, z)) continue;
           editSet(x, yy, z, v); n++;
@@ -2387,6 +2415,7 @@ async function start() {
   if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }
   if (!ok) ok = await wioRestore();
   if (!ok) { busy('Abrindo a construção salva…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
+  if (ok) { try { await histLoad(); } catch (e) {} } // a linha do tempo volta junto com a construção
   if (!ok) { newWorld(SX, SY, SZ); buildSample(); dirtyAll(); }
   resetCamera(); changed(); updateStatus();
   if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);

@@ -103,10 +103,7 @@ EditLog.prototype.add = function (i, o, v) {
   this.i[this.length] = i; this.o[this.length] = o; this.v[this.length] = v; this.length++;
 };
 var UNDO_MAX = 20e6; // mudanças guardadas no total (cerca de 320 MB); os passos mais antigos saem antes
-function undoTrim() {
-  var tot = 0; for (var k = 0; k < undoStack.length; k++) tot += undoStack[k].length;
-  while (undoStack.length > 1 && (tot > UNDO_MAX || undoStack.length > 300)) tot -= undoStack.shift().length;
-}
+/* o limite vale para a árvore do histórico inteira (src/history.js, histTrim) */
 
 /* ---------- Salvar: projeto (.json) e salvamento automático no navegador ---------- */
 /* Chunk em formato de arquivo: coordenadas, paleta por nome (sobrevive a mudanças na lista de blocos) e índices */
@@ -165,6 +162,7 @@ function autosave() {
     // num mundo do jogo, o chunk que ficou vazio também é guardado: ao reabrir, a área vem do mundo e o vazio tem de apagá-la
     recs.forEach(function (r) { if (r[1]) st.put(r[1], 'w:c:' + r[0]); else if (wio && wio.area) st.put({ c: r[0].split(',').map(Number), empty: 1 }, 'w:c:' + r[0]); else st.delete('w:c:' + r[0]); });
     st.put(meta, 'w:meta');
+    histSaveInto(st, clear); // a linha do tempo vai na mesma gravação: construção e histórico sempre combinam
   }).then(function () {
     autosaveBusy = false;
     try { localStorage.removeItem(KEY); } catch (e) {}

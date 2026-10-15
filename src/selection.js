@@ -70,7 +70,7 @@ function copySel(cut) {
 function deleteSel(quiet) {
   if (!sel) return;
   var n = 0;
-  beginBatch();
+  beginBatch('Apagar seleção');
   var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z) { list.push(x, y, z); });
   for (var k = 0; k < list.length; k += 3) if (gget(list[k], list[k + 1], list[k + 2])) { editSet(list[k], list[k + 1], list[k + 2], 0); n++; }
   endBatch();
@@ -111,7 +111,7 @@ function moveSel(d, steps) {
   moves.forEach(function (m) { var l = []; blocksInBox(m.a[0], m.a[1], m.a[2], m.b[0], m.b[1], m.b[2], function (x, y, z, v) { l.push(x, y, z, v); }); lists.push(l); total += l.length / 4; });
   if (total > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
   fluidStop();
-  beginBatch();
+  beginBatch('Mover seleção');
   var flow = flowOn; flowOn = false; // a água movida não escorre no meio do caminho
   try {
     // primeiro tira tudo de todas as áreas, depois põe no lugar novo (as áreas podem se cruzar no caminho)
@@ -121,7 +121,7 @@ function moveSel(d, steps) {
   } finally { flowOn = flow; }
   var before = sel;
   sel = { a: [sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]], b: [sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2]] };
-  var last = undoStack[undoStack.length - 1]; if (last) { last.selBefore = before; last.selAfter = sel; } // desfazer leva a seleção junto
+  var last = histTop(); if (last) { last.selBefore = before; last.selAfter = sel; last.label = 'Mover seleção'; } // desfazer leva a seleção junto
   selRefresh();
   if (skipped && !moveSel.warned) { moveSel.warned = true; toast('Simetria: a cópia espelhada não foi movida porque a seleção cruza o plano (ou o espelho sairia do espaço).', 7000); }
 }
@@ -191,7 +191,7 @@ function startPaste() {
 function commitPaste(t) {
   var o = pasteOrigin(t); if (!o) return;
   var n = 0, out = 0;
-  beginBatch();
+  beginBatch('Colar');
   for (var y = 0; y < clip.h; y++) for (var z = 0; z < clip.l; z++) for (var x = 0; x < clip.w; x++) {
     var v = clip.cells[(y * clip.l + z) * clip.w + x]; if (!v) continue; // o ar copiado não apaga o que já existe
     var X = o[0] + x, Y = o[1] + y, Z = o[2] + z;
@@ -254,7 +254,7 @@ function openReplace() {
         if (to === -1) { $('rpErr').hidden = false; $('rpErr').textContent = 'Bloco não encontrado: escreva o id (ex.: stone_bricks) ou escolha um nome da lista.'; return; }
         var from = $('rpFrom').value, fill = $('rpFill').checked && to >= 0, n = 0;
         if (fill && vol > 16e6) { $('rpErr').hidden = false; $('rpErr').textContent = 'Preencher ' + Math.round(vol / 1e6) + ' milhões de espaços de uma vez é demais para desfazer. Selecione uma área menor.'; return; }
-        beginBatch();
+        beginBatch(fill ? 'Substituir e preencher' : 'Substituir');
         if (fill) {
           for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
             var v = gget(x, y, z);

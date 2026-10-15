@@ -32,7 +32,7 @@ function fluidHole(x, y, z, t) {
 function fluidSet(x, y, z, v) {
   var i = idx(x, y, z), old = gget(x, y, z); if (old === v) return;
   setRaw(x, y, z, v);
-  var top = undoStack[undoStack.length - 1]; if (top) top.add(i, old, v);
+  var top = histTop(); if (top) top.add(i, old, v); // a água que escorre entra na mesma ação do histórico
   fluidChanges++;
   fluidTouch(x, y, z);
 }
