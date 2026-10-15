@@ -75,7 +75,7 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#mixChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
 #crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5;background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
@@ -103,6 +103,20 @@ body.walking #viewport canvas{cursor:none}
 #chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted)}
 #chips button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
 #chips button.mine{border-style:dashed}
+#tools .tbtn{min-width:24px;padding:0 2px}
+.mixbar{display:inline-flex;width:84px;height:14px;border-radius:3px;overflow:hidden;border:1px solid var(--line);vertical-align:middle;margin:0 6px;flex:none}
+.mixbar span{height:100%;image-rendering:pixelated}
+.mixbar.big{display:flex;width:100%;height:22px;margin:0;border-radius:6px}
+.mixl{font-size:12px}
+.mxrows{display:flex;flex-direction:column;gap:6px}
+.mxrow{display:flex;align-items:center;gap:8px}
+.mxrow .sw{width:26px;height:26px;border-radius:4px;flex:none}
+.mxrow [data-mn]{flex:1 1 200px}
+.mxrow [data-mr]{flex:1 1 120px;accent-color:var(--accent)}
+.dialog .mxrow input[data-mp]{width:76px;flex:none}
+.mxrow .btn{height:32px;padding:0 10px}
+.pen b.ok{color:var(--fg)}
+.pen b.err,.mixl .err{color:var(--danger)}
 #chips button.pedit{border-color:transparent;color:var(--accent);font-weight:600}
 .palit{display:flex;align-items:center;gap:12px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);flex-wrap:wrap}
 .palit.off{opacity:.6}
@@ -242,7 +256,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
@@ -1058,6 +1072,7 @@ var TOOLS = [
   ['fill', 'Balde: encher uma área fechada (Shift troca a região do mesmo bloco)', 'F', '<path class="f" d="M4 9l6-6 7 7-6 6z"/><path d="M4 9l6-6 7 7-6 6zM4 9h13M17.5 13.5c0 1.2-.7 2.2-1.5 2.2s-1.5-1-1.5-2.2c0-1 1.5-3 1.5-3s1.5 2 1.5 3z"/>'],
   ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>'],
   ['mask', 'Pincel de troca: troca só o bloco da máscara dentro do raio (Shift + clique escolhe a máscara)', 'M', '<path d="M4 16c2 0 3-1 3-3l6-6 2 2-6 6c0 2-1 3-3 3"/><circle cx="14.5" cy="5.5" r="2.5" class="f"/><path d="M3 3l3 3M17 13l-2 4"/>'],
+  ['mix', 'Pincel de mistura: vários blocos em porcentagens, sorteados voxel a voxel (Shift + clique põe o bloco clicado na mistura)', 'Q', '<path class="f" d="M3 3h6v6H3zM11 11h6v6h-6z"/><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/>'],
   ['sculpt', 'Esculpir terreno: elevar, afundar, suavizar ou aplainar com um pincel suave (Shift inverte)', 'K', '<path class="f" d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2v5H2z"/><path d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2"/><path d="M13 3v5M10.5 5.5L13 3l2.5 2.5"/>'],
   ['ruler', 'Régua: medir de um bloco a outro (A até B, B até C...)', 'N', '<path class="f" d="M2 13l11-11 5 5L7 18z"/><path d="M2 13l11-11 5 5L7 18zM6 9l2 2M9 6l2 2M12 3l2 2M4.5 11.5l1 1M7.5 8.5l1 1M10.5 5.5l1 1"/>'],
   ['tp', 'Teleporte: a câmera vai até o bloco clicado', 'J', '<path class="f" d="M5 15.5a5 2 0 0010 0 5 2 0 00-10 0z"/><path d="M5 15.5a5 2 0 0010 0 5 2 0 00-10 0zM10 2v9M6.5 7.5L10 11l3.5-3.5"/>']
@@ -1548,7 +1563,7 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  updateEraseChip(); updateMaskChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
+  mixPreviewReset(); updateEraseChip(); updateMaskChip(); updateMixChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
@@ -1570,6 +1585,8 @@ function updatePreview1(t) {
     ghostEdges.material.color.copy(accent); setBoxAt(ghostEdges, cell); ghostEdges.visible = true;
   } else if (et === 'mask') {
     maskPreview(t, accent);
+  } else if (et === 'mix') {
+    mixPreview(t, accent);
   } else if (et === 'sculpt') {
     sculptPreview(t, info);
   } else if (et === 'ruler') {
@@ -1760,6 +1777,7 @@ function pressAt(cx, cy, shift) {
   else if (et === 'ruler') { rulerAdd(t); }
   else if (et === 'tp') { if (shift && t && (t.hit || t.place)) walkStart(t.hit || [t.place[0], t.place[1] - 1, t.place[2]]); else teleportTo(t); }
   else if (et === 'fill') { fillAt(t, shift); }
+  else if (et === 'mix') { mixStart(t, shift); }
   else if (et === 'mask') {
     if (shift) maskPick(t);
     else if (t && t.hit) { stroke = { mode: 'mask', cells: new Set(), n: 0 }; beginBatch(); maskApply(t); stroke.last = t.hit; stroke.on = true; }
@@ -1800,6 +1818,7 @@ function dragAt(cx, cy) {
   var t = targetAt(cx, cy); hoverT = t;
   if (t) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
+    if (stroke.mode === 'mix') { mixDrag(t); c = null; }
     if (stroke.mode === 'sculpt') c = null; // as pinceladas vêm do relógio do traço, no ponto apontado
     if (stroke.mode === 'mask') { if (c && (!stroke.last || c.join() !== stroke.last.join())) { maskApply(t); stroke.last = c; } c = null; }
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
@@ -1811,7 +1830,7 @@ function dragAt(cx, cy) {
 }
 function releaseStroke() {
   if (stroke && stroke.mode === 'sculpt') sculptEnd();
-  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
+  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mix') mixEnd(sm); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
 }
 
 /* ---------- Ponteiro ---------- */
@@ -4901,6 +4920,233 @@ function palEdit(id) {
   });
 }
 
+/* ---------- Pincel de mistura: vários blocos em proporções definidas ---------- */
+/* O usuário monta uma mistura de 2 a 10 blocos, cada um com uma porcentagem (a soma tem de dar exatamente 100%).
+   O raio do ponteiro (castRay, a partir da câmera) dá o ponto de impacto; em volta dele, uma esfera ou um cubo de
+   raio r (brushVolume, o mesmo do pincel de troca). Cada voxel do volume que o modo aceita sorteia o seu bloco pela
+   distribuição: amostragem ponderada por uma tabela acumulada (ex.: 60/30/10 → [60, 90, 100]; um número de 0 a 100
+   cai no primeiro degrau maior que ele). Como cada voxel sorteia sozinho, o resultado é um salpicado natural que, em
+   média, segue as porcentagens. Os voxels já pintados no mesmo traço não sorteiam de novo (passar o pincel parado
+   não "ferve" a textura). As mudanças entram no lote de desfazer do traço e marcam os pedaços da malha a refazer.
+   Modos: Pintar (troca só blocos que existem), Superfície (só os que têm uma face no vazio: a "pele" do terreno ou da
+   parede) e Encher (só o vazio: constrói uma bola ou um cubo misturado sem mexer no que existe).
+   "Ar" pode entrar na mistura: no Pintar, abre falhas (ruínas, erosão); no Encher, deixa buracos. */
+var MIX_PRESETS = [
+  ['Pedra velha', [['stone_bricks', 55], ['cracked_stone_bricks', 25], ['mossy_stone_bricks', 20]]],
+  ['Caminho de terra', [['dirt_path', 50], ['coarse_dirt', 30], ['gravel', 20]]],
+  ['Chão de floresta', [['grass_block', 60], ['podzol', 20], ['coarse_dirt', 10], ['moss_block', 10]]],
+  ['Praia', [['sand', 70], ['sandstone', 15], ['gravel', 15]]],
+  ['Montanha', [['stone', 50], ['andesite', 25], ['cobblestone', 15], ['gravel', 10]]],
+  ['Neve', [['snow_block', 70], ['powder_snow', 15], ['packed_ice', 15]]],
+  ['Calçada', [['cobblestone', 50], ['mossy_cobblestone', 25], ['stone', 15], ['gravel', 10]]],
+  ['Ruína', [['stone_bricks', 45], ['cracked_stone_bricks', 25], ['mossy_stone_bricks', 15], ['air', 15]]],
+  ['Telhado gasto', [['deepslate_tiles', 60], ['cracked_deepslate_tiles', 25], ['cobbled_deepslate', 15]]]
+];
+var mix = { mats: [['stone', 60], ['andesite', 25], ['cobblestone', 15]], r: 2, shape: 'sphere', mode: 'paint' };
+try { var mx0 = JSON.parse(localStorage.getItem('bloco-a-bloco-mix') || 'null'); if (mx0 && Array.isArray(mx0.mats)) mix = Object.assign(mix, mx0); } catch (e) {}
+function mixSave() { try { localStorage.setItem('bloco-a-bloco-mix', JSON.stringify(mix)); } catch (e) {} }
+function mixBi(j) { return j === 'air' ? AIR_BI : j in BY_JAVA ? BY_JAVA[j] : -1; }
+/* Blocos que não servem para a mistura: de duas partes (porta, cama, planta alta) e os só de parede */
+function mixOk(bi) { var b = BLOCKS[bi]; return !!b && !b.hide && !(b.shape && b.shape.multi); }
+
+/* Tabela da amostragem ponderada. Recebe [[bloco, porcentagem], ...] e devolve { pick(u), bis, cum } ou um erro.
+   pick recebe um número uniforme em [0, 1) e devolve o índice do bloco sorteado. */
+function mixSampler(mats) {
+  if (!mats || mats.length < 2) return { err: 'A mistura precisa de pelo menos 2 blocos.' };
+  var bis = [], cum = [], acc = 0;
+  for (var i = 0; i < mats.length; i++) {
+    var bi = mixBi(mats[i][0]), p = +mats[i][1];
+    if (bi < 0 || !mixOk(bi)) return { err: 'Bloco que não serve na mistura: ' + mats[i][0] + '.' };
+    if (!(p > 0)) return { err: 'Cada bloco precisa de mais de 0%.' };
+    acc += p; bis.push(bi); cum.push(acc);
+  }
+  if (Math.abs(acc - 100) > 1e-6) return { err: 'A soma das porcentagens é ' + mixFmt(acc) + '%: precisa dar 100%.' };
+  return {
+    bis: bis, cum: cum,
+    pick: function (u) { var x = u * 100, lo = 0, hi = cum.length - 1; while (lo < hi) { var m = (lo + hi) >> 1; if (x < cum[m]) hi = m; else lo = m + 1; } return lo; }
+  };
+}
+function mixFmt(p) { return (Math.round(p * 10) / 10).toLocaleString('pt-BR'); }
+/* O voxel entra no modo? */
+function mixAccepts(mode, x, y, z) {
+  var v = gget(x, y, z);
+  if (mode === 'fill') return !v;
+  if (!v) return false;
+  if (mode === 'surface') {
+    // pele: ao menos um vizinho vazio dentro do espaço, ou o topo do espaço (céu); a borda dos lados não conta
+    if (y + 1 >= SY) return true;
+    var nb = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+    for (var k = 0; k < 6; k++) { var a = x + nb[k][0], b = y + nb[k][1], c = z + nb[k][2]; if (inB(a, b, c) && !gget(a, b, c)) return true; }
+    return false;
+  }
+  return true;
+}
+/* O algoritmo pedido: ponto de impacto, raio, forma, mistura, modo. Devolve quantos voxels mudaram e quantos de cada
+   bloco foram sorteados (counts[i] para mats[i]). done (Set de índices) guarda os voxels já sorteados no traço. */
+function mixBrush(center, r, shape, mats, mode, done, rnd) {
+  var S = mixSampler(mats); if (S.err) return { err: S.err, n: 0 };
+  rnd = rnd || Math.random;
+  var counts = mats.map(function () { return 0; }), n = 0, todo = [];
+  // primeiro escolhe os voxels (o teste de superfície olha os vizinhos como estavam antes desta pincelada)
+  brushVolume(center, r, shape, function (x, y, z) {
+    var i = idx(x, y, z); if (done && done.has(i)) return;
+    if (mixAccepts(mode, x, y, z)) todo.push(x, y, z, i);
+  });
+  for (var k = 0; k < todo.length; k += 4) {
+    var x = todo[k], y = todo[k + 1], z = todo[k + 2], m = S.pick(rnd()), bi = S.bis[m];
+    if (done) done.add(todo[k + 3]);
+    counts[m]++;
+    var v = gget(x, y, z), nv = bi === AIR_BI ? 0 : convertCell(v, bi); // convertCell mantém a direção quando dá
+    if (nv !== v) { editSet(x, y, z, nv); n++; }
+  }
+  return { n: n, counts: counts, tried: todo.length / 4 };
+}
+function mixApply(t) {
+  if (!t || !t.hit) return;
+  var c = mix.mode === 'fill' && t.place ? t.place : t.hit;
+  var res = mixBrush(c, mix.r, mix.shape, mix.mats, mix.mode, stroke && stroke.done);
+  if (res.err) { toast(res.err + ' Ajuste em Editar mistura.', 5000); if (stroke) stroke.on = false; return; }
+  if (stroke) { stroke.n += res.n; res.counts.forEach(function (q, i) { stroke.counts[i] = (stroke.counts[i] || 0) + q; }); }
+}
+function mixStart(t, shift) {
+  if (shift) { if (t && t.hit) { var bi = cellBlock(gget(t.hit[0], t.hit[1], t.hit[2])); openMixEditor(BLOCKS[bi].java); } return; }
+  if (!t || !t.hit) return;
+  stroke = { mode: 'mix', cells: new Set(), done: new Set(), n: 0, counts: [] }; beginBatch('Pincel de mistura');
+  mixApply(t); stroke.last = (t.hit || []).join(); if (stroke) stroke.on = stroke.on !== false;
+}
+function mixDrag(t) {
+  if (!t || !t.hit) return;
+  var key = t.hit.join(); if (key === stroke.last) return;
+  mixApply(t); stroke.last = key;
+}
+function mixEnd(sm) {
+  var tot = sm.counts.reduce(function (a, b) { return a + b; }, 0); if (!tot) { toast(mix.mode === 'fill' ? 'Nenhum espaço vazio dentro do pincel.' : 'Nenhum bloco dentro do pincel.'); return; }
+  // o que saiu de fato, para comparar com a mistura pedida
+  toast(tot.toLocaleString('pt-BR') + ' blocos sorteados: ' + mix.mats.map(function (m, i) { return mixName(m[0]) + ' ' + Math.round(100 * (sm.counts[i] || 0) / tot) + '% (pedido ' + mixFmt(m[1]) + '%)'; }).join(' · '), 6000);
+}
+function mixName(j) { var bi = mixBi(j); return bi === AIR_BI ? 'Ar' : bi >= 0 ? BLOCKS[bi].name : j; }
+
+/* ---------- Aviso do canto ---------- */
+function mixBarHtml(mats, big) {
+  return '<span class="mixbar' + (big ? ' big' : '') + '">' + mats.map(function (m) {
+    var bi = mixBi(m[0]), b = BLOCKS[bi] || {}, p = Math.max(0, +m[1] || 0);
+    return '<span style="flex:' + p + ' 1 0;' + (bi >= 0 ? swatch(b) : 'background:#888') + '" title="' + esc(mixName(m[0])) + ': ' + mixFmt(p) + '%"></span>';
+  }).join('') + '</span>';
+}
+function updateMixChip() {
+  var c = $('mixChip'), on = tool === 'mix';
+  c.hidden = !on; if (!on) return;
+  var S = mixSampler(mix.mats);
+  $('mixTxt').innerHTML = '<b>Mistura</b>' + mixBarHtml(mix.mats) + '<span class="mixl">' + mix.mats.map(function (m) { return esc(mixName(m[0])) + ' ' + mixFmt(m[1]) + '%'; }).join(' · ') + (S.err ? ' <b class="err">(soma ≠ 100%)</b>' : '') + '</span>';
+  $('mixR').textContent = mix.r;
+  c.querySelectorAll('[data-xs]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-xs') === mix.shape); });
+  c.querySelectorAll('[data-xm]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-xm') === mix.mode); });
+}
+function setMixR(r) { mix.r = Math.max(0, Math.min(16, r)); mixSave(); updateMixChip(); updatePreview(); }
+$('mixChip').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.hasAttribute('data-xs')) { mix.shape = b.getAttribute('data-xs'); mixSave(); updateMixChip(); updatePreview(); }
+  else if (b.hasAttribute('data-xm')) { mix.mode = b.getAttribute('data-xm'); mixSave(); updateMixChip(); updatePreview(); }
+  else if (b.id === 'mixMinus') setMixR(mix.r - 1);
+  else if (b.id === 'mixPlus') setMixR(mix.r + 1);
+  else if (b.id === 'mixEdit') openMixEditor();
+});
+/* Prévia: os voxels que o pincel vai sortear, cada um já com a cor de um sorteio (uma amostra de como vai ficar) */
+var mixPrevCol = null;
+function mixPreview(t, accent) {
+  if (!t || !t.hit) return;
+  var c = mix.mode === 'fill' && t.place ? t.place : t.hit, S = mixSampler(mix.mats), m = new THREE.Matrix4(), n = 0, col = new THREE.Color();
+  if (!previewInst.instanceColor) { previewInst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(previewInst.instanceMatrix.count * 3).fill(1), 3); previewInst.material.needsUpdate = true; }
+  brushVolume(c, mix.r, mix.shape, function (x, y, z) {
+    if (n >= 40000 || !mixAccepts(mix.mode, x, y, z)) return;
+    m.setPosition(x + 0.5, y + 0.5, z + 0.5); previewInst.setMatrixAt(n, m);
+    // cor do sorteio para este voxel, fixa pela posição (a prévia não pisca ao mexer o mouse)
+    var h = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453, u = h - Math.floor(h);
+    var b = S.err ? null : BLOCKS[S.bis[S.pick(u)]], q = b && !b.isAir ? b.top || [150, 150, 150] : [255, 255, 255];
+    col.setRGB(q[0] / 255, q[1] / 255, q[2] / 255); previewInst.setColorAt(n, col); n++;
+  });
+  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true; previewInst.instanceColor.needsUpdate = true;
+  previewInst.material.color.setRGB(1, 1, 1); mixPrevCol = true;
+  var d = 2 * mix.r + 1;
+  ghostEdges.material.color.copy(accent); ghostEdges.scale.set(d, d, d); setBoxAt(ghostEdges, c); ghostEdges.visible = true;
+}
+/* As outras prévias usam uma cor só: volta as cores das instâncias para branco quando sai do pincel de mistura */
+function mixPreviewReset() {
+  if (!mixPrevCol || !previewInst.instanceColor) return;
+  previewInst.instanceColor.array.fill(1); previewInst.instanceColor.needsUpdate = true; mixPrevCol = null;
+}
+
+/* ---------- Janela: editar a mistura ---------- */
+function openMixEditor(addJava) {
+  var rows = mix.mats.map(function (m) { return [m[0], +m[1]]; });
+  if (addJava && rows.length < 10 && !rows.some(function (r) { return r[0] === addJava; })) rows.push([addJava, 0]);
+  var list = '<option value="ar">Ar (deixa vazio)</option>' + BLOCKS.map(function (b, i) { return b.hide || b.isAir || !mixOk(i) ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
+  openDialog('<h3>Mistura de blocos</h3><p>Cada voxel que o pincel toca sorteia um destes blocos, com a chance de cada um. A soma tem de dar <b>100%</b>. “Ar” abre falhas (no modo Pintar) ou deixa buracos (no Encher).</p>' +
+    '<div class="row"><label style="flex:1">Começar de uma mistura pronta<select id="mxPre"><option value="">—</option>' + MIX_PRESETS.map(function (p, i) { return '<option value="' + i + '">' + esc(p[0]) + ' (' + p[1].map(function (m) { return m[1] + '% ' + mixName(m[0]); }).join(', ') + ')</option>'; }).join('') + '</select></label></div>' +
+    '<div id="mxRows" class="mxrows"></div><datalist id="mxList">' + list + '</datalist>' +
+    '<div id="mxBar"></div>' +
+    '<div class="row"><button class="btn" id="mxAdd">+ Bloco</button><button class="btn" id="mxHot" title="Põe o bloco ativo da hotbar">+ Bloco da hotbar</button><button class="btn" id="mxEq">Dividir igualmente</button><button class="btn" id="mxNorm" title="Mantém a proporção entre os números e faz a soma virar 100 (ex.: 3, 1, 1 vira 60, 20, 20)">Ajustar para 100%</button><span id="mxSum" class="pen"></span></div>' +
+    '<p class="err" id="mxErr" hidden></p>' +
+    '<div class="row"><button class="btn primary" id="mxOk">Usar esta mistura</button><button class="btn" id="mxNo">Cancelar</button></div>', function () {
+    overlayRoot.querySelector('.dialog').classList.add('wide');
+    var read = function () {
+      overlayRoot.querySelectorAll('.mxrow').forEach(function (el, i) {
+        var t = el.querySelector('[data-mn]').value, bi = blockByText(t);
+        rows[i][0] = bi === -2 ? 'air' : bi >= 0 ? BLOCKS[bi].java : t.trim();
+        rows[i][1] = parseFloat(String(el.querySelector('[data-mp]').value).replace(',', '.')) || 0;
+      });
+    };
+    var sum = function () { return rows.reduce(function (a, r) { return a + r[1]; }, 0); };
+    var foot = function () {
+      var s = sum(), ok = Math.abs(s - 100) < 1e-6;
+      $('mxSum').innerHTML = 'Soma: <b class="' + (ok ? 'ok' : 'err') + '">' + mixFmt(s) + '%</b>' + (ok ? '' : s < 100 ? ' (faltam ' + mixFmt(100 - s) + ')' : ' (sobram ' + mixFmt(s - 100) + ')');
+      $('mxBar').innerHTML = mixBarHtml(rows, true);
+      overlayRoot.querySelectorAll('.mxrow').forEach(function (el, i) { var bi = mixBi(rows[i][0]); el.querySelector('.sw').setAttribute('style', bi >= 0 ? swatch(BLOCKS[bi]) : 'background:transparent;border:1px dashed var(--danger)'); el.querySelector('[data-mr]').value = Math.round(rows[i][1]); });
+      $('mxAdd').disabled = $('mxHot').disabled = rows.length >= 10;
+    };
+    var draw = function () {
+      $('mxRows').innerHTML = rows.map(function (r, i) {
+        return '<div class="mxrow"><span class="sw"></span><input type="text" data-mn list="mxList" value="' + esc(r[0] === 'air' ? 'ar' : mixBi(r[0]) >= 0 ? BLOCKS[mixBi(r[0])].name : r[0]) + '" autocomplete="off" aria-label="Bloco ' + (i + 1) + '">' +
+          '<input type="range" data-mr min="0" max="100" step="1" value="' + Math.round(r[1]) + '" aria-label="Porcentagem">' +
+          '<input type="number" data-mp min="0" max="100" step="any" value="' + r[1] + '" aria-label="Porcentagem"><span>%</span>' +
+          '<button class="btn" data-mx="' + i + '" title="Tirar"' + (rows.length <= 2 ? ' disabled' : '') + '>×</button></div>';
+      }).join('');
+      foot();
+    };
+    draw();
+    $('mxRows').addEventListener('input', function (e) {
+      var row = e.target.closest('.mxrow'); if (!row) return;
+      if (e.target.hasAttribute('data-mr')) row.querySelector('[data-mp]').value = e.target.value;
+      read(); foot(); $('mxErr').hidden = true;
+    });
+    $('mxRows').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mx]'); if (!b) return;
+      read(); rows.splice(+b.getAttribute('data-mx'), 1); draw();
+    });
+    $('mxPre').onchange = function (e) { var p = MIX_PRESETS[+e.target.value]; if (!p || e.target.value === '') return; rows = p[1].map(function (m) { return [m[0], m[1]]; }); draw(); };
+    $('mxAdd').onclick = function () { read(); rows.push(['', 0]); draw(); overlayRoot.querySelector('.mxrow:last-child [data-mn]').focus(); };
+    $('mxHot').onclick = function () { read(); var b = BLOCKS[curBlock()]; rows.push([b.isAir ? 'air' : b.java, 0]); draw(); };
+    $('mxEq').onclick = function () {
+      read(); var n = rows.length, base = Math.floor(1000 / n) / 10; // em décimos, e o resto vai para o primeiro
+      rows.forEach(function (r) { r[1] = base; }); rows[0][1] = Math.round((100 - base * (n - 1)) * 10) / 10; draw();
+    };
+    $('mxNorm').onclick = function () {
+      read(); var s = sum(); if (!(s > 0)) return;
+      var acc = 0; rows.forEach(function (r, i) { if (i < rows.length - 1) { r[1] = Math.round(r[1] * 1000 / s) / 10; acc += r[1]; } });
+      rows[rows.length - 1][1] = Math.round((100 - acc) * 10) / 10; draw();
+    };
+    $('mxNo').onclick = closeDialog;
+    $('mxOk').onclick = function () {
+      read();
+      var seen = {}, dup = rows.filter(function (r) { if (seen[r[0]]) return true; seen[r[0]] = 1; return false; })[0];
+      var S = dup ? { err: 'O bloco ' + mixName(dup[0]) + ' aparece duas vezes: junte as porcentagens numa linha só.' } : mixSampler(rows);
+      if (S.err) { $('mxErr').hidden = false; $('mxErr').textContent = S.err; return; }
+      mix.mats = rows; mixSave(); closeDialog(); if (tool !== 'mix') setTool('mix'); updateMixChip(); updatePreview();
+      toast('Mistura pronta: ' + rows.map(function (m) { return mixFmt(m[1]) + '% ' + mixName(m[0]); }).join(', ') + '.');
+    };
+  });
+}
+
 /* ---------- Medidas na tela ---------- */
 /* Cotas como num desenho técnico: linha com setas e o número de blocos em X (largura), Z (profundidade) e Y (altura)
    em volta da construção. Com a Camada ligada, mostra o contorno da camada visível com a medida de cada lado (planta baixa).
@@ -6272,6 +6518,7 @@ function openHelp() {
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
+    '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
@@ -6390,6 +6637,7 @@ window.addEventListener('keydown', function (e) {
   var k = e.key.toLowerCase();
   if (selectionKey(e, k)) return;
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }
+  if (tool === 'mix' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMixR(mix.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'sculpt' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setSculptR(sculpt.r + (k === '-' ? -1 : 1)); return; }
   if (k === 'x' && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleSymChip(); return; }
   if (k === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) { setMeasure(!measureOn); toast(measureOn ? 'Medidas visíveis.' : 'Medidas escondidas.'); return; }
@@ -6397,7 +6645,7 @@ window.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', q: 'mix', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
