@@ -31,7 +31,8 @@ function updateSelChip() {
     var d = selSize(sel);
     c.hidden = false;
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
-    $('selBtns').innerHTML = '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
+    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
+      '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
       '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
@@ -74,6 +75,36 @@ function deleteSel(quiet) {
   for (var k = 0; k < list.length; k += 3) if (gget(list[k], list[k + 1], list[k + 2])) { editSet(list[k], list[k + 1], list[k + 2], 0); n++; }
   endBatch();
   if (!quiet) toast('Apagados ' + n + ' blocos.');
+}
+
+/* Mover os blocos da seleção (e a seleção junto) um ou mais blocos. Frente, trás e lados seguem a câmera: "frente"
+   é o eixo (X ou Z) mais perto da direção para onde a câmera olha. Os blocos movidos ocupam o lugar novo (trocando o que
+   estiver lá); o ar da seleção não apaga nada. Cada passo é um passo de desfazer. */
+function moveDir(m) {
+  var fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), f = Math.abs(fx) > Math.abs(fz) ? [Math.sign(fx), 0, 0] : [0, 0, Math.sign(fz)];
+  var rt = [-f[2], 0, f[0]];
+  return { f: f, b: [-f[0], 0, -f[2]], r: rt, l: [-rt[0], 0, -rt[2]], u: [0, 1, 0], d: [0, -1, 0] }[m];
+}
+function moveSel(d, steps) {
+  if (!sel) return;
+  steps = steps || 1;
+  var dx = d[0] * steps, dy = d[1] * steps, dz = d[2] * steps;
+  if (!inB(sel.a[0] + dx, sel.a[1] + dy, sel.a[2] + dz) || !inB(sel.b[0] + dx, sel.b[1] + dy, sel.b[2] + dz)) { toast('A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+  var list = [];
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { list.push(x, y, z, v); });
+  if (list.length / 4 > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
+  fluidStop();
+  beginBatch();
+  var flow = flowOn; flowOn = false; // a água movida não escorre no meio do caminho
+  try {
+    for (var k = 0; k < list.length; k += 4) editSet1(list[k], list[k + 1], list[k + 2], 0); // sem simetria: só a área marcada
+    for (var k2 = 0; k2 < list.length; k2 += 4) editSet1(list[k2] + dx, list[k2 + 1] + dy, list[k2 + 2] + dz, list[k2 + 3]);
+    endBatch();
+  } finally { flowOn = flow; }
+  var before = sel;
+  sel = { a: [sel.a[0] + dx, sel.a[1] + dy, sel.a[2] + dz], b: [sel.b[0] + dx, sel.b[1] + dy, sel.b[2] + dz] };
+  var last = undoStack[undoStack.length - 1]; if (last) { last.selBefore = before; last.selAfter = sel; } // desfazer leva a seleção junto
+  selRefresh();
 }
 
 /* Girar 90° no sentido horário (visto de cima): posição e estado de cada bloco */
@@ -207,6 +238,7 @@ function openReplace() {
 }
 
 $('selBtns').addEventListener('click', function (e) {
+  var mv = e.target.closest('[data-m]'); if (mv) { moveSel(moveDir(mv.getAttribute('data-m')), e.shiftKey ? 5 : 1); return; }
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
@@ -221,6 +253,9 @@ function selectionKey(e, k) {
   if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
   if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
   if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
+  // com a ferramenta Selecionar e uma área marcada, as setas e Page Up/Down movem os blocos (Shift: 5 de cada vez)
+  var mk = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k];
+  if (mk && sel && tool === 'select' && !pasting && !ctrl) { e.preventDefault(); moveSel(moveDir(mk), e.shiftKey ? 5 : 1); return true; }
   return false;
 }
 function selectionEscape() {

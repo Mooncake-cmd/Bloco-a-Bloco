@@ -84,6 +84,8 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #symChip .mbtns button[data-sa="1"][aria-pressed=true]{background:#3fa34d;color:#fff}
 #symChip .mbtns button[data-sa="2"][aria-pressed=true]{background:#3d7ee0;color:#fff}
 #selChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#selChip .mvb{display:inline-flex;align-items:center;gap:3px;margin-right:4px}
+#selChip .mvb button{background:var(--line);color:var(--fg);min-width:24px;padding:2px 5px}
 #selBtns{display:inline-flex;flex-wrap:wrap;gap:4px}
 #selBtns button+button{background:var(--line);color:var(--fg)}
 .dialog .err{color:var(--danger)}
@@ -900,8 +902,8 @@ function applyBatch(b, undo) {
     setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
   }
 }
-function undo() { fluidStop(); var b = undoStack.pop(); if (!b) return; applyBatch(b, true); redoStack.push(b); changed(); }
-function redo() { fluidStop(); var b = redoStack.pop(); if (!b) return; applyBatch(b, false); undoStack.push(b); changed(); }
+function undo() { fluidStop(); var b = undoStack.pop(); if (!b) return; applyBatch(b, true); redoStack.push(b); if (b.selBefore) { sel = b.selBefore; selRefresh(); } changed(); }
+function redo() { fluidStop(); var b = redoStack.pop(); if (!b) return; applyBatch(b, false); undoStack.push(b); if (b.selAfter) { sel = b.selAfter; selRefresh(); } changed(); }
 function changed() {
   requestRender();
   updateStatus();
@@ -2955,7 +2957,8 @@ function updateSelChip() {
     var d = selSize(sel);
     c.hidden = false;
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
-    $('selBtns').innerHTML = '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
+    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
+      '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
       '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
@@ -2998,6 +3001,36 @@ function deleteSel(quiet) {
   for (var k = 0; k < list.length; k += 3) if (gget(list[k], list[k + 1], list[k + 2])) { editSet(list[k], list[k + 1], list[k + 2], 0); n++; }
   endBatch();
   if (!quiet) toast('Apagados ' + n + ' blocos.');
+}
+
+/* Mover os blocos da seleção (e a seleção junto) um ou mais blocos. Frente, trás e lados seguem a câmera: "frente"
+   é o eixo (X ou Z) mais perto da direção para onde a câmera olha. Os blocos movidos ocupam o lugar novo (trocando o que
+   estiver lá); o ar da seleção não apaga nada. Cada passo é um passo de desfazer. */
+function moveDir(m) {
+  var fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), f = Math.abs(fx) > Math.abs(fz) ? [Math.sign(fx), 0, 0] : [0, 0, Math.sign(fz)];
+  var rt = [-f[2], 0, f[0]];
+  return { f: f, b: [-f[0], 0, -f[2]], r: rt, l: [-rt[0], 0, -rt[2]], u: [0, 1, 0], d: [0, -1, 0] }[m];
+}
+function moveSel(d, steps) {
+  if (!sel) return;
+  steps = steps || 1;
+  var dx = d[0] * steps, dy = d[1] * steps, dz = d[2] * steps;
+  if (!inB(sel.a[0] + dx, sel.a[1] + dy, sel.a[2] + dz) || !inB(sel.b[0] + dx, sel.b[1] + dy, sel.b[2] + dz)) { toast('A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+  var list = [];
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { list.push(x, y, z, v); });
+  if (list.length / 4 > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
+  fluidStop();
+  beginBatch();
+  var flow = flowOn; flowOn = false; // a água movida não escorre no meio do caminho
+  try {
+    for (var k = 0; k < list.length; k += 4) editSet1(list[k], list[k + 1], list[k + 2], 0); // sem simetria: só a área marcada
+    for (var k2 = 0; k2 < list.length; k2 += 4) editSet1(list[k2] + dx, list[k2 + 1] + dy, list[k2 + 2] + dz, list[k2 + 3]);
+    endBatch();
+  } finally { flowOn = flow; }
+  var before = sel;
+  sel = { a: [sel.a[0] + dx, sel.a[1] + dy, sel.a[2] + dz], b: [sel.b[0] + dx, sel.b[1] + dy, sel.b[2] + dz] };
+  var last = undoStack[undoStack.length - 1]; if (last) { last.selBefore = before; last.selAfter = sel; } // desfazer leva a seleção junto
+  selRefresh();
 }
 
 /* Girar 90° no sentido horário (visto de cima): posição e estado de cada bloco */
@@ -3131,6 +3164,7 @@ function openReplace() {
 }
 
 $('selBtns').addEventListener('click', function (e) {
+  var mv = e.target.closest('[data-m]'); if (mv) { moveSel(moveDir(mv.getAttribute('data-m')), e.shiftKey ? 5 : 1); return; }
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
@@ -3145,6 +3179,9 @@ function selectionKey(e, k) {
   if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
   if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
   if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
+  // com a ferramenta Selecionar e uma área marcada, as setas e Page Up/Down movem os blocos (Shift: 5 de cada vez)
+  var mk = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k];
+  if (mk && sel && tool === 'select' && !pasting && !ctrl) { e.preventDefault(); moveSel(moveDir(mk), e.shiftKey ? 5 : 1); return true; }
   return false;
 }
 function selectionEscape() {
@@ -5277,7 +5314,7 @@ function openHelp() {
     '<span>Simetria (<kbd>X</kbd>)</span><span>Liga o espelho: tudo o que você fizer se repete do outro lado dos planos X, Y e/ou Z. <kbd>P</kbd> põe o plano no bloco apontado (de novo: entre dois blocos).</span>' +
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
-    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área.</span>' +
+    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
@@ -5285,7 +5322,7 @@ function openHelp() {
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
-    '<span><kbd>Setas</kbd></span><span>Mover a câmera</span>' +
+    '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +

@@ -204,7 +204,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>8</td><td><b>Caixa oca</b> (paredes)</td><td><kbd>H</kbd></td></tr>
       <tr><td>9</td><td><b>Esfera sólida</b></td><td><kbd>S</kbd></td><td rowspan="2">Dois cliques: o centro e um ponto da borda (o raio).</td></tr>
       <tr><td>10</td><td><b>Esfera oca</b></td><td><kbd>O</kbd></td></tr>
-      <tr><td>11</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
+      <tr><td>11</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: mover, copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
       <tr><td>12</td><td><b>Pincel de troca</b></td><td><kbd>M</kbd></td><td>Pinta trocando só um tipo de bloco (a máscara) pelo bloco da hotbar, dentro de uma esfera ou cubo; o resto fica igual (veja abaixo).</td><td>Escolhe a máscara: o bloco clicado.</td></tr>
       <tr><td>13</td><td><b>Esculpir terreno</b></td><td><kbd>K</kbd></td><td>Segure para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave (veja abaixo).</td><td>Troca elevar por afundar (e vice-versa) durante o traço.</td></tr>
       <tr><td>14</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
@@ -298,10 +298,11 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <figure><img src="img/caixa.jpg" alt="Prévia de uma caixa sólida no passo da altura, com o aviso Base e a instrução de subir o ponteiro no canto" width="972" height="718" loading="lazy"><figcaption>Caixa sólida no passo da altura: a base já foi marcada com dois cliques e a prévia laranja sobe junto com o ponteiro, com as medidas temporárias (8 de largura, 5 de altura). O aviso no canto superior esquerdo mostra o tamanho da base e tem o botão Cancelar. As formas usam o bloco da hotbar com a direção de quem constrói.</figcaption></figure>
 
   <h3>Selecionar, copiar e colar</h3>
-  <figure><img src="img/selecao.jpg" alt="Árvore marcada por uma caixa azul de seleção, com o aviso Seleção 5 × 6 × 5 e os botões Copiar, Recortar, Apagar, Substituir e Limpar" width="972" height="718" loading="lazy"><figcaption>Com <b>Selecionar</b> (<kbd>V</kbd>): o primeiro clique marca um canto, a caixa azul acompanha o mouse e o segundo clique fecha a área. O aviso no canto mostra o tamanho e os botões de ação; a barra de status também mostra o tamanho da seleção.</figcaption></figure>
+  <figure><img src="img/selecao.jpg" alt="Árvore marcada por uma caixa azul de seleção, com o aviso Seleção 5 × 6 × 5, as setas de Mover e os botões Copiar, Recortar, Apagar, Substituir e Limpar" width="972" height="718" loading="lazy"><figcaption>Com <b>Selecionar</b> (<kbd>V</kbd>): o primeiro clique marca um canto, a caixa azul acompanha o mouse e o segundo clique fecha a área. O aviso no canto mostra o tamanho e os botões de ação; a barra de status também mostra o tamanho da seleção.</figcaption></figure>
   <div class="tbl"><table>
     <thead><tr><th>Ação</th><th>Botão no aviso</th><th>Tecla</th><th>O que faz</th></tr></thead>
     <tbody>
+      <tr><td>Mover</td><td>↑ ↓ ← → ▲ ▼</td><td>Setas, <kbd>Page Up</kbd> / <kbd>Page Down</kbd></td><td>Leva os blocos da área (e a caixa da seleção junto) um bloco para a frente, para trás, para os lados, para cima ou para baixo. Com <kbd>Shift</kbd>, cinco blocos de cada vez. Veja abaixo.</td></tr>
       <tr><td>Copiar</td><td>Copiar</td><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Guarda os blocos da área, com direção e estado (porta aberta, escada virada, laje em cima…).</td></tr>
       <tr><td>Recortar</td><td>Recortar</td><td><kbd>Ctrl</kbd>+<kbd>X</kbd></td><td>Copia e apaga a área.</td></tr>
       <tr><td>Colar</td><td>Colar</td><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Uma prévia azul da cópia segue o mouse, centrada no ponto apontado e apoiada nele. Cada clique cola uma cópia; <kbd>Esc</kbd>, Cancelar ou um clique simples com o botão direito terminam.</td></tr>
@@ -317,6 +318,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Cada colagem, recorte, apagamento ou substituição é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
     <li>A cópia vale para o projeto aberto depois: dá para copiar de uma estrutura importada e colar num projeto novo, sem recarregar a página.</li>
     <li>No celular, use os botões do aviso no lugar das teclas.</li>
+  </ul>
+  <h3>Mover a área selecionada</h3>
+  <ul class="plain">
+    <li>Com a área marcada, a linha <b>Mover</b> do aviso tem seis setas: <b>↑</b> frente, <b>↓</b> trás, <b>←</b> esquerda, <b>→</b> direita, <b>▲</b> sobe e <b>▼</b> desce. No teclado (com a ferramenta Selecionar escolhida), as setas e <kbd>Page Up</kbd> / <kbd>Page Down</kbd> fazem o mesmo; com <kbd>Shift</kbd> (tecla ou clique), anda 5 blocos.</li>
+    <li>Frente, trás e lados seguem a <b>câmera</b>: “frente” é o lado para onde você está olhando (o eixo X ou Z mais perto), como as setas que movem a câmera. Ao girar a câmera, as setas giram junto.</li>
+    <li>A caixa da seleção vai junto com os blocos, então dá para apertar várias vezes seguidas. Cada passo é um <kbd>Ctrl</kbd>+<kbd>Z</kbd> (que traz a caixa de volta também).</li>
+    <li>Os blocos movidos ocupam o lugar novo, trocando o que estiver lá; o ar da seleção não apaga nada. Direção e estado (escadas, portas) vão iguais, e cercas e muros se religam aos vizinhos novos.</li>
+    <li>Não move se a área sairia do espaço (o aviso explica). A simetria não se aplica ao mover, e a água movida não escorre no caminho.</li>
   </ul>
   <figure><img src="img/colar.jpg" alt="Uma cópia da árvore já colada à esquerda da casa e a prévia azul de outra cópia seguindo o mouse à direita" width="972" height="718" loading="lazy"><figcaption>Colando: à esquerda, uma cópia da árvore já colada; à direita, a prévia azul da próxima. O aviso mostra o tamanho da cópia e o botão <b>Girar 90°</b>.</figcaption></figure>
 
@@ -708,7 +717,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Espaço da hotbar</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Desfazer / refazer</td></tr>
         <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Descer e subir a camada</td></tr>
-        <tr><td>Setas</td><td>Mover a câmera</td></tr>
+        <tr><td>Setas</td><td>Mover a câmera (com Selecionar e uma área marcada: mover os blocos da área)</td></tr>
+        <tr><td><kbd>Page Up</kbd> / <kbd>Page Down</kbd></td><td>Com Selecionar e uma área marcada: subir e descer os blocos da área (<kbd>Shift</kbd>: 5 blocos)</td></tr>
         <tr><td><kbd>Home</kbd></td><td>Recentralizar</td></tr>
         <tr><td><kbd>G</kbd></td><td>Grade</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>Fecha janela, cancela forma, termina a colagem, tira a seleção, fecha menu</td></tr>
