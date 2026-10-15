@@ -4184,21 +4184,36 @@ function sliceOutline(g, sb, y, zb) {
   segs = thinWalls(segs);
   if (segs.length > 400) segs = segs.sort(function (p, q) { return q.n - p.n; }).slice(0, 400); // planta muito recortada: os lados maiores
   var size = Math.max(Math.pow(2, zb / 3) * 0.03, 0.5), w = size * 0.035, yy = y + 1.02, inset = size * 0.75;
-  segs.forEach(function (sg) {
+  // altura de um número no chão, em blocos (o número tem tamanho fixo na tela): para não pôr um em cima do outro
+  var lh = 0.05 * cam.dist * Math.tan((camera.fov || 50) * Math.PI / 360), placed = [];
+  segs.sort(function (p, q) { return q.n - p.n; }).forEach(function (sg) {
     var ax = sg.a[0] + ox, az = sg.a[1] + oz, bx = sg.b[0] + ox, bz = sg.b[1] + oz;
     measSeg(g, [ax, yy, az], [bx, yy, bz], w);
-    var lb = measureLabel(sg.n, size), k = Math.min(inset, sg.n < 3 ? 0.45 : inset);
-    if (sg.n < 3) lb.scale.multiplyScalar(0.72); // lados curtos: número menor, como na planta de referência
-    lb.position.set((ax + bx) / 2 + sg.d[0] * k, yy, (az + bz) / 2 + sg.d[1] * k);
+    var lb = measureLabel(sg.n, size), k = Math.min(inset, sg.n < 3 ? 0.45 : inset), sc = sg.n < 3 ? 0.72 : 1;
+    if (sc < 1) lb.scale.multiplyScalar(sc); // lados curtos: número menor, como na planta de referência
+    var hw = lh * sc * measureTex[String(sg.n)].ar / 2 * 1.05, hh = lh * sc / 2 * 1.05, mx = (ax + bx) / 2, mz = (az + bz) / 2, ux = sg.d[1] ? 1 : 0, uz = sg.d[0] ? 1 : 0;
+    // lugares possíveis: do lado de dentro, mais para dentro, do lado de fora, e deslizando ao longo do lado
+    var cands = [[k, 0], [k + 2 * hh, 0], [-k, 0], [-k - 2 * hh, 0], [k, sg.n / 3], [k, -sg.n / 3], [-k, sg.n / 3], [-k, -sg.n / 3]].map(function (c) {
+      return [mx + sg.d[0] * c[0] + ux * c[1], mz + sg.d[1] * c[0] + uz * c[1]];
+    });
+    var best = null, bestGap = -1e9;
+    for (var ci = 0; ci < cands.length; ci++) {
+      var gap = 1e9;
+      placed.forEach(function (q) { gap = Math.min(gap, Math.max(Math.abs(cands[ci][0] - q[0]) - (hw + q[2]), Math.abs(cands[ci][1] - q[1]) - (hh + q[3]))); });
+      if (gap >= 0) { best = cands[ci]; break; }
+      if (gap > bestGap) { bestGap = gap; best = cands[ci]; }
+    }
+    placed.push([best[0], best[1], hw, hh]);
+    lb.position.set(best[0], yy, best[1]);
     g.add(lb);
   });
   return true;
 }
 
 /* Paredes finas (até 2 blocos de espessura): o lado de fora e o de dentro são quase iguais e os números ficariam
-   colados. Fica só o maior dos dois, e as pontas da parede (o "1" ou "2" que liga um lado ao outro) somem. */
+   colados. Fica só o maior dos dois (as pontas da parede, que medem a espessura, continuam). */
 function thinWalls(segs) {
-  var by = new Map(), drop = new Set(), ends = new Set();
+  var by = new Map(), drop = new Set();
   segs.forEach(function (sg, i) {
     var hz = sg.d[0] === 0, c = hz ? sg.a[1] : sg.a[0], s = hz ? sg.d[1] : sg.d[0], k = (hz ? 'h' : 'v') + c + ':' + s;
     if (!by.has(k)) by.set(k, []); by.get(k).push(i);
@@ -4210,10 +4225,8 @@ function thinWalls(segs) {
       var o = segs[j], lo2 = hz ? o.a[0] : o.a[1], hi2 = hz ? o.b[0] : o.b[1], ov = Math.min(hi, hi2) - Math.max(lo, lo2);
       if (ov < 0.5 * Math.min(sg.n, o.n) || Math.min(sg.n, o.n) <= t) return; // parede: comprida em relação à espessura (um degrau curto não é parede)
       drop.add(sg.n >= o.n ? j : i);
-      [sg, o].forEach(function (q) { ends.add(q.a.join()); ends.add(q.b.join()); });
     });
   });
-  segs.forEach(function (sg, i) { if (sg.n <= 2 && ends.has(sg.a.join()) && ends.has(sg.b.join())) drop.add(i); });
   return segs.filter(function (sg, i) { return !drop.has(i); });
 }
 
