@@ -79,7 +79,8 @@ function deleteSel(quiet) {
 
 /* Mover os blocos da seleção (e a seleção junto) um ou mais blocos. Frente, trás e lados seguem a câmera: "frente"
    é o eixo (X ou Z) mais perto da direção para onde a câmera olha. Os blocos movidos ocupam o lugar novo (trocando o que
-   estiver lá); o ar da seleção não apaga nada. Cada passo é um passo de desfazer. */
+   estiver lá); o ar da seleção não apaga nada. Com a simetria ligada, a área espelhada anda junto, para o lado espelhado.
+   Cada passo é um passo de desfazer. */
 function moveDir(m) {
   var fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), f = Math.abs(fx) > Math.abs(fz) ? [Math.sign(fx), 0, 0] : [0, 0, Math.sign(fz)];
   var rt = [-f[2], 0, f[0]];
@@ -88,23 +89,41 @@ function moveDir(m) {
 function moveSel(d, steps) {
   if (!sel) return;
   steps = steps || 1;
-  var dx = d[0] * steps, dy = d[1] * steps, dz = d[2] * steps;
-  if (!inB(sel.a[0] + dx, sel.a[1] + dy, sel.a[2] + dz) || !inB(sel.b[0] + dx, sel.b[1] + dy, sel.b[2] + dz)) { toast('A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
-  var list = [];
-  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { list.push(x, y, z, v); });
-  if (list.length / 4 > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
+  var dv = [d[0] * steps, d[1] * steps, d[2] * steps];
+  // com a simetria ligada, a área espelhada (do outro lado de cada plano) anda junto, no sentido espelhado
+  var moves = [{ a: sel.a, b: sel.b, d: dv }], skipped = 0;
+  var on = [0, 1, 2].filter(function (a) { return sym.on[a]; });
+  for (var mask = 1; mask < (1 << on.length); mask++) {
+    var a = sel.a.slice(), b = sel.b.slice(), dd = dv.slice();
+    on.forEach(function (ax, i) { if (!(mask & (1 << i))) return; var p = sym.p[ax], lo = p - b[ax], hi = p - a[ax]; a[ax] = lo; b[ax] = hi; dd[ax] = -dd[ax]; });
+    var dup = false, clash = false;
+    moves.forEach(function (m) {
+      var same = m.a.join() === a.join() && m.b.join() === b.join();
+      var meet = m.a[0] <= b[0] && a[0] <= m.b[0] && m.a[1] <= b[1] && a[1] <= m.b[1] && m.a[2] <= b[2] && a[2] <= m.b[2];
+      if (same && m.d.join() === dd.join()) dup = true; else if (meet) clash = true; // a área cruza o plano: o espelho iria para o lado oposto
+    });
+    if (dup) continue;
+    if (clash || !inB(a[0], a[1], a[2]) || !inB(b[0], b[1], b[2]) || !inB(a[0] + dd[0], a[1] + dd[1], a[2] + dd[2]) || !inB(b[0] + dd[0], b[1] + dd[1], b[2] + dd[2])) { skipped++; continue; }
+    moves.push({ a: a, b: b, d: dd });
+  }
+  if (!inB(sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]) || !inB(sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2])) { toast('A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+  var lists = [], total = 0;
+  moves.forEach(function (m) { var l = []; blocksInBox(m.a[0], m.a[1], m.a[2], m.b[0], m.b[1], m.b[2], function (x, y, z, v) { l.push(x, y, z, v); }); lists.push(l); total += l.length / 4; });
+  if (total > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
   fluidStop();
   beginBatch();
   var flow = flowOn; flowOn = false; // a água movida não escorre no meio do caminho
   try {
-    for (var k = 0; k < list.length; k += 4) editSet1(list[k], list[k + 1], list[k + 2], 0); // sem simetria: só a área marcada
-    for (var k2 = 0; k2 < list.length; k2 += 4) editSet1(list[k2] + dx, list[k2 + 1] + dy, list[k2 + 2] + dz, list[k2 + 3]);
+    // primeiro tira tudo de todas as áreas, depois põe no lugar novo (as áreas podem se cruzar no caminho)
+    lists.forEach(function (l) { for (var k = 0; k < l.length; k += 4) editSet1(l[k], l[k + 1], l[k + 2], 0); });
+    lists.forEach(function (l, i) { var q = moves[i].d; for (var k = 0; k < l.length; k += 4) editSet1(l[k] + q[0], l[k + 1] + q[1], l[k + 2] + q[2], l[k + 3]); });
     endBatch();
   } finally { flowOn = flow; }
   var before = sel;
-  sel = { a: [sel.a[0] + dx, sel.a[1] + dy, sel.a[2] + dz], b: [sel.b[0] + dx, sel.b[1] + dy, sel.b[2] + dz] };
+  sel = { a: [sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]], b: [sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2]] };
   var last = undoStack[undoStack.length - 1]; if (last) { last.selBefore = before; last.selAfter = sel; } // desfazer leva a seleção junto
   selRefresh();
+  if (skipped && !moveSel.warned) { moveSel.warned = true; toast('Simetria: a cópia espelhada não foi movida porque a seleção cruza o plano (ou o espelho sairia do espaço).', 7000); }
 }
 
 /* Girar 90° no sentido horário (visto de cima): posição e estado de cada bloco */
