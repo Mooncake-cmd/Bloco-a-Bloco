@@ -638,6 +638,22 @@ async function wioCommitAll() {
   try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); await wioSaveSession(false); return r; }
   finally { busyEnd(); }
 }
+/* Chunks não gerados no mapa da área: no Fim (e em ilhas soltas) o vazio gerado e o nunca gerado ficavam iguais.
+   Com o aviso ligado, o que o jogo nunca gerou fica num vermelho translúcido e o gerado (mesmo só ar) num cinza azulado. */
+var WIO_UNGEN_RGBA = [214, 58, 48, 107], WIO_GEN_RGBA = [96, 106, 128, 150], WIO_UNGEN = 'rgba(214,58,48,.42)';
+function wioShowUngen() { try { return localStorage.getItem('bloco-a-bloco-ungen') !== '0'; } catch (e) { return true; } }
+/* Uma imagem com 1 pixel por chunk do retângulo do mapa: vermelho onde não há chunk gerado */
+function wioUngenMask(dim, mp) {
+  var cx0 = Math.floor(mp.x0 / 16), cz0 = Math.floor(mp.z0 / 16), w = Math.ceil(mp.w * mp.sc / 16), h = Math.ceil(mp.h * mp.sc / 16);
+  var c = document.createElement('canvas'); c.width = w; c.height = h;
+  var g = c.getContext('2d'), img = g.createImageData(w, h), M = wio.dims[dim];
+  for (var z = 0; z < h; z++) for (var x = 0; x < w; x++) {
+    var q = M.get((cx0 + x) + ',' + (cz0 + z)), o = (z * w + x) * 4, col = q && q.ok ? WIO_GEN_RGBA : WIO_UNGEN_RGBA;
+    img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = col[3];
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
 /* Diálogo: mapa, dimensão, coordenadas e tamanho da área */
 function wioArea() {
   if (!wio) return;
@@ -656,6 +672,7 @@ function wioArea() {
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
     '<div class="wtabs mbtns">' + tabs + '</div>' +
     '<div class="wmap"><canvas id="wmCv"></canvas><div class="wzoom"><button id="wmIn" title="Aproximar">+</button><button id="wmOut" title="Afastar">−</button></div></div>' +
+    '<div class="row wmleg"><label class="check"><input type="checkbox" id="wmUn"' + (wioShowUngen() ? ' checked' : '') + '> Destacar chunks não gerados</label><span class="wsw un"></span><span>nunca gerados pelo jogo (vazios no editor)</span><span class="wsw gen"></span><span>gerados (mesmo vazios, como o vazio do Fim)</span><span id="wmHov" class="pen"></span></div>' +
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button></div>' +
@@ -663,7 +680,8 @@ function wioArea() {
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
       overlayRoot.querySelector('.dialog').classList.add('wide');
-      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null;
+      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null, mask = null;
+      $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
       $('wmS').value = String(st.size);
       $('wmNo').onclick = closeDialog;
       function area() {
@@ -688,8 +706,26 @@ function wioArea() {
         g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel-2') || '#ddd'; g.fillRect(0, 0, cv.width, cv.height);
         if (!mp || !st.view) return;
         var V = st.view, toPx = function (x, z) { return [cv.width / 2 + (x - V.cx) * V.s, cv.height / 2 + (z - V.cz) * V.s]; };
-        var p0 = toPx(mp.x0, mp.z0); g.imageSmoothingEnabled = V.s * mp.sc < 2;
+        var p0 = toPx(mp.x0, mp.z0), un = $('wmUn').checked, cw = 16 * V.s;
+        // chunks não gerados: fora do retângulo do mapa é tudo não gerado; dentro, a máscara por chunk diz (por baixo do
+        // relevo, que só existe nos gerados)
+        if (un) {
+          if (!mask) mask = wioUngenMask(st.dim, mp);
+          g.fillStyle = WIO_UNGEN; g.fillRect(0, 0, cv.width, cv.height);
+          g.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel-2') || '#ddd'; g.fillRect(p0[0], p0[1], mask.width * cw, mask.height * cw);
+          g.imageSmoothingEnabled = false; g.drawImage(mask, p0[0], p0[1], mask.width * cw, mask.height * cw);
+        }
+        g.imageSmoothingEnabled = V.s * mp.sc < 2;
         g.drawImage(bmp, p0[0], p0[1], mp.w * mp.sc * V.s, mp.h * mp.sc * V.s);
+        if (un) {
+          if (cw >= 10) { // perto: as divisas dos chunks
+            g.strokeStyle = 'rgba(128,128,128,.35)'; g.lineWidth = 1; g.beginPath();
+            var gx0 = Math.floor((V.cx - cv.width / 2 / V.s) / 16), gx1 = Math.ceil((V.cx + cv.width / 2 / V.s) / 16), gz0 = Math.floor((V.cz - cv.height / 2 / V.s) / 16), gz1 = Math.ceil((V.cz + cv.height / 2 / V.s) / 16);
+            for (var gx = gx0; gx <= gx1; gx++) { var lx = Math.round(toPx(gx * 16, 0)[0]) + 0.5; g.moveTo(lx, 0); g.lineTo(lx, cv.height); }
+            for (var gz = gz0; gz <= gz1; gz++) { var lz = Math.round(toPx(0, gz * 16)[1]) + 0.5; g.moveTo(0, lz); g.lineTo(cv.width, lz); }
+            g.stroke();
+          }
+        }
         var a = area(), q = toPx(a[0], a[1]);
         g.lineWidth = 2 * Math.min(2, devicePixelRatio || 1); g.strokeStyle = '#fff'; g.fillStyle = 'rgba(255,255,255,.12)';
         g.fillRect(q[0], q[1], a[2] * V.s, a[3] * V.s); g.strokeRect(q[0], q[1], a[2] * V.s, a[3] * V.s);
@@ -702,7 +738,7 @@ function wioArea() {
       }
       async function loadDim() {
         overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-wd') === st.dim)); });
-        mp = null; st.view = null; draw();
+        mp = null; mask = null; st.view = null; draw();
         $('wmInfo').textContent = 'Desenhando o mapa…';
         var m = await wioMap(st.dim, function (i, n) { $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
         if (!overlayRoot.contains(cv)) return;
@@ -719,6 +755,15 @@ function wioArea() {
         if (Math.abs(dx) + Math.abs(dz) > 6) drag.moved = true;
         if (drag.moved) { st.view.cx = drag.cx - dx / st.view.s; st.view.cz = drag.cz - dz / st.view.s; draw(); }
       });
+      // o chunk sob o ponteiro: gerado ou não
+      cv.addEventListener('pointermove', function (e) {
+        if (drag || !st.view) return;
+        var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
+        var x = st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s, z = st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s;
+        var cx = Math.floor(x / 16), cz = Math.floor(z / 16), c = wio.dims[st.dim].get(cx + ',' + cz);
+        $('wmHov').textContent = 'X ' + Math.floor(x) + ', Z ' + Math.floor(z) + ' · chunk ' + cx + ', ' + cz + ': ' + (c && c.ok ? 'gerado' : c ? 'num formato antigo (fica vazio)' : 'não gerado');
+      });
+      cv.addEventListener('pointerleave', function () { $('wmHov').textContent = ''; });
       cv.addEventListener('pointerup', function (e) {
         if (drag && !drag.moved && st.view) {
           var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;

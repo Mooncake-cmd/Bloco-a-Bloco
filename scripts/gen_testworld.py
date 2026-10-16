@@ -156,6 +156,26 @@ def main(out):
                             if wy == 41 and (wx * 3 + wz) % 23 == 0: b = B['glowstone']
                             l0.append(b)
                 db.put(ck(cx, cz, 1, 0x2f, sy), encode_sub(sy, [l0]))
+    # Fim: ilha principal e uma ilha pequena, com chunks gerados só de vazio em volta e uma faixa nunca gerada entre
+    # elas (para o destaque de chunks não gerados no mapa da área)
+    B['end_stone'] = block('end_stone'); B['obsidian'] = block('obsidian')
+    def isle(wx, wy, wz):
+        r1 = (wx * wx + wz * wz) ** 0.5
+        if r1 < 22 and 48 - (22 - r1) * 0.8 < wy <= 52 + int(2 * math.sin(wx / 5.0)): return B['end_stone']
+        if wx in (6, 7) and wz in (6, 7) and 52 < wy <= 70 and r1 < 22: return B['obsidian']
+        r2 = ((wx - 104) ** 2 + (wz - 24) ** 2) ** 0.5
+        if r2 < 9 and 56 - (9 - r2) * 0.7 < wy <= 58: return B['end_stone']
+        return None
+    gen_end = [(cx, cz) for cx in range(-4, 3) for cz in range(-4, 3)] + [(cx, cz) for cx in range(5, 8) for cz in range(0, 3)]
+    for cx, cz in gen_end:
+        db.put(ck(cx, cz, 2, 0x2c), bytes([42]))
+        for sy in range(2, 5):
+            l0 = []; anyb = False
+            for x in range(16):
+                for z in range(16):
+                    for y in range(16):
+                        b = isle(cx * 16 + x, sy * 16 + y, cz * 16 + z); l0.append(b or AIR); anyb = anyb or bool(b)
+            if anyb: db.put(ck(cx, cz, 2, 0x2f, sy), encode_sub(sy, [l0]))
     player = root({'Pos': (9, (5, [0.5, float(H[(4, 8)] + 1.62), 8.5])), 'DimensionId': (3, 0)})
     db.put(b'~local_player', player)
     db.compact(); db.close()

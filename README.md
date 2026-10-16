@@ -33,6 +33,7 @@ src/walk.js             Primeira pessoa: pointer lock, WASD, pulo, voo, colisão
 src/ghost.js            Camada fantasma: blocos de uma camada de baixo, translúcidos, na altura da camada
 src/history.js          Histórico em árvore: cada ação é um nó, ramos ao mudar depois de voltar, linha do tempo e versões marcadas
 src/mixbrush.js         Pincel de mistura: 2 a 10 blocos com porcentagens (soma 100%), amostragem ponderada por voxel
+src/pixelart.js         Pixel art: imagem reduzida pela média, cor mais parecida em CIELAB (pontilhado opcional), vira cópia para colar
 src/palettes.js         Paletas: as do site editáveis (por cima de catOf) e as do usuário, no localStorage
 src/maskbrush.js        Pincel de troca (pincel 3D com máscara)
 src/fluids.js           Água e lava escorrendo (simulação como no Java)
@@ -64,6 +65,8 @@ npm test         # valida os exportadores
 - Renderização em chunks de 16 x 16 x 16 com remoção de faces ocultas, oclusão ambiente por vértice e textura de ruído. Só os chunks alterados são refeitos.
 - Alvo do mouse: varredura de voxels (DDA) mais interseção com o plano do chão ou da camada ativa.
 - Desfazer e refazer guardam lotes de alterações `[índice, valorAntigo, valorNovo]`. Um traço de pincel é um lote. Os lotes formam uma árvore (`src/history.js`): cada lote é um nó filho do estado atual, então uma ação feita depois de voltar abre um ramo e o que vinha depois fica guardado. `histGoto(id)` desfaz até o ancestral comum e refaz o caminho até o nó; refazer segue o último filho visitado. O nome do nó vem de `beginBatch(rótulo)` ou da ferramenta. A árvore é gravada na mesma transação do salvamento automático (`h:meta` e `h:b:<id>`) e lida de volta ao abrir a página. Limite: os mesmos 20 milhões de mudanças e 1.000 nós; saem primeiro as folhas mais antigas fora do caminho atual (as marcadas por último), depois o começo do caminho.
+- Clique na forma real (`shapeRayHit` em `src/shapes.js`): o raio de `castRay` que entra numa célula com forma é testado contra as faces do modelo (`shapeGeom`), alinhadas aos eixos; sem acerto, segue para a célula de trás. Modelos com faces giradas (plantas em X) usam a caixa que envolve todas as faces. A normal do acerto é a da face; o ponto (`pt`) vai para a colocação (laje em cima ou embaixo).
+- Mapa da área do mundo: com "Destacar chunks não gerados", uma máscara de 1 pixel por chunk (`wioUngenMask`) pinta de vermelho o que não está no índice do mundo e de cinza o que está (mesmo sem sub-chunks, como o vazio do End).
 - Paletas (`src/palettes.js`): as categorias de `catOf` continuam a regra; o usuário guarda por cima nome e lista de blocos (ids do Java) de cada paleta do site, as excluídas, a ordem e as próprias, em `localStorage['bloco-a-bloco-paletas']`. `palHas(id, bloco)` decide o que entra na lista.
 - Salvamento automático no `localStorage` (RLE + paleta por nome Java). Projeto também pode ser salvo e aberto em `.json`.
 - Texturas por face na ordem [cima, baixo, norte, sul, leste, oeste]. As do Java saem do modelo do bloco no estado exportado (cadeia de `parent`, rotação `x`/`y` do blockstate); as do Bedrock, do `blocks.json` vanilla.

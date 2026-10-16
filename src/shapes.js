@@ -262,6 +262,64 @@ function shapeGeom(b, o) {
   return g;
 }
 
+/* Clique na forma real: o raio do ponteiro (já trazido para dentro da célula, O = origem - canto) contra as faces do
+   modelo do bloco. Laje, escada, cerca, muro, vidraça, porta, alçapão, tapete... só são atingidos onde há forma; o
+   resto da célula deixa o raio passar para o bloco de trás. Modelos com faces giradas (plantas em X, tochas de parede)
+   usam a caixa que envolve todas as faces, como a caixa de seleção do jogo. Devolve { t, n, pt } ou null. */
+var rayBoxCache = new Map();
+function shapeRayHit(b, s, x, y, z, O, d) {
+  var g = shapeGeom(b, fullProps(b, s, x, y, z)), best = null;
+  var axis = function (n) { var a = Math.abs(n[0]) > Math.abs(n[1]) ? (Math.abs(n[0]) > Math.abs(n[2]) ? 0 : 2) : (Math.abs(n[1]) > Math.abs(n[2]) ? 1 : 2); return a; };
+  var take = function (t, a) {
+    if (!(t > 1e-6) || (best && t >= best.t)) return;
+    var n = [0, 0, 0]; n[a] = d[a] > 0 ? -1 : 1; best = { t: t, n: n };
+  };
+  var boxHit = function (lo, hi) {
+    var t0 = -Infinity, t1 = Infinity, a0 = 1;
+    for (var a = 0; a < 3; a++) {
+      if (Math.abs(d[a]) < 1e-12) { if (O[a] < lo[a] || O[a] > hi[a]) return; continue; }
+      var ta = (lo[a] - O[a]) / d[a], tb = (hi[a] - O[a]) / d[a]; if (ta > tb) { var q = ta; ta = tb; tb = q; }
+      if (ta > t0) { t0 = ta; a0 = a; } if (tb < t1) t1 = tb;
+    }
+    if (t0 <= t1) take(t0, a0);
+  };
+  if (!g.length) { boxHit([0, 0, 0], [1, 1, 1]); return best && done(best); }
+  var key = g, box = rayBoxCache.get(key);
+  if (box === undefined) {
+    // faces fora dos eixos (cruz das plantas, peças giradas): usa a caixa que envolve tudo
+    box = null;
+    for (var i = 0; i < g.length && !box; i++) {
+      var p = g[i].p, u = [p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2]], v = [p[3][0] - p[0][0], p[3][1] - p[0][1], p[3][2] - p[0][2]];
+      var n = [v[1] * u[2] - v[2] * u[1], v[2] * u[0] - v[0] * u[2], v[0] * u[1] - v[1] * u[0]], ln = Math.hypot(n[0], n[1], n[2]) || 1;
+      if (Math.abs(n[axis(n)]) / ln < 0.999) box = true;
+    }
+    if (box) {
+      var lo = [1, 1, 1], hi = [0, 0, 0];
+      g.forEach(function (q) { q.p.forEach(function (pt) { for (var a = 0; a < 3; a++) { lo[a] = Math.max(0, Math.min(lo[a], pt[a])); hi[a] = Math.min(1, Math.max(hi[a], pt[a])); } }); });
+      for (var a = 0; a < 3; a++) if (hi[a] - lo[a] < 0.1) { var m = (hi[a] + lo[a]) / 2; lo[a] = Math.max(0, m - 0.05); hi[a] = Math.min(1, m + 0.05); } // nada fino demais para acertar
+      box = [lo, hi];
+    }
+    rayBoxCache.set(key, box);
+  }
+  if (box) { boxHit(box[0], box[1]); return best && done(best); }
+  for (var k = 0; k < g.length; k++) {
+    var P = g[k].p, ax = -1;
+    // face alinhada a um eixo: o eixo em que os 4 cantos têm o mesmo valor
+    for (var a2 = 0; a2 < 3; a2++) if (P[0][a2] === P[1][a2] && P[0][a2] === P[2][a2] && P[0][a2] === P[3][a2]) { ax = a2; break; }
+    if (ax < 0 || Math.abs(d[ax]) < 1e-12) continue;
+    var t = (P[0][ax] - O[ax]) / d[ax]; if (!(t > 1e-6) || (best && t >= best.t)) continue;
+    var ok = true;
+    for (var a3 = 0; a3 < 3 && ok; a3++) {
+      if (a3 === ax) continue;
+      var c = O[a3] + d[a3] * t, mn = Math.min(P[0][a3], P[1][a3], P[2][a3], P[3][a3]), mx = Math.max(P[0][a3], P[1][a3], P[2][a3], P[3][a3]);
+      if (c < mn - 1e-7 || c > mx + 1e-7) ok = false;
+    }
+    if (ok) take(t, ax);
+  }
+  return best && done(best);
+  function done(h) { h.pt = [x + O[0] + d[0] * h.t, y + O[1] + d[1] * h.t, z + O[2] + d[2] * h.t]; return h; }
+}
+
 /* Malha: chamado por buildChunk para cada célula com forma */
 /* Água e lava: altura pelo nível (fonte 8/9, corrente (8 - nível)/9, coluna caindo cheia) e faces escondidas
    entre células do mesmo fluido, como no jogo */

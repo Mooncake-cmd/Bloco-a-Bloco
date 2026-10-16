@@ -118,6 +118,12 @@ body.walking #viewport canvas{cursor:none}
 .dialog .mxrow input[data-mp]{width:76px;flex:none}
 .mxrow .btn{height:32px;padding:0 10px}
 .pen b.ok{color:var(--fg)}
+.seg{display:inline-flex;gap:0}
+.seg .btn{border-radius:0}.seg .btn:first-child{border-radius:8px 0 0 8px}.seg .btn:last-child{border-radius:0 8px 8px 0}
+.seg .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.pawrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.pawrap canvas{image-rendering:pixelated;max-width:100%;max-height:52vh;border:1px solid var(--line);border-radius:6px;background:repeating-conic-gradient(var(--panel-2) 0 25%,var(--bg) 0 50%) 0 0/16px 16px}
+.pawrap .pen{flex:1;min-width:200px;line-height:1.5}
 .pen b.err,.mixl .err{color:var(--danger)}
 #chips button.pedit{border-color:transparent;color:var(--accent);font-weight:600}
 .palit{display:flex;align-items:center;gap:12px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);flex-wrap:wrap}
@@ -147,6 +153,11 @@ body.walking #viewport canvas{cursor:none}
 .dialog.wide{width:min(900px,100%)}
 .wmap{position:relative;height:min(52vh,460px);border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2)}
 .wmap canvas{display:block;touch-action:none;cursor:crosshair}
+.wmleg{font-size:12px;color:var(--muted);gap:6px 8px}
+.wmleg .check{font-size:12px}
+.wsw{width:14px;height:14px;border-radius:3px;border:1px solid var(--line);flex:none}
+.wsw.un{background:rgba(214,58,48,.6)}.wsw.gen{background:rgba(96,106,128,.75)}
+#wmHov{margin-left:auto;font-family:var(--font-mono)}
 .wzoom{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
 .wzoom button,.wtabs button{min-width:34px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-weight:600}
 .wtabs{display:flex;flex-wrap:wrap;gap:6px}
@@ -241,6 +252,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
+          <button class="tbtn txt" id="pixBtn">Pixel art de uma imagem…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
@@ -1532,7 +1544,14 @@ function castRay(o, d) {
   var face = [0, 0, 0], t = 0;
   var maxN = (SX + SY + SZ) * 2 + 64, maxT = (SX + SY + SZ) * 2 + cam.dist * 2;
   for (var n = 0; n < maxN; n++) {
-    if (n > 0 && solidForRay(c[0], c[1], c[2])) return { cell: [c[0], c[1], c[2]], normal: face.slice(), t: t };
+    var sv = n > 0 ? solidForRay(c[0], c[1], c[2]) : 0;
+    if (sv) {
+      var sb = BLOCKS[cellBlock(sv)];
+      if (!sb.shape || sb.java === 'water' || sb.java === 'lava') return { cell: [c[0], c[1], c[2]], normal: face.slice(), t: t };
+      // bloco com forma (laje, escada, cerca...): só acerta onde há forma; senão o raio segue para a célula de trás
+      var sh = shapeRayHit(sb, cellOri(sv), c[0], c[1], c[2], [o[0] - c[0], o[1] - c[1], o[2] - c[2]], d);
+      if (sh) return { cell: [c[0], c[1], c[2]], normal: sh.n, t: sh.t, pt: sh.pt };
+    }
     var ax = tm[0] < tm[1] ? (tm[0] < tm[2] ? 0 : 2) : (tm[1] < tm[2] ? 1 : 2);
     t = tm[ax]; c[ax] += st[ax]; tm[ax] += td[ax];
     face = [0, 0, 0]; face[ax] = -st[ax];
@@ -2695,6 +2714,64 @@ function shapeGeom(b, o) {
   });
   geomCache.set(key, g);
   return g;
+}
+
+/* Clique na forma real: o raio do ponteiro (já trazido para dentro da célula, O = origem - canto) contra as faces do
+   modelo do bloco. Laje, escada, cerca, muro, vidraça, porta, alçapão, tapete... só são atingidos onde há forma; o
+   resto da célula deixa o raio passar para o bloco de trás. Modelos com faces giradas (plantas em X, tochas de parede)
+   usam a caixa que envolve todas as faces, como a caixa de seleção do jogo. Devolve { t, n, pt } ou null. */
+var rayBoxCache = new Map();
+function shapeRayHit(b, s, x, y, z, O, d) {
+  var g = shapeGeom(b, fullProps(b, s, x, y, z)), best = null;
+  var axis = function (n) { var a = Math.abs(n[0]) > Math.abs(n[1]) ? (Math.abs(n[0]) > Math.abs(n[2]) ? 0 : 2) : (Math.abs(n[1]) > Math.abs(n[2]) ? 1 : 2); return a; };
+  var take = function (t, a) {
+    if (!(t > 1e-6) || (best && t >= best.t)) return;
+    var n = [0, 0, 0]; n[a] = d[a] > 0 ? -1 : 1; best = { t: t, n: n };
+  };
+  var boxHit = function (lo, hi) {
+    var t0 = -Infinity, t1 = Infinity, a0 = 1;
+    for (var a = 0; a < 3; a++) {
+      if (Math.abs(d[a]) < 1e-12) { if (O[a] < lo[a] || O[a] > hi[a]) return; continue; }
+      var ta = (lo[a] - O[a]) / d[a], tb = (hi[a] - O[a]) / d[a]; if (ta > tb) { var q = ta; ta = tb; tb = q; }
+      if (ta > t0) { t0 = ta; a0 = a; } if (tb < t1) t1 = tb;
+    }
+    if (t0 <= t1) take(t0, a0);
+  };
+  if (!g.length) { boxHit([0, 0, 0], [1, 1, 1]); return best && done(best); }
+  var key = g, box = rayBoxCache.get(key);
+  if (box === undefined) {
+    // faces fora dos eixos (cruz das plantas, peças giradas): usa a caixa que envolve tudo
+    box = null;
+    for (var i = 0; i < g.length && !box; i++) {
+      var p = g[i].p, u = [p[1][0] - p[0][0], p[1][1] - p[0][1], p[1][2] - p[0][2]], v = [p[3][0] - p[0][0], p[3][1] - p[0][1], p[3][2] - p[0][2]];
+      var n = [v[1] * u[2] - v[2] * u[1], v[2] * u[0] - v[0] * u[2], v[0] * u[1] - v[1] * u[0]], ln = Math.hypot(n[0], n[1], n[2]) || 1;
+      if (Math.abs(n[axis(n)]) / ln < 0.999) box = true;
+    }
+    if (box) {
+      var lo = [1, 1, 1], hi = [0, 0, 0];
+      g.forEach(function (q) { q.p.forEach(function (pt) { for (var a = 0; a < 3; a++) { lo[a] = Math.max(0, Math.min(lo[a], pt[a])); hi[a] = Math.min(1, Math.max(hi[a], pt[a])); } }); });
+      for (var a = 0; a < 3; a++) if (hi[a] - lo[a] < 0.1) { var m = (hi[a] + lo[a]) / 2; lo[a] = Math.max(0, m - 0.05); hi[a] = Math.min(1, m + 0.05); } // nada fino demais para acertar
+      box = [lo, hi];
+    }
+    rayBoxCache.set(key, box);
+  }
+  if (box) { boxHit(box[0], box[1]); return best && done(best); }
+  for (var k = 0; k < g.length; k++) {
+    var P = g[k].p, ax = -1;
+    // face alinhada a um eixo: o eixo em que os 4 cantos têm o mesmo valor
+    for (var a2 = 0; a2 < 3; a2++) if (P[0][a2] === P[1][a2] && P[0][a2] === P[2][a2] && P[0][a2] === P[3][a2]) { ax = a2; break; }
+    if (ax < 0 || Math.abs(d[ax]) < 1e-12) continue;
+    var t = (P[0][ax] - O[ax]) / d[ax]; if (!(t > 1e-6) || (best && t >= best.t)) continue;
+    var ok = true;
+    for (var a3 = 0; a3 < 3 && ok; a3++) {
+      if (a3 === ax) continue;
+      var c = O[a3] + d[a3] * t, mn = Math.min(P[0][a3], P[1][a3], P[2][a3], P[3][a3]), mx = Math.max(P[0][a3], P[1][a3], P[2][a3], P[3][a3]);
+      if (c < mn - 1e-7 || c > mx + 1e-7) ok = false;
+    }
+    if (ok) take(t, ax);
+  }
+  return best && done(best);
+  function done(h) { h.pt = [x + O[0] + d[0] * h.t, y + O[1] + d[1] * h.t, z + O[2] + d[2] * h.t]; return h; }
 }
 
 /* Malha: chamado por buildChunk para cada célula com forma */
@@ -5155,6 +5232,176 @@ function openMixEditor(addJava) {
   });
 }
 
+/* ---------- Pixel art a partir de uma imagem ---------- */
+/* A imagem é reduzida para L × A pixels (o navegador faz a média das cores ao diminuir) e cada pixel vira o bloco de
+   cor mais parecida. A comparação é no espaço de cor CIELAB (a distância nele segue melhor o que o olho acha "parecido"
+   que a distância em RGB). A cor de cada bloco é a média da textura da face que fica à vista: a lateral para a pixel
+   art de pé, o topo para a deitada. Pixels transparentes (alfa < 50%) ficam vazios. Com "pontilhado", o erro de cor
+   de cada pixel passa para os vizinhos (Floyd–Steinberg), o que imita tons que nenhum bloco tem.
+   O resultado vai para a área de cópia (como um Ctrl+C) e começa a colagem: R gira, F espelha, o clique cola. */
+var PA_GROUPS = [
+  ['solid', 'Todos os blocos de uma cor só (recomendado)'],
+  ['wcc', 'Lã, concreto e terracota'],
+  ['wool', 'Só lã'],
+  ['concrete', 'Só concreto'],
+  ['terracotta', 'Só terracota']
+];
+var PA_MAX = 512, pa = { w: 64, vert: true, group: 'solid', dither: false, nofall: true };
+try { var pa0 = JSON.parse(localStorage.getItem('bloco-a-bloco-pixelart') || 'null'); if (pa0) pa = Object.assign(pa, pa0); } catch (e) {}
+function paSave() { try { localStorage.setItem('bloco-a-bloco-pixelart', JSON.stringify(pa)); } catch (e) {} }
+var PA_FALLS = /(^|_)(sand|gravel|concrete_powder)$|^suspicious_|anvil|dragon_egg|scaffolding/;
+/* Blocos que servem: cubos inteiros e opacos com a mesma cara em volta, sem cor de bioma (grama, folhas) e sem direção */
+function paCandidates(group, nofall) {
+  var out = [];
+  for (var i = 0; i < BLOCKS.length; i++) {
+    var b = BLOCKS[i];
+    if (b.isAir || b.hide || b.shape || b.glass || b.kind || b.ori || b.tint.some(function (t) { return t; })) continue;
+    if (/_ore$|^infested_|^(command_block|chain_command_block|repeating_command_block|structure_block|jigsaw|barrier|spawner|budding_amethyst|reinforced_deepslate|tnt)$/.test(b.java)) continue;
+    if (nofall && PA_FALLS.test(b.java)) continue;
+    if (group === 'wcc' ? !/_(wool|concrete|terracotta)$|^terracotta$/.test(b.java) || /glazed/.test(b.java)
+      : group === 'wool' ? !/_wool$/.test(b.java)
+      : group === 'concrete' ? !/_concrete$/.test(b.java)
+      : group === 'terracotta' ? !/(^|_)terracotta$/.test(b.java) || /glazed/.test(b.java)
+      : group.indexOf('pal:') === 0 ? !palHas(group.slice(4), b)
+      : !/^(pedra|madeira|cor|minerio|natureza|outros)$/.test(b.cat)) continue;
+    out.push(i);
+  }
+  return out;
+}
+function paLab(r, g, b) {
+  var f = function (c) { c /= 255; return c > 0.04045 ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92; };
+  var R = f(r), G = f(g), B = f(b);
+  var X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  var h = function (t) { return t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; };
+  var fx = h(X), fy = h(Y), fz = h(Z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+/* O algoritmo: pixels RGBA (L × A) → células do mundo (Uint32Array) e a contagem de cada bloco */
+function paConvert(px, W, H, cands, vert, dither) {
+  var cols = cands.map(function (bi) { var b = BLOCKS[bi]; return vert ? b.side : b.top; });
+  var labs = cols.map(function (c) { return paLab(c[0], c[1], c[2]); });
+  var cache = new Map(), out = new Int32Array(W * H).fill(-1), counts = new Map();
+  var nearest = function (r, g, b) {
+    var key = (r << 16) | (g << 8) | b, k = cache.get(key); if (k !== undefined) return k;
+    var L = paLab(r, g, b), best = 0, bd = Infinity;
+    for (var i = 0; i < labs.length; i++) { var q = labs[i], dl = q[0] - L[0], da = q[1] - L[1], db = q[2] - L[2], dd = dl * dl + da * da + db * db; if (dd < bd) { bd = dd; best = i; } }
+    cache.set(key, best); return best;
+  };
+  var buf = new Float32Array(W * H * 3);
+  for (var p = 0; p < W * H; p++) { buf[p * 3] = px[p * 4]; buf[p * 3 + 1] = px[p * 4 + 1]; buf[p * 3 + 2] = px[p * 4 + 2]; }
+  var cl = function (v) { return v < 0 ? 0 : v > 255 ? 255 : Math.round(v); };
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var i = y * W + x; if (px[i * 4 + 3] < 128) continue;
+    var r = cl(buf[i * 3]), g = cl(buf[i * 3 + 1]), b = cl(buf[i * 3 + 2]), m = nearest(r, g, b);
+    out[i] = m; counts.set(m, (counts.get(m) || 0) + 1);
+    if (dither) {
+      var c = cols[m], er = r - c[0], eg = g - c[1], eb = b - c[2];
+      var push = function (xx, yy, f) { if (xx < 0 || xx >= W || yy >= H) return; var j = (yy * W + xx) * 3; buf[j] += er * f; buf[j + 1] += eg * f; buf[j + 2] += eb * f; };
+      push(x + 1, y, 7 / 16); push(x - 1, y + 1, 3 / 16); push(x, y + 1, 5 / 16); push(x + 1, y + 1, 1 / 16);
+    }
+  }
+  return { idx: out, counts: counts, cols: cols };
+}
+/* Reduz a imagem para W × H pela média de cada retângulo de pixels (o filtro do navegador borra as bordas e mistura
+   a cor de pixels vizinhos: um olho preto de 1 pixel num sprite virava cinza). A média pesa pelo alfa. */
+function paShrink(img, W, H) {
+  var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height, k = Math.min(1, 4096 / Math.max(iw, ih));
+  iw = Math.max(1, Math.round(iw * k)); ih = Math.max(1, Math.round(ih * k));
+  var c = document.createElement('canvas'); c.width = iw; c.height = ih;
+  var x = c.getContext('2d'); x.drawImage(img, 0, 0, iw, ih);
+  var src = x.getImageData(0, 0, iw, ih).data, out = new Uint8ClampedArray(W * H * 4);
+  for (var oy = 0; oy < H; oy++) {
+    var y0 = Math.floor(oy * ih / H), y1 = Math.max(y0 + 1, Math.floor((oy + 1) * ih / H));
+    for (var ox = 0; ox < W; ox++) {
+      var x0 = Math.floor(ox * iw / W), x1 = Math.max(x0 + 1, Math.floor((ox + 1) * iw / W)), r = 0, g = 0, b = 0, a = 0, n = 0;
+      for (var yy = y0; yy < y1; yy++) for (var xx = x0; xx < x1; xx++) { var i = (yy * iw + xx) * 4, al = src[i + 3]; r += src[i] * al; g += src[i + 1] * al; b += src[i + 2] * al; a += al; n++; }
+      var o = (oy * W + ox) * 4;
+      if (a) { out[o] = r / a; out[o + 1] = g / a; out[o + 2] = b / a; }
+      out[o + 3] = a / n;
+    }
+  }
+  return out;
+}
+/* Do resultado para a área de cópia: de pé (X para a direita, Y para cima, uma camada em Z) ou deitada (Z para o sul) */
+function paToClip(res, W, H, cands, vert) {
+  var cells = new Uint32Array(W * H), n = 0;
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var m = res.idx[y * W + x]; if (m < 0) continue;
+    var v = mkCell(cands[m]);
+    if (vert) cells[(H - 1 - y) * W + x] = v; // a linha de cima da imagem é a camada mais alta
+    else cells[y * W + x] = v;               // deitada: o alto da imagem fica ao norte
+    n++;
+  }
+  return vert ? { w: W, h: H, l: 1, cells: cells, n: n } : { w: W, h: 1, l: H, cells: cells, n: n };
+}
+
+/* ---------- Janela ---------- */
+function openPixelArt() {
+  var img = null, res = null, W = 0, H = 0, cands = [];
+  var groups = PA_GROUPS.concat(palList().filter(function (p) { return p.id !== 'all' && p.id !== 'fav'; }).map(function (p) { return ['pal:' + p.id, 'Paleta: ' + p.name]; }));
+  if (!groups.some(function (g) { return g[0] === pa.group; })) pa.group = 'solid';
+  openDialog('<h3>Pixel art de uma imagem</h3><p>Escolha uma imagem (foto, desenho, logo): cada pixel vira o bloco de cor mais parecida. Imagens pequenas e de poucas cores (desenhos, ícones, sprites) ficam melhores que fotos. Partes transparentes ficam vazias.</p>' +
+    '<div class="row"><button class="btn primary" id="paPick">Escolher imagem…</button><span id="paName" class="pen">nenhuma imagem</span></div>' +
+    '<input type="file" id="paIn" accept="image/*" hidden>' +
+    '<div class="row"><label>Largura em blocos<input type="number" id="paW" min="4" max="' + PA_MAX + '" value="' + pa.w + '" style="width:110px"></label>' +
+    '<label>Altura<input type="text" id="paH" value="—" disabled style="width:90px"></label>' +
+    '<label style="flex:1">Blocos<select id="paG">' + groups.map(function (g) { return '<option value="' + esc(g[0]) + '"' + (g[0] === pa.group ? ' selected' : '') + '>' + esc(g[1]) + '</option>'; }).join('') + '</select></label></div>' +
+    '<div class="row"><span class="mbtns seg"><button class="btn" data-pv="1">De pé (parede)</button><button class="btn" data-pv="0">Deitada (chão)</button></span>' +
+    '<label class="check"><input type="checkbox" id="paD"' + (pa.dither ? ' checked' : '') + '> Pontilhado (mistura blocos para imitar tons que faltam)</label>' +
+    '<label class="check"><input type="checkbox" id="paF"' + (pa.nofall ? ' checked' : '') + '> Sem blocos que caem (areia, cascalho, pó de concreto)</label></div>' +
+    '<div class="pawrap"><canvas id="paCv" width="1" height="1"></canvas><div id="paInfo" class="pen"></div></div>' +
+    '<p class="err" id="paErr" hidden></p>' +
+    '<div class="row"><button class="btn primary" id="paOk" disabled>Colar na construção</button><button class="btn" id="paNo">Cancelar</button></div>', function () {
+    overlayRoot.querySelector('.dialog').classList.add('wide');
+    var seg = function () { overlayRoot.querySelectorAll('[data-pv]').forEach(function (b) { b.setAttribute('aria-pressed', String((b.getAttribute('data-pv') === '1') === pa.vert)); }); };
+    seg();
+    var run = function () {
+      if (!img) return;
+      pa.w = Math.max(4, Math.min(PA_MAX, $('paW').value | 0 || 64)); W = pa.w;
+      H = Math.max(1, Math.round(W * img.naturalHeight / img.naturalWidth));
+      if (H > PA_MAX) { H = PA_MAX; W = Math.max(1, Math.round(H * img.naturalWidth / img.naturalHeight)); }
+      $('paH').value = H; paSave();
+      var px = paShrink(img, W, H);
+      cands = paCandidates(pa.group, pa.nofall);
+      if (cands.length < 2) { res = null; $('paErr').hidden = false; $('paErr').textContent = 'Essa escolha tem menos de 2 blocos que servem (cubos inteiros e opacos, sem direção).'; $('paOk').disabled = true; return; }
+      $('paErr').hidden = true;
+      res = paConvert(px, W, H, cands, pa.vert, pa.dither);
+      // prévia: um quadradinho por bloco, com a cor média do bloco
+      var cv = $('paCv'), s = Math.max(1, Math.min(8, Math.floor(560 / Math.max(W, H)))), g = cv.getContext('2d');
+      cv.width = W * s; cv.height = H * s; g.clearRect(0, 0, cv.width, cv.height);
+      for (var yy = 0; yy < H; yy++) for (var xx = 0; xx < W; xx++) { var m = res.idx[yy * W + xx]; if (m < 0) continue; var cc = res.cols[m]; g.fillStyle = 'rgb(' + cc[0] + ',' + cc[1] + ',' + cc[2] + ')'; g.fillRect(xx * s, yy * s, s, s); }
+      var list = Array.from(res.counts.entries()).sort(function (a, b) { return b[1] - a[1]; }), tot = list.reduce(function (a, q) { return a + q[1]; }, 0);
+      var fit = pa.vert ? (W <= SX && H <= SY) : (W <= SX && H <= SZ);
+      $('paInfo').innerHTML = '<b>' + W + ' × ' + H + '</b> · ' + tot.toLocaleString('pt-BR') + ' blocos de ' + list.length + ' tipos' +
+        (fit ? '' : '<br><b class="err">Não cabe no espaço (' + SX + ' × ' + SY + ' × ' + SZ + '): o que passar da borda fica de fora. Diminua a largura ou aumente o espaço em Projeto → Tamanho do espaço.</b>') +
+        '<br>' + list.slice(0, 12).map(function (q) { return esc(BLOCKS[cands[q[0]]].name) + ' ' + q[1].toLocaleString('pt-BR'); }).join(' · ') + (list.length > 12 ? ' · …' : '');
+      $('paOk').disabled = !tot;
+    };
+    $('paPick').onclick = function () { $('paIn').click(); };
+    $('paIn').onchange = function (e) {
+      var f = e.target.files && e.target.files[0]; if (!f) return;
+      var url = URL.createObjectURL(f), im = new Image();
+      im.onload = function () { img = im; $('paName').textContent = f.name + ' (' + im.naturalWidth + ' × ' + im.naturalHeight + ' pixels)'; if (im.naturalWidth < pa.w) $('paW').value = Math.max(4, Math.min(PA_MAX, im.naturalWidth)); run(); };
+      im.onerror = function () { $('paErr').hidden = false; $('paErr').textContent = 'Não foi possível abrir essa imagem.'; };
+      im.src = url;
+    };
+    $('paW').addEventListener('change', run);
+    $('paG').onchange = function (e) { pa.group = e.target.value; run(); };
+    $('paD').onchange = function (e) { pa.dither = e.target.checked; run(); };
+    $('paF').onchange = function (e) { pa.nofall = e.target.checked; run(); };
+    overlayRoot.querySelectorAll('[data-pv]').forEach(function (b) { b.onclick = function () { pa.vert = b.getAttribute('data-pv') === '1'; seg(); run(); }; });
+    $('paNo').onclick = closeDialog;
+    $('paOk').onclick = function () {
+      if (!res) return;
+      clip = paToClip(res, W, H, cands, pa.vert); closeDialog();
+      startPaste();
+      toast('Pixel art pronta (' + W + ' × ' + H + '): clique onde quer colar. R gira 90°, F espelha, Esc cancela.', 6000);
+    };
+    openPixelArt.run = run; // para testes
+    openPixelArt.load = function (im, name) { img = im; $('paName').textContent = name; run(); };
+  });
+}
+
 /* ---------- Medidas na tela ---------- */
 /* Cotas como num desenho técnico: linha com setas e o número de blocos em X (largura), Z (profundidade) e Y (altura)
    em volta da construção. Com a Camada ligada, mostra o contorno da camada visível com a medida de cada lado (planta baixa).
@@ -6085,6 +6332,22 @@ async function wioCommitAll() {
   try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); await wioSaveSession(false); return r; }
   finally { busyEnd(); }
 }
+/* Chunks não gerados no mapa da área: no Fim (e em ilhas soltas) o vazio gerado e o nunca gerado ficavam iguais.
+   Com o aviso ligado, o que o jogo nunca gerou fica num vermelho translúcido e o gerado (mesmo só ar) num cinza azulado. */
+var WIO_UNGEN_RGBA = [214, 58, 48, 107], WIO_GEN_RGBA = [96, 106, 128, 150], WIO_UNGEN = 'rgba(214,58,48,.42)';
+function wioShowUngen() { try { return localStorage.getItem('bloco-a-bloco-ungen') !== '0'; } catch (e) { return true; } }
+/* Uma imagem com 1 pixel por chunk do retângulo do mapa: vermelho onde não há chunk gerado */
+function wioUngenMask(dim, mp) {
+  var cx0 = Math.floor(mp.x0 / 16), cz0 = Math.floor(mp.z0 / 16), w = Math.ceil(mp.w * mp.sc / 16), h = Math.ceil(mp.h * mp.sc / 16);
+  var c = document.createElement('canvas'); c.width = w; c.height = h;
+  var g = c.getContext('2d'), img = g.createImageData(w, h), M = wio.dims[dim];
+  for (var z = 0; z < h; z++) for (var x = 0; x < w; x++) {
+    var q = M.get((cx0 + x) + ',' + (cz0 + z)), o = (z * w + x) * 4, col = q && q.ok ? WIO_GEN_RGBA : WIO_UNGEN_RGBA;
+    img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = col[3];
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
 /* Diálogo: mapa, dimensão, coordenadas e tamanho da área */
 function wioArea() {
   if (!wio) return;
@@ -6103,6 +6366,7 @@ function wioArea() {
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
     '<div class="wtabs mbtns">' + tabs + '</div>' +
     '<div class="wmap"><canvas id="wmCv"></canvas><div class="wzoom"><button id="wmIn" title="Aproximar">+</button><button id="wmOut" title="Afastar">−</button></div></div>' +
+    '<div class="row wmleg"><label class="check"><input type="checkbox" id="wmUn"' + (wioShowUngen() ? ' checked' : '') + '> Destacar chunks não gerados</label><span class="wsw un"></span><span>nunca gerados pelo jogo (vazios no editor)</span><span class="wsw gen"></span><span>gerados (mesmo vazios, como o vazio do Fim)</span><span id="wmHov" class="pen"></span></div>' +
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button></div>' +
@@ -6110,7 +6374,8 @@ function wioArea() {
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
       overlayRoot.querySelector('.dialog').classList.add('wide');
-      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null;
+      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null, mask = null;
+      $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
       $('wmS').value = String(st.size);
       $('wmNo').onclick = closeDialog;
       function area() {
@@ -6135,8 +6400,26 @@ function wioArea() {
         g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel-2') || '#ddd'; g.fillRect(0, 0, cv.width, cv.height);
         if (!mp || !st.view) return;
         var V = st.view, toPx = function (x, z) { return [cv.width / 2 + (x - V.cx) * V.s, cv.height / 2 + (z - V.cz) * V.s]; };
-        var p0 = toPx(mp.x0, mp.z0); g.imageSmoothingEnabled = V.s * mp.sc < 2;
+        var p0 = toPx(mp.x0, mp.z0), un = $('wmUn').checked, cw = 16 * V.s;
+        // chunks não gerados: fora do retângulo do mapa é tudo não gerado; dentro, a máscara por chunk diz (por baixo do
+        // relevo, que só existe nos gerados)
+        if (un) {
+          if (!mask) mask = wioUngenMask(st.dim, mp);
+          g.fillStyle = WIO_UNGEN; g.fillRect(0, 0, cv.width, cv.height);
+          g.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel-2') || '#ddd'; g.fillRect(p0[0], p0[1], mask.width * cw, mask.height * cw);
+          g.imageSmoothingEnabled = false; g.drawImage(mask, p0[0], p0[1], mask.width * cw, mask.height * cw);
+        }
+        g.imageSmoothingEnabled = V.s * mp.sc < 2;
         g.drawImage(bmp, p0[0], p0[1], mp.w * mp.sc * V.s, mp.h * mp.sc * V.s);
+        if (un) {
+          if (cw >= 10) { // perto: as divisas dos chunks
+            g.strokeStyle = 'rgba(128,128,128,.35)'; g.lineWidth = 1; g.beginPath();
+            var gx0 = Math.floor((V.cx - cv.width / 2 / V.s) / 16), gx1 = Math.ceil((V.cx + cv.width / 2 / V.s) / 16), gz0 = Math.floor((V.cz - cv.height / 2 / V.s) / 16), gz1 = Math.ceil((V.cz + cv.height / 2 / V.s) / 16);
+            for (var gx = gx0; gx <= gx1; gx++) { var lx = Math.round(toPx(gx * 16, 0)[0]) + 0.5; g.moveTo(lx, 0); g.lineTo(lx, cv.height); }
+            for (var gz = gz0; gz <= gz1; gz++) { var lz = Math.round(toPx(0, gz * 16)[1]) + 0.5; g.moveTo(0, lz); g.lineTo(cv.width, lz); }
+            g.stroke();
+          }
+        }
         var a = area(), q = toPx(a[0], a[1]);
         g.lineWidth = 2 * Math.min(2, devicePixelRatio || 1); g.strokeStyle = '#fff'; g.fillStyle = 'rgba(255,255,255,.12)';
         g.fillRect(q[0], q[1], a[2] * V.s, a[3] * V.s); g.strokeRect(q[0], q[1], a[2] * V.s, a[3] * V.s);
@@ -6149,7 +6432,7 @@ function wioArea() {
       }
       async function loadDim() {
         overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-wd') === st.dim)); });
-        mp = null; st.view = null; draw();
+        mp = null; mask = null; st.view = null; draw();
         $('wmInfo').textContent = 'Desenhando o mapa…';
         var m = await wioMap(st.dim, function (i, n) { $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
         if (!overlayRoot.contains(cv)) return;
@@ -6166,6 +6449,15 @@ function wioArea() {
         if (Math.abs(dx) + Math.abs(dz) > 6) drag.moved = true;
         if (drag.moved) { st.view.cx = drag.cx - dx / st.view.s; st.view.cz = drag.cz - dz / st.view.s; draw(); }
       });
+      // o chunk sob o ponteiro: gerado ou não
+      cv.addEventListener('pointermove', function (e) {
+        if (drag || !st.view) return;
+        var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
+        var x = st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s, z = st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s;
+        var cx = Math.floor(x / 16), cz = Math.floor(z / 16), c = wio.dims[st.dim].get(cx + ',' + cz);
+        $('wmHov').textContent = 'X ' + Math.floor(x) + ', Z ' + Math.floor(z) + ' · chunk ' + cx + ', ' + cz + ': ' + (c && c.ok ? 'gerado' : c ? 'num formato antigo (fica vazio)' : 'não gerado');
+      });
+      cv.addEventListener('pointerleave', function () { $('wmHov').textContent = ''; });
       cv.addEventListener('pointerup', function (e) {
         if (drag && !drag.moved && st.view) {
           var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
@@ -6527,6 +6819,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
+    '<span>Pixel art</span><span>Projeto → Pixel art de uma imagem: escolha uma imagem, a largura em blocos, de pé ou deitada, e quais blocos usar; cada pixel vira o bloco de cor mais parecida e o resultado entra para colar (R gira, F espelha).</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
@@ -6590,6 +6883,7 @@ $('measTbtn').addEventListener('click', function () { setMeasure(!measureOn); to
 setMeasure(measureOn);
 $('symBtn').addEventListener('click', function () { $('menu').open = false; toggleSymChip(); });
 $('floorBtn').addEventListener('click', function () { $('menu').open = false; openFloor(); });
+$('pixBtn').addEventListener('click', function () { $('menu').open = false; openPixelArt(); });
 /* Preencher o chão: cobre uma ou mais camadas do espaço inteiro com um bloco, de uma vez */
 function openFloor() {
   var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');

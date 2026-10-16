@@ -226,6 +226,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>O bloco vai para o lado da face apontada; no chão vazio, para a grade.</li>
       <li>Ao colocar, o bloco já fica como no jogo: frente virada para você, tronco seguindo a face clicada, laje e alçapão em cima ou embaixo conforme a metade clicada, tocha e placa presas na parede se clicadas na lateral (cap. 07).</li>
       <li>Laje sobre laje igual vira laje dupla.</li>
+      <li><b>O clique acerta a forma real</b> de lajes, escadas, cercas, muros, vidraças, portas, alçapões e tapetes: na metade vazia de uma laje de baixo o clique passa e pega o bloco de trás; no topo da laje, o bloco novo vai em cima dela. Plantas, tochas e outras peças finas usam uma caixa em volta delas, como no jogo, para não ficarem difíceis de acertar.</li>
       <li>Porta, cama, girassol e outras plantas altas ocupam dois blocos; se não couber, aparece um aviso.</li>
     </ul>
   </div>
@@ -632,7 +633,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="688" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="724" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
@@ -646,6 +647,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
+        <tr><td>Pixel art de uma imagem…</td><td>Transforma uma imagem em blocos e entra para colar (veja abaixo).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
         <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
         <tr><td>Água e lava escorrem: sim/não</td><td>Liga e desliga o escorrer da água e da lava (cap. 07). Fica guardado no navegador.</td></tr>
@@ -667,6 +669,25 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>Vale para o espaço inteiro (a largura e a profundidade do Tamanho do espaço). Ctrl+Z desfaz.</li>
     </ul>
   </div>
+  <h3>Pixel art de uma imagem</h3>
+  <div class="grid2">
+    <figure><img src="img/pixelart.jpg" alt="Janela Pixel art com uma paisagem de pôr do sol reduzida a 80 × 50 blocos, as opções e a lista de blocos usados" width="900" height="740" loading="lazy"><figcaption>Projeto → Pixel art de uma imagem…: a prévia mostra cada bloco com a cor dele.</figcaption></figure>
+    <figure><img src="img/pixelart-colada.jpg" alt="A paisagem colada de pé como um painel de 80 × 50 blocos, com terracota, concreto, lã e outros blocos" width="972" height="772" loading="lazy"><figcaption>A mesma imagem colada de pé, com as texturas do Bedrock.</figcaption></figure>
+  </div>
+  <ol class="steps">
+    <li><b>Escolher imagem…</b>: foto, desenho, logo, sprite (PNG, JPG, GIF, WebP).</li>
+    <li><b>Largura em blocos</b> (4 a 512); a altura sai da proporção da imagem (no máximo 512 também).</li>
+    <li><b>Blocos</b>: todos os blocos de uma cor só (o recomendado: cubos inteiros e opacos, sem direção, sem minério e sem cor de bioma), só lã, só concreto, só terracota, os três juntos, ou qualquer paleta sua (cap. 06).</li>
+    <li><b>De pé</b> (uma parede, lida de frente olhando para o norte) ou <b>Deitada</b> (no chão, com o alto da imagem ao norte). A cor usada de cada bloco é a da face que fica à vista: a lateral de pé, o topo deitada.</li>
+    <li><b>Colar na construção</b>: a pixel art segue o mouse como uma cópia; <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha e o clique cola (dá para colar várias vezes). Ctrl+Z desfaz.</li>
+  </ol>
+  <ul class="plain">
+    <li>Cada pixel vira o bloco de cor mais parecida, comparando as cores do jeito que o olho percebe (espaço de cor CIELAB). A imagem é reduzida pela média de cada pedaço, sem borrar: num sprite pequeno, cada pixel fica com a cor exata.</li>
+    <li><b>Pontilhado</b>: espalha a diferença de cor de cada pixel para os vizinhos e imita tons que nenhum bloco tem (bom em degradês e fotos; em desenhos de cores chapadas, deixe desligado).</li>
+    <li><b>Sem blocos que caem</b> (ligado de início): tira areia, cascalho e pó de concreto, que despencariam numa parede no jogo.</li>
+    <li>Partes transparentes da imagem (PNG) ficam vazias.</li>
+    <li>Imagens pequenas e de poucas cores (ícones, sprites, logos) ficam melhores que fotos. A prévia diz o tamanho, o total de blocos e os mais usados; se não couber no espaço, avisa (o que passar da borda fica de fora ao colar).</li>
+  </ul>
 </section>
 
 <section id="texturas">
@@ -725,6 +746,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p>Dá para abrir um mundo inteiro do Bedrock, editar uma parte dele no site e levar de volta para o jogo com a construção pronta, no lugar certo.</p>
   <div class="grid2">
     <figure><img src="img/mundo-mapa.jpg" alt="Janela do mundo com o mapa visto de cima, os botões Mundo normal, Nether e End, e um quadrado marcando a área" width="900" height="760" loading="lazy"><figcaption>O mapa visto de cima: o quadrado é a área que vai para o editor, e o ponto laranja é onde você estava no jogo.</figcaption></figure>
+    <figure><img src="img/mundo-fim.jpg" alt="Mapa do End com duas ilhas: em volta delas, chunks gerados só de vazio em cinza azulado, e em vermelho os chunks que o jogo nunca gerou, inclusive uma faixa entre as ilhas" width="900" height="760" loading="lazy"><figcaption>No End, com o destaque: a área marcada pega metade de chunks gerados (cinza) e metade nunca gerados (vermelho). Embaixo, o chunk sob o mouse.</figcaption></figure>
     <figure><img src="img/mundo-area.jpg" alt="Área do mundo aberta no editor, com morros, lagos e uma casa, e o aviso do mundo no canto" width="972" height="772" loading="lazy"><figcaption>A área aberta no editor. O aviso no canto mostra o mundo, a dimensão e as coordenadas, com Trocar área e Exportar mundo.</figcaption></figure>
   </div>
   <ol class="steps">
@@ -741,6 +763,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><b>Blocos que o editor não conhece</b> (gerador de monstros, cofre, moldura, coluna de bolhas, blocos novos do jogo) aparecem <b>roxos</b>, com o nome real na barra de status (ex.: <i>Bloco do jogo: mob_spawner</i>). Eles voltam iguais para o mundo e podem ser copiados e colados com a seleção.</li>
     <li>Ao apagar ou trocar um bloco, os dados dele somem junto (os itens de um baú apagado, por exemplo). As camas colocadas levam a cor certa. A água que estava dentro de um bloco trocado (alga, escada submersa) sai com ele.</li>
     <li><b>Chunks que o jogo ainda não gerou</b> aparecem vazios no editor e não recebem construção: o jogo apagaria o que estivesse ali ao gerar o terreno. A janela do mapa diz quantos chunks da área já existem.</li>
+    <li><b>Destacar chunks não gerados</b> (embaixo do mapa, ligado de início): o que o jogo nunca gerou fica em <b>vermelho</b> e os chunks gerados, mesmo só de vazio, em <b>cinza azulado</b>. No End, onde quase tudo é vazio, é assim que se vê até onde o jogo já foi. Passando o mouse no mapa, aparecem as coordenadas e se aquele chunk foi gerado; de perto, aparecem as divisas dos chunks.</li>
     <li>O site guarda no navegador o arquivo do mundo, a área aberta e as mudanças: se a página recarregar, tudo volta. <b>Novo</b> (ou abrir outro projeto) fecha o mundo, e o que não foi exportado se perde.</li>
     <li>O site edita uma cópia: o mundo no jogo não muda até você importar o arquivo exportado. Mundos de Realms e servidores não podem ser editados assim.</li>
   </ul>
@@ -857,7 +880,6 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
       <tr><td>Histórico</td><td>Guarda até 20 milhões de mudanças de blocos (cerca de 1.000 ações). Passando disso, saem primeiro os ramos mais antigos fora do caminho atual (as versões marcadas ficam até o fim) e depois o começo do caminho. Mudar o tamanho do espaço começa um histórico novo.</td></tr>
-      <tr><td>Clique em formas</td><td>O clique acerta o espaço inteiro do bloco, não o formato da laje ou da escada.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
       <tr><td>Primeira pessoa</td><td>Precisa de teclado e mouse (no celular dá para olhar arrastando, mas não andar). Lajes, escadas e cercas contam como bloco inteiro (o degrau de 1 bloco é subido sozinho); portas e portões deixam passar abertos ou fechados.</td></tr>

@@ -116,6 +116,12 @@ body.walking #viewport canvas{cursor:none}
 .dialog .mxrow input[data-mp]{width:76px;flex:none}
 .mxrow .btn{height:32px;padding:0 10px}
 .pen b.ok{color:var(--fg)}
+.seg{display:inline-flex;gap:0}
+.seg .btn{border-radius:0}.seg .btn:first-child{border-radius:8px 0 0 8px}.seg .btn:last-child{border-radius:0 8px 8px 0}
+.seg .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.pawrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.pawrap canvas{image-rendering:pixelated;max-width:100%;max-height:52vh;border:1px solid var(--line);border-radius:6px;background:repeating-conic-gradient(var(--panel-2) 0 25%,var(--bg) 0 50%) 0 0/16px 16px}
+.pawrap .pen{flex:1;min-width:200px;line-height:1.5}
 .pen b.err,.mixl .err{color:var(--danger)}
 #chips button.pedit{border-color:transparent;color:var(--accent);font-weight:600}
 .palit{display:flex;align-items:center;gap:12px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);flex-wrap:wrap}
@@ -145,6 +151,11 @@ body.walking #viewport canvas{cursor:none}
 .dialog.wide{width:min(900px,100%)}
 .wmap{position:relative;height:min(52vh,460px);border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel-2)}
 .wmap canvas{display:block;touch-action:none;cursor:crosshair}
+.wmleg{font-size:12px;color:var(--muted);gap:6px 8px}
+.wmleg .check{font-size:12px}
+.wsw{width:14px;height:14px;border-radius:3px;border:1px solid var(--line);flex:none}
+.wsw.un{background:rgba(214,58,48,.6)}.wsw.gen{background:rgba(96,106,128,.75)}
+#wmHov{margin-left:auto;font-family:var(--font-mono)}
 .wzoom{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
 .wzoom button,.wtabs button{min-width:34px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-weight:600}
 .wtabs{display:flex;flex-wrap:wrap;gap:6px}
@@ -239,6 +250,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
+          <button class="tbtn txt" id="pixBtn">Pixel art de uma imagem…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
@@ -998,7 +1010,14 @@ function castRay(o, d) {
   var face = [0, 0, 0], t = 0;
   var maxN = (SX + SY + SZ) * 2 + 64, maxT = (SX + SY + SZ) * 2 + cam.dist * 2;
   for (var n = 0; n < maxN; n++) {
-    if (n > 0 && solidForRay(c[0], c[1], c[2])) return { cell: [c[0], c[1], c[2]], normal: face.slice(), t: t };
+    var sv = n > 0 ? solidForRay(c[0], c[1], c[2]) : 0;
+    if (sv) {
+      var sb = BLOCKS[cellBlock(sv)];
+      if (!sb.shape || sb.java === 'water' || sb.java === 'lava') return { cell: [c[0], c[1], c[2]], normal: face.slice(), t: t };
+      // bloco com forma (laje, escada, cerca...): só acerta onde há forma; senão o raio segue para a célula de trás
+      var sh = shapeRayHit(sb, cellOri(sv), c[0], c[1], c[2], [o[0] - c[0], o[1] - c[1], o[2] - c[2]], d);
+      if (sh) return { cell: [c[0], c[1], c[2]], normal: sh.n, t: sh.t, pt: sh.pt };
+    }
     var ax = tm[0] < tm[1] ? (tm[0] < tm[2] ? 0 : 2) : (tm[1] < tm[2] ? 1 : 2);
     t = tm[ax]; c[ax] += st[ax]; tm[ax] += td[ax];
     face = [0, 0, 0]; face[ax] = -st[ax];
@@ -1914,6 +1933,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%HISTORY_JS%%*/
 /*%%PALETTES_JS%%*/
 /*%%MIX_JS%%*/
+/*%%PIXEL_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /* ---------- Projeto ---------- */
@@ -2224,6 +2244,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
+    '<span>Pixel art</span><span>Projeto → Pixel art de uma imagem: escolha uma imagem, a largura em blocos, de pé ou deitada, e quais blocos usar; cada pixel vira o bloco de cor mais parecida e o resultado entra para colar (R gira, F espelha).</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
@@ -2287,6 +2308,7 @@ $('measTbtn').addEventListener('click', function () { setMeasure(!measureOn); to
 setMeasure(measureOn);
 $('symBtn').addEventListener('click', function () { $('menu').open = false; toggleSymChip(); });
 $('floorBtn').addEventListener('click', function () { $('menu').open = false; openFloor(); });
+$('pixBtn').addEventListener('click', function () { $('menu').open = false; openPixelArt(); });
 /* Preencher o chão: cobre uma ou mais camadas do espaço inteiro com um bloco, de uma vez */
 function openFloor() {
   var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');

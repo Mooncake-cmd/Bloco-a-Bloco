@@ -26,7 +26,7 @@ vm.runInContext(fs.readFileSync(path.join(root, 'src/worldio.js'), 'utf8'), ctx)
   const read = async n => files['db/' + n];
   const db = await ctx.ldbOpen(names, read);
   let live = 0, subs = 0; db.idx.forEach((r, k) => { if (r.t === 1) live++; if (r.t === 1 && k.length === 10 && k.charCodeAt(8) === 0x2f) subs++; });
-  check(live === 912, 'índice do banco: 912 chaves (achou ' + live + ')');
+  check(live === 998, 'índice do banco: 998 chaves (com o Fim) (achou ' + live + ')');
   check(subs === 572, 'sub-chunks do mundo normal: 572 (achou ' + subs + ')');
   // sub-chunk: decodificar, gravar de novo e decodificar dá os mesmos blocos
   let same = true, n = 0;
