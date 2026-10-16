@@ -161,3 +161,13 @@ Projeto > Abrir mundo do jogo aceita o `.mcworld` exportado pelo Bedrock, um `.z
 3. Espelhar a cópia (girar 90° já existe) e copiar para a área de transferência do sistema, para levar entre abas.
 4. Cilindro (preencher e substituir já existem na seleção).
 5. Crafter apontando para cima e para baixo (hoje só as 4 direções horizontais).
+
+## Teste com o servidor oficial do Bedrock (opcional)
+
+`scripts/bds/` confere o site contra o jogo usando o Bedrock Dedicated Server (Linux, baixado de minecraft.net; não vai no repositório). Roda sem conta: em `server.properties`, `online-mode=false`, `allow-list=false`, `transport=nethernet` (o raknet precisa de IPv6) e `allow-cheats=true`; o console recebe comandos pela entrada padrão (`(sleep 30; cat comandos.txt; sleep 10; echo stop) | LD_LIBRARY_PATH=. ./bedrock_server`).
+
+1. O servidor gera um mundo (`tickingarea add 0 0 0 95 0 95 gen` força a geração em volta do 0,0); a pasta do mundo, zipada, vira `.mcworld`.
+2. `node scripts/bds/site.js <url do editor> <mundo.mcworld> <pasta>` abre o mundo no site, constrói blocos com estados e circuitos de redstone em y = 100, exporta desligado e ligado (`editado-off/on.mcworld`) e grava os `setblock` que ligam as alavancas (`cmds-on.json`).
+3. O servidor abre `editado-off`, recebe os `setblock` e para; `python3 scripts/bds/cmp.py <pasta com leveldb e nbtle> <mundo A> <mundo B> A B` compara a região bloco a bloco (nome e estados). Os estados que o jogo acrescenta sozinho (`minecraft:corner` das escadas, `connection_*` de cercas e vidraças) não são erro.
+
+Resultado na 1.26.52: desligado igual; ligado igual em todos os circuitos (só a metade de cima da porta: o jogo guarda `open_bit` só na de baixo). O teste achou e corrigiu a alavanca no chão/teto exportada invertida e o funil exportado travado.

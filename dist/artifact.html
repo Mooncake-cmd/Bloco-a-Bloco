@@ -2475,6 +2475,12 @@ async function loadShapes() {
     });
     BLOCKS.push(b); BY_JAVA[d.n] = base + i;
   });
+  // Correções da tabela Java -> Bedrock conferidas no servidor oficial do Bedrock (1.26): na alavanca, open_bit é
+  // "ligada" em qualquer direção (a tabela invertia no chão e no teto virados para sul e leste, só para imitar a
+  // inclinação do cabo do Java, e a alavanca desligada chegava ligada no jogo); no funil, toggle_bit = 1 é travado
+  var fixBe = function (n, key, fn) { var b = BLOCKS[BY_JAVA[n]], t = b && b.shape.be[key]; if (t) Object.keys(t[1]).forEach(function (k) { t[1][k] = fn(k.split('|'), t[1][k]); }); };
+  fixBe('lever', 'open_bit', function (k) { return k[k.length - 1]; });
+  fixBe('hopper', 'toggle_bit', function (k) { return k[0] === 'true' ? 'false' : 'true'; });
   BLOCKS.forEach(function (b) {
     if (!b.shape) return;
     if (b.shape.wall) b.wallBi = BY_JAVA[b.shape.wall];
