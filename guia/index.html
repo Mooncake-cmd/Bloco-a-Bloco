@@ -199,7 +199,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
       <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Tamanho 1×1, 2×2 ou 3×3 no aviso do canto (veja abaixo). Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
       <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
-      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor (1 a 4), modo do comparador, carga da âncora, nível da água e da luz. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado.</td><td>Muda a segunda opção do bloco, quando existe (no repetidor e no comparador, liga e desliga). Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
+      <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor (1 a 4), modo do comparador, carga da âncora, nível da água e da luz. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Alavanca, botão e placa de pressão disparam o circuito de redstone (cap. 07).</td><td>Muda a segunda opção do bloco, quando existe (no repetidor e no comparador, liga e desliga). Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
       <tr><td>5</td><td><b>Girar</b></td><td><kbd>T</kbd></td><td>Passa para a próxima direção: frente, eixo do tronco, escada de cabeça para baixo, laje em cima/embaixo/dupla.</td><td>Gira ao contrário.</td></tr>
       <tr><td>6</td><td><b>Linha</b></td><td><kbd>L</kbd></td><td rowspan="3">Três cliques: o início, o ponto oposto e a altura (veja abaixo). Uma prévia mostra a forma e a barra de status mostra o tamanho. Um aviso no canto diz o passo e tem o botão Cancelar (ou <kbd>Esc</kbd>).</td><td rowspan="5">No último clique, apaga a forma em vez de construir.</td></tr>
       <tr><td>7</td><td><b>Caixa sólida</b></td><td><kbd>R</kbd></td></tr>
@@ -587,6 +587,38 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Para deixar a água e a lava paradas onde você colocar (ex.: montar um lago de um nível só), use <b>Projeto → Água e lava escorrem: não</b>. Estruturas importadas e projetos abertos não escorrem até você mexer perto.</li>
   </ul>
 
+  <h3 id="redstone">Redstone funcionando</h3>
+  <p>Os circuitos funcionam no editor como no jogo: puxe a alavanca ou aperte o botão com a ferramenta <b>Usar</b> (<kbd>U</kbd>) e o sinal anda pelo pó, liga lâmpadas, abre portas e move pistões, com os atrasos do jogo (20 tiques por segundo).</p>
+  <div class="grid2">
+    <figure><img src="img/redstone-desligada.jpg" alt="Circuito desligado: alavanca, pó escuro, repetidor, lâmpada apagada, pistão grudento recolhido, porta fechada e uma tocha acesa com uma lâmpada acesa em cima" width="972" height="772" loading="lazy"><figcaption>Desligado: só a tocha (à direita) está acesa, e acende a lâmpada em cima dela.</figcaption></figure>
+    <figure><img src="img/redstone-ligada.jpg" alt="O mesmo circuito ligado: pó vermelho vivo, repetidor aceso, lâmpada acesa, pistão empurrou as tábuas, porta aberta, e a tocha e a lâmpada de cima apagadas" width="972" height="772" loading="lazy"><figcaption>Ligado pela alavanca: o pó acende (mais claro perto da fonte), o pistão grudento empurra as tábuas, a porta abre, a lâmpada do fim acende e a tocha, energizada pelo bloco embaixo dela, apaga a sua lâmpada.</figcaption></figure>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Bloco</th><th>Como funciona aqui</th></tr></thead>
+    <tbody>
+      <tr><td>Alavanca</td><td>Usar liga e desliga.</td></tr>
+      <tr><td>Botão</td><td>Usar aperta; solta sozinho depois de 1 s (pedra) ou 1,5 s (madeira).</td></tr>
+      <tr><td>Placa de pressão</td><td>Usar aperta por 1 s (não há criaturas no editor). As de peso guardam a força escolhida com Usar (0 a 15).</td></tr>
+      <tr><td>Pó de redstone</td><td>Força 15 junto da fonte, menos 1 por bloco; a cor fica mais viva quanto mais forte. Sobe e desce degraus de um bloco; um bloco sólido em cima do degrau corta o caminho. Energiza o bloco embaixo dele e o bloco para onde aponta.</td></tr>
+      <tr><td>Tocha de redstone</td><td>Apaga quando o bloco que a segura está energizado (inversor), com 1 tique de redstone de atraso. Energiza o bloco de cima. Se piscar 8 vezes em 3 s, queima e só volta depois de 8 s, como no jogo.</td></tr>
+      <tr><td>Bloco de redstone</td><td>Fonte sempre ligada, força 15.</td></tr>
+      <tr><td>Repetidor</td><td>Atraso de 1 a 4 tiques de redstone (Usar muda), devolve a força para 15 e só passa o sinal para a frente. Travado quando outro repetidor ou um comparador aponta para o lado dele.</td></tr>
+      <tr><td>Comparador</td><td>Comparar: passa a força de trás se ela for maior ou igual à dos lados. Subtrair (Usar troca o modo): força de trás menos a maior dos lados.</td></tr>
+      <tr><td>Observador</td><td>Quando o bloco da frente muda, solta um pulso de 1 tique de redstone pela parte de trás. Dois observadores frente a frente fazem um relógio.</td></tr>
+      <tr><td>Sensor de luz</td><td>Fonte com a força escolhida com Usar.</td></tr>
+      <tr><td>Lâmpada</td><td>Acende com sinal e apaga 2 tiques de redstone depois que ele some.</td></tr>
+      <tr><td>Portas, alçapões e portões</td><td>Abrem quando o sinal chega e fecham quando ele some. O que você abriu com Usar continua aberto até o sinal mudar.</td></tr>
+      <tr><td>Pistão e pistão grudento</td><td>Empurram até 12 blocos; com mais, ou com obsidiana, rocha-mãe, outro pistão estendido e afins na frente, não se movem. Plantas, tochas, pó, portas, tapetes e afins quebram. O grudento puxa de volta o bloco da frente ao recolher. O sinal vem de qualquer lado menos da frente (sem a quasi-conectividade do Java, como no Bedrock).</td></tr>
+      <tr><td>Trilho energizado e ativador</td><td>Acendem com sinal e passam a energia para até 8 trilhos iguais em linha.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="plain">
+    <li>Blocos sólidos levam o sinal como no jogo: o que é energizado <b>forte</b> (alavanca ou botão preso nele, tocha embaixo, repetidor ou comparador apontando para ele) energiza o pó em volta; o energizado <b>fraco</b> (pó em cima ou apontando para ele) liga lâmpadas, portas, pistões, repetidores e tochas encostados, mas não outro pó.</li>
+    <li>Tudo o que a redstone muda entra no mesmo passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd> da ação que a pôs para funcionar (puxar a alavanca e o que ela acendeu voltam juntos). Um relógio ligado para sempre guarda só as primeiras 5.000 mudanças nesse passo.</li>
+    <li>Ao exportar, sai cada bloco como está na hora: pó com a força, lâmpada acesa, pistão estendido com a cabeça, repetidor travado.</li>
+    <li>Projeto → <b>Redstone funcionando: sim/não</b> desliga a simulação (Usar passa a só trocar o bloco clicado). Fica guardado no navegador.</li>
+  </ul>
+
   <h3>Técnicos e só Bedrock</h3>
   <figure><img src="img/inventario.jpg" alt="Os 32 itens do inventário de teste, incluindo blocos de comando, portais, fogo, água e blocos só do Bedrock" width="972" height="640" loading="lazy"><figcaption>Blocos técnicos e só do Bedrock no editor.</figcaption></figure>
   <ul class="plain">
@@ -649,10 +681,10 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
-        <tr><td>Pixel art de uma imagem…</td><td>Transforma uma imagem em blocos e entra para colar (veja abaixo).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
         <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
         <tr><td>Água e lava escorrem: sim/não</td><td>Liga e desliga o escorrer da água e da lava (cap. 07). Fica guardado no navegador.</td></tr>
+        <tr><td>Redstone funcionando: sim/não</td><td>Liga e desliga a simulação dos circuitos (cap. 07). Fica guardado no navegador.</td></tr>
         <tr><td>Texturas…</td><td>Carrega e organiza pacotes de recursos (cap. 10).</td></tr>
         <tr><td>Tema</td><td>Alterna automático (segue o sistema), claro e escuro.</td></tr>
         <tr><td>Atalhos e ajuda</td><td>Resumo dos atalhos (também com <kbd>?</kbd>).</td></tr>
@@ -671,25 +703,6 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>Vale para o espaço inteiro (a largura e a profundidade do Tamanho do espaço). Ctrl+Z desfaz.</li>
     </ul>
   </div>
-  <h3>Pixel art de uma imagem</h3>
-  <div class="grid2">
-    <figure><img src="img/pixelart.jpg" alt="Janela Pixel art com uma paisagem de pôr do sol reduzida a 80 × 50 blocos, as opções e a lista de blocos usados" width="900" height="740" loading="lazy"><figcaption>Projeto → Pixel art de uma imagem…: a prévia mostra cada bloco com a cor dele.</figcaption></figure>
-    <figure><img src="img/pixelart-colada.jpg" alt="A paisagem colada de pé como um painel de 80 × 50 blocos, com terracota, concreto, lã e outros blocos" width="972" height="772" loading="lazy"><figcaption>A mesma imagem colada de pé, com as texturas do Bedrock.</figcaption></figure>
-  </div>
-  <ol class="steps">
-    <li><b>Escolher imagem…</b>: foto, desenho, logo, sprite (PNG, JPG, GIF, WebP).</li>
-    <li><b>Largura em blocos</b> (4 a 512); a altura sai da proporção da imagem (no máximo 512 também).</li>
-    <li><b>Blocos</b>: todos os blocos de uma cor só (o recomendado: cubos inteiros e opacos, sem direção, sem minério e sem cor de bioma), só lã, só concreto, só terracota, os três juntos, ou qualquer paleta sua (cap. 06).</li>
-    <li><b>De pé</b> (uma parede, lida de frente olhando para o norte) ou <b>Deitada</b> (no chão, com o alto da imagem ao norte). A cor usada de cada bloco é a da face que fica à vista: a lateral de pé, o topo deitada.</li>
-    <li><b>Colar na construção</b>: a pixel art segue o mouse como uma cópia; <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha e o clique cola (dá para colar várias vezes). Ctrl+Z desfaz.</li>
-  </ol>
-  <ul class="plain">
-    <li>Cada pixel vira o bloco de cor mais parecida, comparando as cores do jeito que o olho percebe (espaço de cor CIELAB). A imagem é reduzida pela média de cada pedaço, sem borrar: num sprite pequeno, cada pixel fica com a cor exata.</li>
-    <li><b>Pontilhado</b>: espalha a diferença de cor de cada pixel para os vizinhos e imita tons que nenhum bloco tem (bom em degradês e fotos; em desenhos de cores chapadas, deixe desligado).</li>
-    <li><b>Sem blocos que caem</b> (ligado de início): tira areia, cascalho e pó de concreto, que despencariam numa parede no jogo.</li>
-    <li>Partes transparentes da imagem (PNG) ficam vazias.</li>
-    <li>Imagens pequenas e de poucas cores (ícones, sprites, logos) ficam melhores que fotos. A prévia diz o tamanho, o total de blocos e os mais usados; se não couber no espaço, avisa (o que passar da borda fica de fora ao colar).</li>
-  </ul>
 </section>
 
 <section id="texturas">
@@ -880,6 +893,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia do Ctrl+C fica só nesta aba (não vai para a área de transferência do sistema e some ao recarregar a página); para guardar, use a biblioteca. Girar é só de 90° na horizontal (com o espelhar, cobre as 8 posições no chão).</td></tr>
       <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
+      <tr><td>Redstone</td><td>Não funcionam: TNT, dispensador, liberador, funil, bloco musical, sino, lâmpada de cobre, gancho de armadilha, sensor de sculk e alvo como fonte. O comparador não lê baús nem molduras. Blocos empurrados pelo pistão não derrubam o que estava em cima deles (pó, tochas e plantas podem ficar flutuando), e o pistão não empurra a água. O sensor de luz não segue o dia: dá a força escolhida.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
       <tr><td>Histórico</td><td>Guarda até 20 milhões de mudanças de blocos (cerca de 1.000 ações). Passando disso, saem primeiro os ramos mais antigos fora do caminho atual (as versões marcadas ficam até o fim) e depois o começo do caminho. Mudar o tamanho do espaço começa um histórico novo.</td></tr>
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>

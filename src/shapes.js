@@ -9,6 +9,7 @@ var DV = { up: [0, 1, 0], down: [0, -1, 0], north: [0, 0, -1], south: [0, 0, 1],
 var BED_COLORS = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'];
 var CW = { north: 'east', east: 'south', south: 'west', west: 'north' }, CCW = { north: 'west', west: 'south', south: 'east', east: 'north' };
 
+var SP_EXTRA = { redstone_wire: ['power'], piston: ['extended'], sticky_piston: ['extended'], powered_rail: ['powered'], activator_rail: ['powered'], detector_rail: ['powered'], repeater: ['locked'] };
 async function loadShapes() {
   var bin = Uint8Array.from(atob(SHAPES_GZ), function (c) { return c.charCodeAt(0); });
   var txt = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
@@ -25,6 +26,12 @@ async function loadShapes() {
     // propriedades guardadas na célula: base mista na ordem de d.p
     b.sp = d.p.filter(function (p) { return p[2] === 's'; });
     b.defs = {}; d.p.forEach(function (p) { b.defs[p[0]] = p[1][Math.max(0, p[3])]; });
+    // a redstone funcionando (src/redstone.js) precisa guardar mais estes: entram por último e com o padrão na posição 0,
+    // então os estados já salvos continuam valendo o mesmo
+    (SP_EXTRA[d.n] || []).forEach(function (k) {
+      var p = d.p.filter(function (q) { return q[0] === k; })[0]; if (!p || b.sp.indexOf(p) >= 0) return;
+      var def = b.defs[k]; b.sp.push([k, [def].concat(p[1].filter(function (v) { return v !== def; })), 's', 0]);
+    });
     BLOCKS.push(b); BY_JAVA[d.n] = base + i;
   });
   BLOCKS.forEach(function (b) {
@@ -108,7 +115,7 @@ function fullProps(b, s, x, y, z) {
     H.forEach(function (h) {
       var n = nb(h), r = 'none';
       if (n && REDSTONE_PART.test(n.b.java)) {
-        if (/^(repeater|comparator)$/.test(n.b.java)) { var f = propOf(n, 'facing'); r = f === h || f === OPP[h] ? 'side' : 'none'; }
+        if (n.b.java === 'repeater') { var f = propOf(n, 'facing'); r = f === h || f === OPP[h] ? 'side' : 'none'; }
         else if (n.b.java === 'observer') r = 'side';
         else r = 'side';
       }
@@ -119,7 +126,6 @@ function fullProps(b, s, x, y, z) {
     // sem conexão vira cruz; com uma só, a linha atravessa o bloco
     if (!cnt) H.forEach(function (h) { o[h] = 'side'; });
     else if (cnt === 1) H.forEach(function (h) { if (o[h] !== 'none' && o[OPP[h]] === 'none') o[OPP[h]] = 'side'; });
-    o.power = '0';
   } else if (fam === 'stairs') {
     o.shape = stairShape(o, x, y, z);
   } else if (fam === 'chest') {
@@ -320,6 +326,11 @@ function shapeRayHit(b, s, x, y, z, O, d) {
   function done(h) { h.pt = [x + O[0] + d[0] * h.t, y + O[1] + d[1] * h.t, z + O[2] + d[2] * h.t]; return h; }
 }
 
+/* Cor do pó de redstone pela força do sinal (a mesma conta do jogo): vermelho escuro em 0, vivo em 15 */
+function wireTint(p) {
+  var f = p / 15, r = f * 0.6 + (f > 0 ? 0.4 : 0.3), g = Math.max(0, Math.min(1, f * f * 0.7 - 0.5)), bl = Math.max(0, Math.min(1, f * f * 0.6 - 0.7));
+  return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(bl * 255);
+}
 /* Malha: chamado por buildChunk para cada célula com forma */
 /* Água e lava: altura pelo nível (fonte 8/9, corrente (8 - nível)/9, coluna caindo cheia) e faces escondidas
    entre células do mesmo fluido, como no jogo */
@@ -344,7 +355,7 @@ function fluidGeom(b, s, x, y, z) {
 }
 function emitShape(b, s, x, y, z, O, C, G) {
   var o = fullProps(b, s, x, y, z), g = b.java === 'water' || b.java === 'lava' ? fluidGeom(b, s, x, y, z) : shapeGeom(b, o);
-  var T = b.kind === 1 ? G : C, tintC = b.shape.tint;
+  var T = b.kind === 1 ? G : C, tintC = b.java === 'redstone_wire' ? wireTint(+o.power || 0) : b.shape.tint;
   var tr = (tintC >> 16 & 255) / 255, tg = (tintC >> 8 & 255) / 255, tb = (tintC & 255) / 255;
   for (var i = 0; i < g.length; i++) {
     var q = g[i];

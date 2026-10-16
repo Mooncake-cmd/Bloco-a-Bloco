@@ -39,7 +39,7 @@ function histPath(id) { var out = []; for (var n = histNode(id); n; n = n.p >= 0
 /* Vai até qualquer nó: desfaz até o ancestral comum e refaz o caminho; os filhos visitados viram o "último" de cada ramo */
 function histGoto(id) {
   if (!histNode(id) || id === hist.cur) return;
-  fluidStop();
+  fluidStop(); rsStop();
   var target = histPath(id), set = new Set(target), steps = 0;
   while (!set.has(hist.cur)) { histUndo(); steps++; }
   for (var i = target.indexOf(hist.cur) + 1; i < target.length; i++) {

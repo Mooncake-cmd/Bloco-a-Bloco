@@ -116,12 +116,6 @@ body.walking #viewport canvas{cursor:none}
 .dialog .mxrow input[data-mp]{width:76px;flex:none}
 .mxrow .btn{height:32px;padding:0 10px}
 .pen b.ok{color:var(--fg)}
-.seg{display:inline-flex;gap:0}
-.seg .btn{border-radius:0}.seg .btn:first-child{border-radius:8px 0 0 8px}.seg .btn:last-child{border-radius:0 8px 8px 0}
-.seg .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.pawrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
-.pawrap canvas{image-rendering:pixelated;max-width:100%;max-height:52vh;border:1px solid var(--line);border-radius:6px;background:repeating-conic-gradient(var(--panel-2) 0 25%,var(--bg) 0 50%) 0 0/16px 16px}
-.pawrap .pen{flex:1;min-width:200px;line-height:1.5}
 .pen b.err,.mixl .err{color:var(--danger)}
 #chips button.pedit{border-color:transparent;color:var(--accent);font-weight:600}
 .palit{display:flex;align-items:center;gap:12px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);flex-wrap:wrap}
@@ -250,12 +244,12 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
-          <button class="tbtn txt" id="pixBtn">Pixel art de uma imagem…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
+          <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
           <button class="tbtn txt" id="helpBtn">Atalhos e ajuda</button>
@@ -424,6 +418,7 @@ function endBatch() {
     histPush(batch); // histórico em árvore (src/history.js)
     changed();
     fluidAfterBatch(batch);
+    rsAfterBatch(batch); // redstone funcionando (src/redstone.js)
   }
   batch = null;
 }
@@ -433,8 +428,8 @@ function applyBatch(b, undo) {
     setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
   }
 }
-function undo() { fluidStop(); if (histUndo()) changed(); }
-function redo() { fluidStop(); if (histRedo()) changed(); }
+function undo() { fluidStop(); rsStop(); if (histUndo()) changed(); }
+function redo() { fluidStop(); rsStop(); if (histRedo()) changed(); }
 function changed() {
   requestRender();
   updateStatus();
@@ -1933,7 +1928,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%HISTORY_JS%%*/
 /*%%PALETTES_JS%%*/
 /*%%MIX_JS%%*/
-/*%%PIXEL_JS%%*/
+/*%%REDSTONE_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /* ---------- Projeto ---------- */
@@ -1984,7 +1979,7 @@ function newWorld(sx, sy, sz) {
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
-  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop();
+  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset();
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -2244,7 +2239,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
-    '<span>Pixel art</span><span>Projeto → Pixel art de uma imagem: escolha uma imagem, a largura em blocos, de pé ou deitada, e quais blocos usar; cada pixel vira o bloco de cor mais parecida e o resultado entra para colar (R gira, F espelha).</span>' +
+    '<span>Redstone</span><span>Os circuitos funcionam como no jogo: Usar (<kbd>U</kbd>) puxa a alavanca e aperta botões; o pó leva o sinal, tochas invertem, repetidores e comparadores atrasam, lâmpadas acendem, portas abrem e pistões empurram. Projeto → Redstone funcionando liga e desliga.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
@@ -2308,7 +2303,6 @@ $('measTbtn').addEventListener('click', function () { setMeasure(!measureOn); to
 setMeasure(measureOn);
 $('symBtn').addEventListener('click', function () { $('menu').open = false; toggleSymChip(); });
 $('floorBtn').addEventListener('click', function () { $('menu').open = false; openFloor(); });
-$('pixBtn').addEventListener('click', function () { $('menu').open = false; openPixelArt(); });
 /* Preencher o chão: cobre uma ou mais camadas do espaço inteiro com um bloco, de uma vez */
 function openFloor() {
   var list = BLOCKS.map(function (b) { return b.hide ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
@@ -2337,8 +2331,10 @@ function openFloor() {
       };
     });
 }
+$('rsBtn').addEventListener('click', function () { setRedstone(!rsOn); toast(rsOn ? 'A redstone funciona: alavancas, botões, tochas, repetidores, comparadores, lâmpadas, portas e pistões reagem ao sinal.' : 'A redstone fica parada: Usar só muda o bloco clicado.', 5000); $('menu').open = false; });
 $('flowBtn').addEventListener('click', function () { setFlow(!flowOn); toast(flowOn ? 'A água e a lava escorrem ao colocar, como no jogo.' : 'A água e a lava ficam paradas onde você colocar.'); $('menu').open = false; });
 setFlow(flowOn);
+setRedstone(rsOn);
 $('gridBtn').addEventListener('click', function () { showGrid = !showGrid; positionGrid(); requestRender(); $('menu').open = false; });
 $('helpBtn').addEventListener('click', function () { $('menu').open = false; openHelp(); });
 var themeMode = 'auto';
