@@ -5,6 +5,12 @@ const fs = require('fs'), path = require('path');
 const { PNG } = require('pngjs');
 const jd = require('minecraft-data')('1.21.11');
 const bd = require('minecraft-data')('bedrock_1.26.51');
+const jd26 = require('minecraft-data')('26.1'); // blocos do Java 26.1 que o 1.21.11 não tem (dente-de-leão dourado, estátua do golem de cobre)
+// Pacote oficial do Bedrock (github.com/Mojang/bedrock-samples) 1.26.50 ou mais novo, extraído: resource_pack/textures/blocks,
+// resource_pack/textures/terrain_texture.json e metadata/vanilladata_modules/mojang-blocks.json. Dele saem as texturas e os
+// estados dos blocos que só o Bedrock tem e que o minecraft-data ainda não traz (choupo, enxofre, cinábrio, lajes de lã...).
+const SAMPLES = process.env.BEDROCK_SAMPLES_DIR;
+if (!SAMPLES) { console.error('Defina BEDROCK_SAMPLES_DIR com a pasta do bedrock-samples extraído.'); process.exit(1); }
 const assets = require('minecraft-assets')('26.1');
 const MD = path.join(path.dirname(require.resolve('minecraft-data/package.json')), 'minecraft-data', 'data');
 const dataPaths = JSON.parse(fs.readFileSync(path.join(MD, 'dataPaths.json'), 'utf8'));
@@ -23,7 +29,7 @@ for (const n in M) { const t = M[n].textures || {}; for (const k in t) if (t[k] 
 for (const n in M) (M[n].elements || []).forEach(e => Object.values(e.faces || {}).forEach(f => { if (f.texture && !f.texture.startsWith('#') && !f.texture.includes('/')) f.texture = '#' + f.texture; }));
 
 // ---------- Quais blocos ----------
-const SKIP = /^(air|cave_air|void_air|bubble_column|moving_piston|barrier|test_block|test_instance_block|frosted_ice|bedrock|infested_.*|budding_amethyst|reinforced_deepslate|spawner|trial_spawner|vault|petrified_oak_slab|sculk_sensor_x)$/;
+const SKIP = /^(air|cave_air|void_air|bubble_column|moving_piston|barrier|test_block|test_instance_block|frosted_ice|bedrock|infested_.*|budding_amethyst|reinforced_deepslate|spawner|trial_spawner|vault|petrified_oak_slab|sculk_sensor_x|(waxed_)?((exposed|weathered|oxidized)_)?copper_golem_statue)$/;
 
 // ---------- Propriedades ----------
 function jprops(b) {
@@ -184,6 +190,15 @@ function entityGeometry(n) {
   // marcadores e líquidos: no jogo não têm modelo de bloco
   const marker = (t, a, b2) => ({ model: { textures: { m: 'block/' + t, particle: 'block/' + t }, elements: [box(a, b2, 'm')] }, states: { variants: { '': { model: 'bab:' + n } } } });
   if (n === 'light') return marker('yellow_stained_glass', [5, 5, 5], [11, 11, 11]);
+  if (n === 'barrier') return marker('be:barrier', [0, 0, 0], [16, 16, 16]);
+  if (n === 'bubble_column') { const m = marker('water_still', [0, 0, 0], [16, 16, 16]); for (const f of Object.values(m.model.elements[0].faces)) f.tintindex = 0; return m; }
+  if ((m = /^(?:waxed_)?(?:(exposed|weathered|oxidized)_)?copper_golem_statue$/.exec(n))) {
+    // estátua do golem de cobre: o jogo desenha como entidade; aqui, pernas, corpo, cabeça e o para-raios em cima,
+    // com a textura do bloco de cobre na etapa de oxidação certa (a pose não muda o desenho)
+    const t = m[1] ? m[1] + '_copper' : 'copper_block';
+    return { model: { textures: { c: 'block/' + t, particle: 'block/' + t }, elements: [box([4, 0, 6], [7, 4, 10], 'c'), box([9, 0, 6], [12, 4, 10], 'c'),
+      box([4, 4, 5], [12, 9, 11], 'c'), box([3, 9, 3], [13, 14, 13], 'c'), box([7, 9, 2], [9, 12, 3], 'c'), box([7, 14, 7], [9, 18, 9], 'c')] }, states: horizontalStates('bab:' + n) };
+  }
   if (n === 'structure_void') return marker('light_blue_stained_glass', [6, 6, 6], [10, 10, 10]);
   if (n === 'water' || n === 'lava') {
     const m = marker(n + '_still', [0, 0, 0], [16, 14, 16]);
@@ -222,7 +237,7 @@ async function fetchJson(u) {
 const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 // Equivalências de nome Java -> Bedrock que nem o nome nem a lista de cubos resolvem
 const BE_SYN = {
-  furnace_front: 'furnace_front_off', smoker_front: 'smoker_front_off', blast_furnace_front: 'blast_furnace_front_off',
+  spawner: 'mob_spawner', furnace_front: 'furnace_front_off', smoker_front: 'smoker_front_off', blast_furnace_front: 'blast_furnace_front_off',
   redstone_lamp: 'redstone_lamp_off', water_still: 'water_still_grey', lava_still: 'lava_still',
   oak_door_top: 'door_wood_upper', oak_door_bottom: 'door_wood_lower', iron_door_top: 'door_iron_upper', iron_door_bottom: 'door_iron_lower',
   spruce_door_top: 'door_spruce_upper', spruce_door_bottom: 'door_spruce_lower', birch_door_top: 'door_birch_upper', birch_door_bottom: 'door_birch_lower',
@@ -353,21 +368,22 @@ const BE_SYN = {
 
   const blocks = [], models = {}, states = {}, texAvg = {}, beTex = {}, beStates = {}, skipped = [];
   const allJava = new Set(jd.blocksArray.map(b => b.name));
-  for (const b of jd.blocksArray) {
+  // Entrada de um bloco Java (b: bloco do minecraft-data; J: tabela Java -> Bedrock, se não for a do minecraft-data)
+  function javaEntry(b, J) {
     const n = b.name;
-    if (cubeNames.has(n) || SKIP.test(n)) continue;
+    J = J || j2b[n];
     let st = S[n], ent = null;
     const props = jprops(b), defs = jdefaults(b);
-    if (!st) { skipped.push(n + ' (sem blockstate)'); continue; }
+    if (!st) { skipped.push(n + ' (sem blockstate)'); return null; }
     let ms = stateModels(st), info = ms.map(modelTextures);
     if (!info.some(i => i.hasElements)) {
       ent = entityGeometry(n);
-      if (!ent) { skipped.push(n + ' (desenhado como entidade)'); continue; }
+      if (!ent) { skipped.push(n + ' (desenhado como entidade)'); return null; }
       if (ent.model) models['bab:' + n] = ent.model;
       if (ent.models) for (const k in ent.models) models['bab:' + k] = ent.models[k];
       st = ent.states;
     }
-    if (!j2b[n]) { skipped.push(n + ' (sem equivalente Bedrock)'); continue; }
+    if (!J) { skipped.push(n + ' (sem equivalente Bedrock)'); return null; }
     // texturas usadas
     const tex = new Set(), tinted = new Set(); let particle = null;
     const modelNames = stateModels(st);
@@ -411,8 +427,8 @@ const BE_SYN = {
     else if (/^(vine|oak_leaves)$/.test(n)) tint = 0x77AB2F;
     else tint = 0x91BD59;
     // família de conexão e Bedrock
-    const be = beTable(j2b[n], props.map(p => p.name));
-    for (const e of j2b[n]) if (!beStates[e.name] && beDef[e.name]) {
+    const be = beTable(J, props.map(p => p.name));
+    for (const e of J) if (!beStates[e.name] && beDef[e.name]) {
       const d = beDef[e.name], s0 = {}; for (const k in d.states) s0[k] = [d.states[k].type, d.states[k].value];
       beStates[e.name] = [d.version, s0];
     }
@@ -421,10 +437,14 @@ const BE_SYN = {
       if (!(t in texAvg)) texAvg[t] = avgOf(t) || [128, 128, 128];
       if (!(t in beTex)) beTex[t] = bePathFor(t);
     }
-    const kind = texList.some(t => TRANSLUCENT.has(t)) || /^(ice|slime_block|honey_block|water|light|structure_void)$/.test(n) ? 1 : 2;
+    const kind = texList.some(t => TRANSLUCENT.has(t)) || /^(ice|frosted_ice|slime_block|honey_block|water|bubble_column|light|structure_void)$/.test(n) ? 1 : 2;
     // ícone com a cor de bioma/redstone quando a textura do ícone é pintada no jogo (pó de redstone, grama...)
     const ti = particle && tinted.has(particle) ? 1 : 0;
-    blocks.push({ n, d: b.displayName, k: kind, ti, p: P, fam: fam[0], tog, ori, multi, tint, t: texList, pt: particle, be, ent: ent ? 1 : 0 });
+    return { n, d: b.displayName, k: kind, ti, p: P, fam: fam[0], tog, ori, multi, tint, t: texList, pt: particle, be, ent: ent ? 1 : 0 };
+  }
+  for (const b of jd.blocksArray) {
+    if (cubeNames.has(b.name) || SKIP.test(b.name)) continue;
+    const e = javaEntry(b); if (e) blocks.push(e);
   }
   // ---- Blocos que só existem no Bedrock (bo: ficam de fora do .schem) ----
   const BE_RAW = BEDROCK_SAMPLES + 'textures/blocks/';
@@ -473,6 +493,142 @@ const BE_SYN = {
   cloneOnly('underwater_wall_torch', 'Underwater Wall Torch', 'wall_torch', 'underwater_torch');
   for (const n of ['allow', 'deny', 'border_block', 'camera', 'chemical_heat', 'hard_glass', 'hard_glass_pane', 'underwater_torch', 'netherreactor', 'glowingobsidian', 'invisible_bedrock'])
     if (!beStates[n] && beDef[n]) { const d = beDef[n], s0 = {}; for (const k in d.states) s0[k] = [d.states[k].type, d.states[k].value]; beStates[n] = [d.version, s0]; }
+
+  // ---- Blocos acrescentados depois (entram no fim para não mudar o índice dos que já existiam) ----
+  // 1. do Java que antes ficavam de fora; 2. do Java 26.1; 3. novos do Bedrock 1.26 (choupo, enxofre, cinábrio, lajes e escadas
+  // de lã e de concreto), montados a partir de um bloco parecido do Java, com as texturas e os nomes do pacote oficial
+  const SR = path.join(SAMPLES, 'resource_pack');
+  const terrLocal = JSON.parse(fs.readFileSync(path.join(SR, 'textures/terrain_texture.json'), 'utf8').replace(/^﻿/, '').replace(/^\s*\/\/.*$/mg, '')).texture_data;
+  const localPaths = new Set(); const addL = t => { if (typeof t === 'string') localPaths.add(t); else if (Array.isArray(t)) t.forEach(addL); else if (t && typeof t === 'object') { if (t.path) localPaths.add(t.path); if (t.variations) t.variations.forEach(addL); } };
+  for (const k in terrLocal) addL(terrLocal[k].textures);
+  const MB = JSON.parse(fs.readFileSync(path.join(SAMPLES, 'metadata/vanilladata_modules/mojang-blocks.json'), 'utf8'));
+  const mbItem = {}; MB.data_items.forEach(x => mbItem[x.name.replace('minecraft:', '')] = x);
+  const mbProp = {}; MB.block_properties.forEach(x => mbProp[x.name] = x);
+  const VER = beStates.spruce_planks ? beStates.spruce_planks[0] : 18168865;
+  // estados padrão de um nome Bedrock: do minecraft-data; se não tiver, do pacote (o primeiro valor de cada estado)
+  function beDefault(bn) {
+    if (beStates[bn]) return;
+    if (beDef[bn]) { const d = beDef[bn], s0 = {}; for (const k in d.states) s0[k] = [d.states[k].type, d.states[k].value]; beStates[bn] = [d.version, s0]; return; }
+    const it = mbItem[bn]; if (!it) throw new Error('bloco Bedrock desconhecido: ' + bn);
+    const s0 = {};
+    for (const q of it.properties) { const pd = mbProp[q.name], v = pd.values[0].value; s0[q.name] = pd.type === 'bool' ? ['byte', v ? 1 : 0] : pd.type === 'int' ? ['int', v] : ['string', v]; }
+    beStates[bn] = [VER, s0];
+  }
+  // textura do pacote: chave 'be:<arquivo>', cor média e caminho
+  function beLocal(file) {
+    const key = 'be:' + file, rel = 'textures/blocks/' + file;
+    if (!localPaths.has(rel) && !fs.existsSync(path.join(SR, rel + '.png'))) throw new Error('textura não encontrada: ' + rel);
+    beTex[key] = rel; texAvg[key] = avgPng(PNG.sync.read(fs.readFileSync(path.join(SR, rel + '.png')))) || [128, 128, 128];
+    return key;
+  }
+  // texturas Java usadas por uma cópia (lã, concreto...) precisam de cor média e caminho Bedrock também
+  function javaTex(t) { if (!(t in texAvg)) texAvg[t] = avgOf(t) || [128, 128, 128]; if (!(t in beTex)) beTex[t] = bePathFor(t); return t; }
+  const title = n => n.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  // forma de um bloco Java, mesmo que ele seja um cubo da outra lista (tábuas, troncos)
+  function source(from) {
+    if (byN[from]) return JSON.parse(JSON.stringify(byN[from]));
+    const e = javaEntry(jd.blocksByName[from]); if (!e) throw new Error('sem forma: ' + from);
+    return e;
+  }
+  const isCube = c => c.k !== 1 && !c.fam && /(_planks|_log|_wood|_bricks|^tuff|^polished_tuff|^chiseled_tuff|^cinnabar|^sulfur|^polished_|^chiseled_)$/.test(c.n) || /^(sulfur|cinnabar|polished_sulfur|polished_cinnabar|sulfur_bricks|cinnabar_bricks|chiseled_sulfur|chiseled_cinnabar|poplar_planks|poplar_log|poplar_wood|stripped_poplar_log|stripped_poplar_wood)$/.test(c.n);
+  const added = [];
+  // cópia de um bloco Java com outro nome: ren troca os nomes Bedrock; tm troca as texturas (Java -> chave nova)
+  function copyOf(n, from, ren, tm, opt) {
+    opt = opt || {};
+    const c = source(from);
+    c.n = n; c.d = (opt.d || title(n)) + (/_wall_/.test(n) || opt.java ? '' : ' (só Bedrock)'); delete c.wall; delete c.hide;
+    if (!opt.java) { c.bo = 1; c.nb = 1; }
+    const nm = c.be['#name'];
+    if (nm) { for (const k in nm[1]) nm[1][k] = ren(nm[1][k]); for (const k in nm[1]) beDefault(nm[1][k]); }
+    else { c.be['#name'] = [[], { '': ren(from) }]; beDefault(ren(from)); }
+    if (tm) { c.tm = Object.assign(c.tm || {}, tm); c.t = c.t.map(t => tm[t] || t); c.pt = tm[c.pt] || c.pt; }
+    if (opt.tint != null) { c.tint = opt.tint; c.ti = 0; }
+    if (opt.be) Object.assign(c.be, opt.be);
+    if (isCube(c)) { c.fc = 1; c.k = 0; }
+    states[n] = states[from];
+    blocks.push(c); byN[n] = c; added.push(n);
+    return c;
+  }
+  // 1. blocos do Java que ficavam de fora
+  beLocal('barrier');
+  for (const n of ['spawner', 'trial_spawner', 'vault', 'infested_stone', 'infested_cobblestone', 'infested_stone_bricks', 'infested_mossy_stone_bricks',
+    'infested_cracked_stone_bricks', 'infested_chiseled_stone_bricks', 'infested_deepslate', 'barrier', 'bubble_column', 'frosted_ice', 'petrified_oak_slab']) {
+    const e = javaEntry(jd.blocksByName[n]); if (!e) throw new Error('não montou ' + n);
+    if (/^infested_/.test(n)) { e.fc = 1; e.k = 0; }
+    blocks.push(e); byN[n] = e; added.push(n);
+  }
+  // 2. do Java 26.1, com a tabela Bedrock feita aqui
+  {
+    const gd = javaEntry(jd26.blocksByName.golden_dandelion, [{ props: {}, name: 'golden_dandelion', bs: {} }]);
+    beDefault('golden_dandelion'); if (!beTex.golden_dandelion) beTex.golden_dandelion = 'textures/blocks/golden_dandelion';
+    blocks.push(gd); byN.golden_dandelion = gd; added.push('golden_dandelion');
+    for (const ox of ['', 'exposed_', 'weathered_', 'oxidized_']) for (const wx of ['', 'waxed_']) {
+      const n = wx + ox + 'copper_golem_statue', b26 = jd26.blocksByName[n], J = [];
+      const pose = jprops(b26).find(q => q.name === 'copper_golem_pose').values;
+      for (const f of ['north', 'south', 'west', 'east']) for (const ps of pose) for (const w of ['true', 'false']) J.push({ props: { facing: f, copper_golem_pose: ps, waterlogged: w }, name: n, bs: { 'minecraft:cardinal_direction': f } });
+      const e = javaEntry(b26, J); if (!e) throw new Error('não montou ' + n);
+      beDefault(n); blocks.push(e); byN[n] = e; added.push(n);
+    }
+  }
+  // 3a. choupo: a partir do abeto (os nomes Bedrock do abeto seguem o mesmo padrão: spruce_slab, spruce_door...)
+  {
+    const P = f => beLocal(f), rp = v => v.replace('spruce', 'poplar');
+    const tm = { spruce_planks: P('poplar_planks'), spruce_log: P('poplar_log_side'), spruce_log_top: P('poplar_log_top'), stripped_spruce_log: P('stripped_poplar_log_side'),
+      stripped_spruce_log_top: P('stripped_poplar_log_top'), spruce_door_top: P('poplar_door_top'), spruce_door_bottom: P('poplar_door_bottom'), spruce_trapdoor: P('poplar_trapdoor'),
+      spruce_sapling: P('poplar_sapling'), spruce_shelf: P('poplar_shelf') };
+    for (const k of ['planks', 'log', 'wood', 'slab', 'stairs', 'fence', 'fence_gate', 'door', 'trapdoor', 'button', 'pressure_plate', 'sign', 'wall_sign', 'hanging_sign', 'wall_hanging_sign', 'sapling', 'shelf'])
+      copyOf('poplar_' + k, 'spruce_' + k, v => rp(v), tm);
+    copyOf('stripped_poplar_log', 'stripped_spruce_log', rp, tm); copyOf('stripped_poplar_wood', 'stripped_spruce_wood', rp, tm);
+    for (const c of ['orange', 'red', 'yellow']) copyOf(c + '_poplar_leaves', 'spruce_leaves', () => c + '_poplar_leaves', { spruce_leaves: P(c + '_poplar_leaves') }, { tint: 0xFFFFFF });
+    copyOf('red_shrub', 'dead_bush', () => 'red_shrub', { dead_bush: P('red_shrub') });
+    copyOf('straw_bed', 'white_bed', () => 'straw_bed', { white_wool: P('straw_bed') }, { be: { 'minecraft:cardinal_direction': [['facing'], { north: 'north', south: 'south', west: 'west', east: 'east' }] } });
+    delete byN.straw_bed.be.direction;
+    // cogumelo de prateleira: uma placa presa na parede de trás, virada para facing
+    beLocal('shelf_mushroom_large');
+    models['bab:shelf_mushroom'] = { textures: { m: 'block/be:shelf_mushroom_large', particle: 'block/be:shelf_mushroom_large' }, elements: [box([2, 6, 8], [14, 8, 16], 'm'), box([4, 3, 11], [12, 5, 16], 'm')] };
+    states.shelf_mushroom = horizontalStates('bab:shelf_mushroom');
+    beDefault('shelf_mushroom');
+    const sm = { n: 'shelf_mushroom', d: 'Shelf Mushroom (só Bedrock)', k: 2, ti: 0, p: [['facing', ['north', 'south', 'west', 'east'], 's', 0]], fam: null, tog: [], ori: ['facing'], multi: null, tint: 0,
+      t: ['be:shelf_mushroom_large'], pt: 'be:shelf_mushroom_large', be: { '#name': [[], { '': 'shelf_mushroom' }], 'minecraft:cardinal_direction': [['facing'], { north: 'north', south: 'south', west: 'west', east: 'east' }] }, ent: 0, bo: 1, nb: 1 };
+    blocks.push(sm); byN.shelf_mushroom = sm; added.push('shelf_mushroom');
+  }
+  // 3b. enxofre e cinábrio: a partir do tufo (tuff_slab, tuff_double_slab, tuff_stairs, tuff_wall, tuff_brick_*...)
+  for (const m of ['sulfur', 'cinnabar']) {
+    const P = f => beLocal(f), rm = v => v.replace('tuff', m);
+    const tm = { tuff: P(m), polished_tuff: P('polished_' + m), tuff_bricks: P(m + '_bricks'), chiseled_tuff: P('chiseled_' + m), chiseled_tuff_top: 'be:chiseled_' + m,
+      chiseled_tuff_bricks: 'be:chiseled_' + m, chiseled_tuff_bricks_top: 'be:chiseled_' + m };
+    for (const k of ['', '_slab', '_stairs', '_wall']) copyOf(m + k, 'tuff' + k, rm, tm);
+    for (const k of ['', '_slab', '_stairs', '_wall']) copyOf('polished_' + m + k, 'polished_tuff' + k, rm, tm);
+    copyOf(m + '_bricks', 'tuff_bricks', rm, tm);
+    for (const k of ['_slab', '_stairs', '_wall']) copyOf(m + '_brick' + k, 'tuff_brick' + k, rm, tm);
+    copyOf('chiseled_' + m, 'chiseled_tuff', rm, tm);
+  }
+  {
+    const tm = {}; for (const d of ['up', 'down']) for (const k of ['tip', 'tip_merge', 'frustum', 'middle', 'base']) tm['pointed_dripstone_' + d + '_' + k] = beLocal('sulfur_spike_' + d + '_' + k);
+    copyOf('sulfur_spike', 'pointed_dripstone', () => 'sulfur_spike', tm);
+    copyOf('potent_sulfur', 'tuff', () => 'potent_sulfur', { tuff: beLocal('potent_sulfur') });
+  }
+  // 3c. lajes e escadas de lã e de concreto, nas 16 cores: a forma da laje e da escada de tufo com a textura do bloco
+  for (const c of ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'])
+    for (const mat of ['wool', 'concrete']) {
+      const base = c + '_' + mat, tm = { tuff: javaTex(base) };
+      copyOf(base + '_slab', 'tuff_slab', v => v.replace('tuff', base), tm); copyOf(base + '_stairs', 'tuff_stairs', v => v.replace('tuff', base), tm);
+    }
+  // 3d. molduras: no Bedrock são blocos (no Java, entidades)
+  for (const [n, tex] of [['frame', 'itemframe_background'], ['glow_frame', 'glow_item_frame']]) {
+    const key = beLocal(tex);
+    models['bab:' + n] = { textures: { f: 'block/' + key, particle: 'block/' + key }, elements: [box([2, 2, 15], [14, 14, 16], 'f')] };
+    const v = {}; for (const [f, y] of [['north', 0], ['east', 90], ['south', 180], ['west', 270]]) v['facing=' + f] = { model: 'bab:' + n, y };
+    v['facing=up'] = { model: 'bab:' + n, x: 270 }; v['facing=down'] = { model: 'bab:' + n, x: 90 };
+    states[n] = { variants: v }; beDefault(n);
+    const e = { n, d: title(n).replace('Frame', 'Item Frame') + ' (só Bedrock)', k: 2, ti: 0, p: [['facing', ['north', 'south', 'west', 'east', 'up', 'down'], 's', 0]], fam: null, tog: [], ori: ['facing'], multi: null, tint: 0,
+      t: [key], pt: key, be: { '#name': [[], { '': n }], facing_direction: [['facing'], { down: '0', up: '1', north: '2', south: '3', west: '4', east: '5' }] }, ent: 0, bo: 1, nb: 1 };
+    blocks.push(e); byN[n] = e; added.push(n);
+  }
+  // os blocos-fonte que eram cubos (tábuas, troncos, tufo) não precisam de forma própria
+  for (const n of ['spruce_planks', 'spruce_log', 'spruce_wood', 'stripped_spruce_log', 'stripped_spruce_wood', 'spruce_leaves', 'tuff', 'polished_tuff', 'tuff_bricks', 'chiseled_tuff'])
+    if (!blocks.some(b => b.n === n)) delete states[n];
+  console.error('acrescentados', added.length);
 
   // variantes de parede (tocha de parede, placa de parede...): escondidas da paleta, usadas ao clicar na lateral
   const byName = {}; blocks.forEach(b => byName[b.n] = b);

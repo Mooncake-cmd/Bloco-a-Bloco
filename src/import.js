@@ -41,6 +41,9 @@ function bedrockIndex() {
     if (b.shape) { var t = b.shape.be['#name']; if (t) Object.keys(t[1]).forEach(function (k) { if (beByName[t[1][k]] && beByName[t[1][k]].indexOf(bi) >= 0) return; add(t[1][k], bi); }); else add(b.java, bi); }
     else add(b.bedrock, bi);
   });
+  // o Bedrock guarda o minério de redstone aceso como outro bloco; no editor é o mesmo minério
+  if (BY_JAVA.redstone_ore != null) add('lit_redstone_ore', BY_JAVA.redstone_ore);
+  if (BY_JAVA.deepslate_redstone_ore != null) add('lit_deepslate_redstone_ore', BY_JAVA.deepslate_redstone_ore);
   return beByName;
 }
 function sameVal(a, b) { return String(a) === String(b) || (a === 1 && b === 'true') || (a === 0 && b === 'false'); }

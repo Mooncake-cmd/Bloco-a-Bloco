@@ -34,7 +34,7 @@ function rsKind(bi) {
     : j === 'redstone_lamp' ? 'lamp' : /_door$/.test(j) ? 'door' : /_trapdoor$/.test(j) ? 'trapdoor' : /_fence_gate$/.test(j) ? 'gate'
     : j === 'piston' || j === 'sticky_piston' ? 'piston' : j === 'piston_head' ? 'head'
     : j === 'powered_rail' || j === 'activator_rail' ? 'rail' : j === 'daylight_detector' ? 'day'
-    : !b.shape && b.solid && !b.isAir && !NOT_STURDY.test(j) ? 'solid' : null;
+    : (!b.shape || b.shape.fc) && b.solid && !b.isAir && !NOT_STURDY.test(j) ? 'solid' : null;
   rsKinds[bi] = k; return k;
 }
 function rsAt(x, y, z) {

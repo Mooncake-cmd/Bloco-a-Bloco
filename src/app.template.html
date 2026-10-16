@@ -447,18 +447,20 @@ function catOf(b) {
   var n = b.java;
   if (b.isAir) return 'tecnico';
   if (b.shape) {
-    if (b.bo || /^(command_block|chain_command_block|repeating_command_block|structure_block|structure_void|jigsaw|light|water|lava|piston_head)$/.test(n)) return 'tecnico';
+    // só Bedrock: os técnicos (allow, deny, câmera...) ficam em Técnicos; os novos do jogo (b.shape.nb: choupo, enxofre...) seguem as outras categorias
+    if ((b.bo && !b.shape.nb) || /^(command_block|chain_command_block|repeating_command_block|structure_block|structure_void|jigsaw|light|water|lava|piston_head|barrier|bubble_column|frosted_ice|petrified_oak_slab)$|^infested_/.test(n)) return 'tecnico';
     if (/redstone|repeater|comparator|lever|_button|pressure_plate|tripwire|rail$|piston|daylight|target|hopper|lightning_rod|sculk_sensor|lectern|tnt/.test(n)) return 'redstone';
     if (/(_stairs|_slab|_wall|_fence|_fence_gate|_door|_trapdoor|_pane|_bars|_carpet|ladder|scaffolding|chain)$/.test(n)) return 'formas';
-    if (/sapling|flower|tulip|rose|orchid|allium|bluet|daisy|dandelion|poppy|cornflower|lily|fern|grass|bush|mushroom|wheat|carrots|potatoes|beetroots|stem|vine|kelp|seagrass|coral|cactus|sugar_cane|bamboo|dripleaf|azalea|petals|propagule|roots|fungus|sprouts|berr|cocoa|nether_wart|pickle|chorus|moss|lichen|eyeblossom|torchflower|pitcher|litter|lilac|peony|leaves/.test(n)) return 'plantas';
-    return 'deco';
+    if (/sapling|flower|tulip|rose|orchid|allium|bluet|daisy|dandelion|poppy|cornflower|lily|fern|grass|bush|mushroom|wheat|carrots|potatoes|beetroots|stem|vine|kelp|seagrass|coral|cactus|sugar_cane|bamboo|dripleaf|azalea|petals|propagule|roots|fungus|sprouts|berr|cocoa|nether_wart|pickle|chorus|moss|lichen|eyeblossom|torchflower|pitcher|litter|lilac|peony|leaves|shrub/.test(n)) return 'plantas';
+    if (!b.shape.fc) return 'deco';
+    // cubo inteiro feito como forma (tábuas e troncos de choupo, enxofre, cinábrio): segue as regras dos cubos
   }
   if (b.glass) return 'vidro';
   if (/(wool|concrete|terracotta|glazed)/.test(n)) return 'cor';
   if (/(planks|_log$|_wood$|_stem$|_hyphae$|bamboo|stripped|mosaic)/.test(n)) return 'madeira';
   if (/(_ore$|ancient_debris|^raw_|^(iron|gold|diamond|emerald|lapis|redstone|coal|copper|netherite|amethyst)_block$)/.test(n)) return 'minerio';
   if (/(dirt|grass|sand$|gravel|clay|snow|moss|leaves|mud$|podzol|mycelium|sponge|hay|melon|pumpkin|ice|soul_soil|nylium|wart)/.test(n) && !/sandstone/.test(n)) return 'natureza';
-  if (/(stone|cobble|granite|diorite|andesite|deepslate|brick|basalt|blackstone|tuff|calcite|obsidian|prismarine|sandstone|quartz|purpur|netherrack|copper|tile|smooth|polished|chiseled|cut_)/.test(n)) return 'pedra';
+  if (/(stone|cobble|granite|diorite|andesite|deepslate|brick|basalt|blackstone|tuff|calcite|obsidian|prismarine|sandstone|quartz|purpur|netherrack|copper|tile|smooth|polished|chiseled|cut_|sulfur|cinnabar)/.test(n)) return 'pedra';
   return 'outros';
 }
 BLOCKS.forEach(function (b) { b.cat = catOf(b); b.hay = (b.java + ' ' + b.name).toLowerCase(); });
@@ -1797,7 +1799,7 @@ async function applyTextures() {
   texBlocks = 0;
   BLOCKS.forEach(function (b, i) {
     b.tile = res[i];
-    b.solid = !b.shape && !b.glass && !(b.kind === 2 && b.tile.some(function (t) { return t >= 0; }));
+    b.solid = (!b.shape || b.shape.fc) && !b.glass && !(b.kind === 2 && b.tile.some(function (t) { return t >= 0; }));
     // ícone: face sul na direção inicial (a frente dos blocos com frente)
     var dm = b.ori && b.ori.o[b.ori.d][2], si = b.shape ? b.tile[b.ptIdx] : b.tile[dm ? dm[6] : 3];
     var s = si >= 0 ? si : b.tile[0];

@@ -18,7 +18,7 @@ async function loadShapes() {
   SH.blocks.forEach(function (d, i) {
     var avg = SH.texAvg[d.pt] || [128, 128, 128];
     if (d.ti) avg = [avg[0] * (d.tint >> 16 & 255) / 255, avg[1] * (d.tint >> 8 & 255) / 255, avg[2] * (d.tint & 255) / 255].map(Math.round);
-    var b = { java: d.n, name: d.d, bedrock: d.n, top: avg, side: avg, bottom: avg, kind: d.k, glass: false, solid: false,
+    var b = { java: d.n, name: d.d, bedrock: d.n, top: avg, side: avg, bottom: avg, kind: d.k, glass: false, solid: !!d.fc, // fc: cubo inteiro e opaco (tábuas de choupo, enxofre...)
       shape: d, jt: d.t, bt: d.t.map(function (t) { return SH.beTex[t] ? '@' + SH.beTex[t] : null; }), tint: [], ori: null, bst: null,
       tile: d.t.map(function () { return -1; }), icon: '', hide: !!d.hide, bo: !!d.bo };
     b.texIdx = {}; d.t.forEach(function (t, k) { b.texIdx[t] = k; });
@@ -70,7 +70,7 @@ function blockAt(x, y, z) {
   return { b: BLOCKS[cellBlock(v)], s: cellOri(v), v: v };
 }
 var NOT_STURDY = /leaves|pumpkin|melon|jack_o_lantern|shulker_box/;
-function sturdy(n) { return n && !n.b.shape && !NOT_STURDY.test(n.b.java); }
+function sturdy(n) { return n && (!n.b.shape || n.b.shape.fc) && !NOT_STURDY.test(n.b.java); }
 function isWire(n) { return n && n.b.java === 'redstone_wire'; }
 var REDSTONE_PART = /^(redstone_wire|redstone_torch|redstone_wall_torch|redstone_block|lever|.*_button|.*_pressure_plate|target|daylight_detector|observer|repeater|comparator|trapped_chest|lectern|sculk_sensor|calibrated_sculk_sensor|tripwire_hook|lightning_rod)$/;
 function propOf(n, p) { return n.b.shape ? stateProps(n.b, n.s)[p] : null; }
@@ -478,7 +478,7 @@ function shapeExport(b, s, x, y, z) {
   if (!d.p.length) j = '';
   var r = bedrockFromProps(b, o); r.j = j;
   var bm = /^(\w+?)_bed$/.exec(b.java);
-  if (bm) r.ent = { id: 'Bed', color: BED_COLORS.indexOf(bm[1]) };
+  if (bm && BED_COLORS.indexOf(bm[1]) >= 0) r.ent = { id: 'Bed', color: BED_COLORS.indexOf(bm[1]) };
   return r;
 }
 /* Nome e estados Bedrock de um conjunto completo de propriedades Java */
