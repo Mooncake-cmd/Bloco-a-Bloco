@@ -337,21 +337,22 @@ function saplingSquare(c, bi) {
   return null;
 }
 /* Usar numa muda: faz crescer. Com Shift, a versão grande (carvalho grande, bétula alta, pinheiro, cogumelo alto…). Devolve true se tratou. */
-function growAt(c, big) {
+/* Faz a árvore crescer a partir da muda em c, gravando com editSet (sem abrir passo de histórico nem avisar).
+   Devolve null se o bloco não é muda; senão { kind, sq, n, out } ou { err: 'need2' | 'tall' | 'blocked', ... }. */
+function treeGrow(c, big) {
   var v = gget(c[0], c[1], c[2]), bi = cellBlock(v), b = BLOCKS[bi], kind = SAPLINGS[b.java];
-  if (!kind) return false;
-  if (b.java === 'mangrove_propagule' && stateProps(b, cellOri(v)).hanging === 'true') { toast('O propágulo pendurado não cresce: coloque-o no chão para virar um mangue.'); return true; }
+  if (!kind) return null;
+  if (b.java === 'mangrove_propagule' && stateProps(b, cellOri(v)).hanging === 'true') return { err: 'hanging' };
   var sq = (kind === 'spruce' || kind === 'jungle' || kind === 'dark_oak' || kind === 'pale_oak') ? saplingSquare(c, bi) : null;
   var o = sq || c, P = new TreePlan(b.java);
   var r = TREES[kind](P, o[0], o[1], o[2], big, !!sq);
-  if (r === 'need2') { toast(TREE_NAMES[kind] + ' só cresce com 4 mudas em quadrado 2 × 2, como no jogo.'); return true; }
+  if (r === 'need2') return { err: 'need2', kind: kind };
   // o tronco precisa de espaço (as mudas do quadrado contam como livres)
   var top = 0, blocked = null;
   P.trunk.forEach(function (t) { if (t[1] > top) top = t[1]; if (!blocked && inB(t[0], 0, t[2]) && t[1] < SY && !treeFree(t[0], t[1], t[2], b.java, true)) blocked = t; });
-  if (top >= SY) { toast('Falta altura no espaço: esta árvore precisa de ' + (top - o[1] + 1) + ' blocos acima da muda. Aumente a altura em Projeto > Tamanho do espaço.', 6000); return true; }
-  if (blocked) { toast('Sem espaço para a árvore crescer: há um bloco em ' + blocked.join(', ') + ' no caminho do tronco.', 5000); return true; }
+  if (top >= SY) return { err: 'tall', need: top - o[1] + 1 };
+  if (blocked) return { err: 'blocked', at: blocked };
   var n = 0, out = 0;
-  beginBatch('Árvore');
   P.cells.forEach(function (q) {
     if (!inB(q.x, q.y, q.z)) { out++; return; }
     if (!q.t && !treeFree(q.x, q.y, q.z, b.java)) {
@@ -369,7 +370,18 @@ function growAt(c, big) {
   });
   // mudas do quadrado que sobraram (fora do tronco) somem
   if (sq) for (var i = 0; i < 2; i++) for (var k = 0; k < 2; k++) if (cellBlock(gget(sq[0] + i, sq[1], sq[2] + k)) === bi) editSet(sq[0] + i, sq[1], sq[2] + k, 0);
+  return { kind: kind, sq: sq, n: n, out: out };
+}
+function growAt(c, big) {
+  var v = gget(c[0], c[1], c[2]);
+  if (!SAPLINGS[BLOCKS[cellBlock(v)].java]) return false;
+  beginBatch('Árvore');
+  var r = treeGrow(c, big);
   endBatch();
-  toast(TREE_NAMES[kind] + (sq && (kind === 'spruce' || kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + n + ' blocos' + (out ? ' (' + out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
+  if (r.err === 'hanging') toast('O propágulo pendurado não cresce: coloque-o no chão para virar um mangue.');
+  else if (r.err === 'need2') toast(TREE_NAMES[r.kind] + ' só cresce com 4 mudas em quadrado 2 × 2, como no jogo.');
+  else if (r.err === 'tall') toast('Falta altura no espaço: esta árvore precisa de ' + r.need + ' blocos acima da muda. Aumente a altura em Projeto > Tamanho do espaço.', 6000);
+  else if (r.err === 'blocked') toast('Sem espaço para a árvore crescer: há um bloco em ' + r.at.join(', ') + ' no caminho do tronco.', 5000);
+  else toast(TREE_NAMES[r.kind] + (r.sq && (r.kind === 'spruce' || r.kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + r.n + ' blocos' + (r.out ? ' (' + r.out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
   return true;
 }

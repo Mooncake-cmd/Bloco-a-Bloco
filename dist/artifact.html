@@ -268,7 +268,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
@@ -1364,7 +1364,9 @@ function buildChunk(cx, cy, cz) {
       if (ao[0] === ao[1] && ao[0] === ao[2] && ao[0] === ao[3]) {
         // vai para a máscara: bloco, textura de origem, giro, sombra e tipo de malha
         var fk = faceKeys[f] || (faceKeys[f] = new Int32Array(16 * 256));
-        fk[lc[ax] * 256 + lc[oc] * 16 + lc[ob]] = ((bi + 1) << 10) | (src << 6) | (rk << 4) | (ao[0] << 2) | buf;
+        // faces tingidas pelo bioma só se juntam com as do mesmo bioma (bits 22 em diante)
+        var bk = b.tint[src] && BIO_TINT_KIND[b.tint[src]] ? bioAt(x, z) + 1 : 0;
+        fk[lc[ax] * 256 + lc[oc] * 16 + lc[ob]] = (bk << 22) | ((bi + 1) << 10) | (src << 6) | (rk << 4) | (ao[0] << 2) | buf;
       } else emitFace(BUFS[buf], b, f, src, rk, ao, x, y, z, 1, 1);
     }
   }
@@ -1384,7 +1386,7 @@ function buildChunk(cx, cy, cz) {
         for (var r = 0; r < h; r++) for (t = 0; t < w; t++) M[(jy + r) * 16 + ix + t] = 0;
         var pos = [0, 0, 0]; pos[ax2] = d; pos[ob2] = ix; pos[oc2] = jy;
         var aoU = (kk >> 2) & 3;
-        emitFace(BUFS[kk & 3], BLOCKS[(kk >> 10) - 1], f, (kk >> 6) & 15, (kk >> 4) & 3, [aoU, aoU, aoU, aoU], x0 + pos[0], y0 + pos[1], z0 + pos[2], w, h);
+        emitFace(BUFS[kk & 3], BLOCKS[((kk >> 10) & 4095) - 1], f, (kk >> 6) & 15, (kk >> 4) & 3, [aoU, aoU, aoU, aoU], x0 + pos[0], y0 + pos[1], z0 + pos[2], w, h);
       }
     }
   }
@@ -1415,7 +1417,8 @@ function emitFace(T, b, f, src, rk, ao, x, y, z, w, h) {
   var uv = tileUV[tl], ext = [1, 1, 1]; ext[ob] = w; ext[oc] = h;
   var uA = FACE_UAX[f], vA = uA === ob ? oc : ob;
   if (rk & 1) { var tt = uA; uA = vA; vA = tt; }
-  var bi = T.n;
+  var bi = T.n, br = b.tint[src] ? bioTintRatio(b.tint[src], x, z) : null; // cor da grama e das folhas pelo bioma (src/biome.js)
+  if (br) col = [col[0] * br[0], col[1] * br[1], col[2] * br[2]];
   for (var q = 0; q < 4; q++) {
     var p = F.v[q], l = F.s * AO_L[ao[q]] / 255;
     T.p.push(x + p[0] * ext[0], y + p[1] * ext[1], z + p[2] * ext[2]);
@@ -2821,7 +2824,7 @@ function fluidGeom(b, s, x, y, z) {
 }
 function emitShape(b, s, x, y, z, O, C, G) {
   var o = fullProps(b, s, x, y, z), g = b.java === 'water' || b.java === 'lava' ? fluidGeom(b, s, x, y, z) : shapeGeom(b, o);
-  var T = b.kind === 1 ? G : C, tintC = b.java === 'redstone_wire' ? wireTint(+o.power || 0) : b.shape.tint;
+  var T = b.kind === 1 ? G : C, tintC = b.java === 'redstone_wire' ? wireTint(+o.power || 0) : bioTint(b.shape.tint, x, z) || b.shape.tint; // capim, cipó e água pelo bioma (src/biome.js)
   var tr = (tintC >> 16 & 255) / 255, tg = (tintC >> 8 & 255) / 255, tb = (tintC & 255) / 255;
   for (var i = 0; i < g.length; i++) {
     var q = g[i];
@@ -3758,21 +3761,22 @@ function saplingSquare(c, bi) {
   return null;
 }
 /* Usar numa muda: faz crescer. Com Shift, a versão grande (carvalho grande, bétula alta, pinheiro, cogumelo alto…). Devolve true se tratou. */
-function growAt(c, big) {
+/* Faz a árvore crescer a partir da muda em c, gravando com editSet (sem abrir passo de histórico nem avisar).
+   Devolve null se o bloco não é muda; senão { kind, sq, n, out } ou { err: 'need2' | 'tall' | 'blocked', ... }. */
+function treeGrow(c, big) {
   var v = gget(c[0], c[1], c[2]), bi = cellBlock(v), b = BLOCKS[bi], kind = SAPLINGS[b.java];
-  if (!kind) return false;
-  if (b.java === 'mangrove_propagule' && stateProps(b, cellOri(v)).hanging === 'true') { toast('O propágulo pendurado não cresce: coloque-o no chão para virar um mangue.'); return true; }
+  if (!kind) return null;
+  if (b.java === 'mangrove_propagule' && stateProps(b, cellOri(v)).hanging === 'true') return { err: 'hanging' };
   var sq = (kind === 'spruce' || kind === 'jungle' || kind === 'dark_oak' || kind === 'pale_oak') ? saplingSquare(c, bi) : null;
   var o = sq || c, P = new TreePlan(b.java);
   var r = TREES[kind](P, o[0], o[1], o[2], big, !!sq);
-  if (r === 'need2') { toast(TREE_NAMES[kind] + ' só cresce com 4 mudas em quadrado 2 × 2, como no jogo.'); return true; }
+  if (r === 'need2') return { err: 'need2', kind: kind };
   // o tronco precisa de espaço (as mudas do quadrado contam como livres)
   var top = 0, blocked = null;
   P.trunk.forEach(function (t) { if (t[1] > top) top = t[1]; if (!blocked && inB(t[0], 0, t[2]) && t[1] < SY && !treeFree(t[0], t[1], t[2], b.java, true)) blocked = t; });
-  if (top >= SY) { toast('Falta altura no espaço: esta árvore precisa de ' + (top - o[1] + 1) + ' blocos acima da muda. Aumente a altura em Projeto > Tamanho do espaço.', 6000); return true; }
-  if (blocked) { toast('Sem espaço para a árvore crescer: há um bloco em ' + blocked.join(', ') + ' no caminho do tronco.', 5000); return true; }
+  if (top >= SY) return { err: 'tall', need: top - o[1] + 1 };
+  if (blocked) return { err: 'blocked', at: blocked };
   var n = 0, out = 0;
-  beginBatch('Árvore');
   P.cells.forEach(function (q) {
     if (!inB(q.x, q.y, q.z)) { out++; return; }
     if (!q.t && !treeFree(q.x, q.y, q.z, b.java)) {
@@ -3790,8 +3794,19 @@ function growAt(c, big) {
   });
   // mudas do quadrado que sobraram (fora do tronco) somem
   if (sq) for (var i = 0; i < 2; i++) for (var k = 0; k < 2; k++) if (cellBlock(gget(sq[0] + i, sq[1], sq[2] + k)) === bi) editSet(sq[0] + i, sq[1], sq[2] + k, 0);
+  return { kind: kind, sq: sq, n: n, out: out };
+}
+function growAt(c, big) {
+  var v = gget(c[0], c[1], c[2]);
+  if (!SAPLINGS[BLOCKS[cellBlock(v)].java]) return false;
+  beginBatch('Árvore');
+  var r = treeGrow(c, big);
   endBatch();
-  toast(TREE_NAMES[kind] + (sq && (kind === 'spruce' || kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + n + ' blocos' + (out ? ' (' + out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
+  if (r.err === 'hanging') toast('O propágulo pendurado não cresce: coloque-o no chão para virar um mangue.');
+  else if (r.err === 'need2') toast(TREE_NAMES[r.kind] + ' só cresce com 4 mudas em quadrado 2 × 2, como no jogo.');
+  else if (r.err === 'tall') toast('Falta altura no espaço: esta árvore precisa de ' + r.need + ' blocos acima da muda. Aumente a altura em Projeto > Tamanho do espaço.', 6000);
+  else if (r.err === 'blocked') toast('Sem espaço para a árvore crescer: há um bloco em ' + r.at.join(', ') + ' no caminho do tronco.', 5000);
+  else toast(TREE_NAMES[r.kind] + (r.sq && (r.kind === 'spruce' || r.kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + r.n + ' blocos' + (r.out ? ' (' + r.out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
   return true;
 }
 
@@ -5270,19 +5285,27 @@ function openMixEditor(addJava) {
 var BIOMES = [{"id":20,"n":"extreme_hills_edge","pt":"Borda das colinas","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":285909,"map":7763574,"dim":0,"tags":["animal","monster"]},{"id":192,"n":"cherry_grove","pt":"Bosque de cerejeiras","t":0.3,"d":0.8,"rain":1,"grass":11983713,"foliage":11983713,"water":6141935,"map":15902406,"dim":0,"tags":["mountains","monster"]},{"id":185,"n":"grove","pt":"Bosque nevado","t":-0.2,"d":0.8,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["mountains","cold","monster"]},{"id":14,"n":"mushroom_island","pt":"Campos de cogumelos","t":0.9,"d":1,"rain":1,"grass":5622335,"foliage":2865935,"water":9079191,"map":16711935,"dim":0,"tags":[]},{"id":194,"n":"sulfur_caves","pt":"Cavernas de enxofre","t":0.8,"d":0.4,"rain":1,"grass":11249231,"foliage":7842607,"water":3456905,"map":12890160,"dim":0,"tags":["caves","monster"]},{"id":188,"n":"dripstone_caves","pt":"Cavernas de espeleotemas","t":0.2,"d":0,"rain":0,"grass":9221257,"foliage":7381612,"water":4501493,"map":8152656,"dim":0,"tags":["caves","monster"]},{"id":187,"n":"lush_caves","pt":"Cavernas exuberantes","t":0.9,"d":0,"rain":0,"grass":12105051,"foliage":10921010,"water":4501493,"map":6987306,"dim":0,"tags":["caves","lush_caves","monster"]},{"id":18,"n":"forest_hills","pt":"Colinas da floresta","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":355281,"map":1080367,"dim":0,"tags":["animal","hills","monster","forest"]},{"id":28,"n":"birch_forest_hills","pt":"Colinas da floresta de bétulas","t":0.6,"d":0.6,"rain":1,"grass":8960615,"foliage":7055681,"water":685252,"map":4230230,"dim":0,"tags":["animal","forest","hills","monster"]},{"id":22,"n":"jungle_hills","pt":"Colinas da selva","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1810136,"map":6788116,"dim":0,"tags":["animal","hills","jungle","monster"]},{"id":49,"n":"bamboo_jungle_hills","pt":"Colinas da selva de bambu","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1810136,"map":9349408,"dim":0,"tags":["animal","hills","jungle","monster"]},{"id":19,"n":"taiga_hills","pt":"Colinas da taiga","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":2319747,"map":1473646,"dim":0,"tags":["animal","forest","hills","monster","taiga"]},{"id":33,"n":"mega_taiga_hills","pt":"Colinas da taiga antiga","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":2646904,"map":7240805,"dim":0,"tags":["animal","forest","hills","monster","taiga"]},{"id":31,"n":"cold_taiga_hills","pt":"Colinas da taiga nevada","t":-0.5,"d":0.4,"rain":2,"grass":8434838,"foliage":6332795,"water":2382712,"map":4286813,"dim":0,"tags":["animal","cold","forest","hills","monster","taiga"]},{"id":161,"n":"redwood_taiga_hills_mutated","pt":"Colinas de abetos antigos","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":4501493,"map":7240805,"dim":0,"tags":["animal","forest","hills","monster","taiga"]},{"id":156,"n":"birch_forest_hills_mutated","pt":"Colinas de bétulas altas","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":4501493,"map":4230230,"dim":0,"tags":["animal","forest","hills","monster"]},{"id":131,"n":"extreme_hills_mutated","pt":"Colinas de cascalho","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":943019,"map":7763574,"dim":0,"tags":["animal","monster"]},{"id":17,"n":"desert_hills","pt":"Colinas do deserto","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":1735329,"map":16756773,"dim":0,"tags":["desert","hills","monster"]},{"id":3,"n":"extreme_hills","pt":"Colinas varridas pelo vento","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":31735,"map":7763574,"dim":0,"tags":["animal","monster"]},{"id":25,"n":"stone_beach","pt":"Costa de pedra","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":878523,"map":10658436,"dim":0,"tags":["beach","monster"]},{"id":181,"n":"basalt_deltas","pt":"Deltas de basalto","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":4159204,"map":4208182,"dim":1,"tags":["nether"]},{"id":2,"n":"desert","pt":"Deserto","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":3319192,"map":16421912,"dim":0,"tags":["desert","monster"]},{"id":130,"n":"desert_mutated","pt":"Deserto (variante)","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":4501493,"map":16756773,"dim":0,"tags":["desert","monster"]},{"id":8,"n":"hell","pt":"Desertos do Nether","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":12532539,"dim":1,"tags":["nether"]},{"id":184,"n":"snowy_slopes","pt":"Encostas nevadas","t":-0.3,"d":0.9,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["frozen","mountains","monster"]},{"id":190,"n":"deep_dark","pt":"Escuridão profunda","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":4501493,"map":793120,"dim":0,"tags":["caves","deep_dark"]},{"id":4,"n":"forest","pt":"Floresta","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":2004978,"map":353825,"dim":0,"tags":["animal","forest","monster"]},{"id":179,"n":"crimson_forest","pt":"Floresta carmesim","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":14485512,"dim":1,"tags":["nether"]},{"id":27,"n":"birch_forest","pt":"Floresta de bétulas","t":0.6,"d":0.6,"rain":1,"grass":8960615,"foliage":7055681,"water":423886,"map":3175492,"dim":0,"tags":["animal","forest","monster"]},{"id":155,"n":"birch_forest_mutated","pt":"Floresta de bétulas altas","t":0.6,"d":0.6,"rain":1,"grass":8960615,"foliage":7055681,"water":4501493,"map":4230230,"dim":0,"tags":["animal","forest","monster"]},{"id":132,"n":"flower_forest","pt":"Floresta de flores","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":2139084,"map":2985545,"dim":0,"tags":["animal","monster"]},{"id":180,"n":"warped_forest","pt":"Floresta distorcida","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":4821115,"dim":1,"tags":["nether"]},{"id":29,"n":"roofed_forest","pt":"Floresta escura","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":3894481,"map":4215066,"dim":0,"tags":["animal","forest","monster"]},{"id":157,"n":"roofed_forest_mutated","pt":"Floresta escura (variante)","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":4501493,"map":5399847,"dim":0,"tags":["animal","forest","monster"]},{"id":195,"n":"dappled_forest","pt":"Floresta salpicada","t":0.6,"d":0.6,"rain":1,"grass":14641191,"foliage":15109680,"water":3625300,"map":15109680,"dim":0,"tags":["animal","monster","forest"]},{"id":34,"n":"extreme_hills_plus_trees","pt":"Floresta varrida pelo vento","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":943019,"map":6588260,"dim":0,"tags":["animal","forest","monster"]},{"id":162,"n":"extreme_hills_plus_trees_mutated","pt":"Floresta varrida pelo vento (variante)","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":943019,"map":6588260,"dim":0,"tags":["animal","forest","monster"]},{"id":193,"n":"pale_garden","pt":"Jardim pálido","t":0.7,"d":0.8,"rain":1,"grass":7832178,"foliage":8883574,"water":7768221,"map":9870476,"dim":0,"tags":["monster"]},{"id":13,"n":"ice_mountains","pt":"Montanhas de gelo","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":1136295,"map":15790320,"dim":0,"tags":["frozen"]},{"id":9,"n":"the_end","pt":"O End","t":0.5,"d":0.5,"rain":0,"grass":9287793,"foliage":7448398,"water":6443678,"map":8421631,"dim":2,"tags":["the_end"]},{"id":0,"n":"ocean","pt":"Oceano","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":1542100,"map":112,"dim":0,"tags":["monster","ocean"]},{"id":46,"n":"frozen_ocean","pt":"Oceano congelado","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":2453685,"map":9474240,"dim":0,"tags":["frozen","monster","ocean"]},{"id":10,"n":"legacy_frozen_ocean","pt":"Oceano congelado (antigo)","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":9474240,"dim":0,"tags":["frozen","ocean"]},{"id":47,"n":"deep_frozen_ocean","pt":"Oceano congelado profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":2453685,"map":9474240,"dim":0,"tags":["deep","frozen","monster","ocean"]},{"id":44,"n":"cold_ocean","pt":"Oceano frio","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":2130121,"map":2130112,"dim":0,"tags":["cold","monster","ocean"]},{"id":45,"n":"deep_cold_ocean","pt":"Oceano frio profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":2130121,"map":2105456,"dim":0,"tags":["cold","deep","monster","ocean"]},{"id":42,"n":"lukewarm_ocean","pt":"Oceano morno","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":890587,"map":28864,"dim":0,"tags":["monster","ocean"]},{"id":43,"n":"deep_lukewarm_ocean","pt":"Oceano morno profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":890587,"map":19072,"dim":0,"tags":["deep","monster","ocean"]},{"id":24,"n":"deep_ocean","pt":"Oceano profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":1542100,"map":48,"dim":0,"tags":["deep","monster","ocean"]},{"id":40,"n":"warm_ocean","pt":"Oceano quente","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":176357,"map":41136,"dim":0,"tags":["monster","ocean"]},{"id":41,"n":"deep_warm_ocean","pt":"Oceano quente profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":176357,"map":20592,"dim":0,"tags":["deep","monster","ocean"]},{"id":6,"n":"swampland","pt":"Pântano","t":0.8,"d":0.9,"rain":1,"grass":5011004,"foliage":6975545,"water":6388580,"map":499826,"dim":0,"tags":["animal","monster","swamp"]},{"id":134,"n":"swampland_mutated","pt":"Pântano (variante)","t":0.8,"d":0.5,"rain":1,"grass":5011004,"foliage":6975545,"water":6388580,"map":1228170,"dim":0,"tags":["animal","monster","swamp"]},{"id":191,"n":"mangrove_swamp","pt":"Pântano de mangue","t":0.8,"d":0.9,"rain":1,"grass":5011004,"foliage":9285927,"water":3832426,"map":2935950,"dim":0,"tags":["monster"]},{"id":183,"n":"frozen_peaks","pt":"Picos congelados","t":-0.7,"d":0.9,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["mountains","monster","frozen"]},{"id":182,"n":"jagged_peaks","pt":"Picos irregulares","t":-0.7,"d":0.9,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["mountains","monster","frozen"]},{"id":189,"n":"stony_peaks","pt":"Picos rochosos","t":1,"d":0.3,"rain":1,"grass":10141002,"foliage":8563742,"water":4501493,"map":10395294,"dim":0,"tags":["mountains","monster"]},{"id":140,"n":"ice_plains_spikes","pt":"Pináculos de gelo","t":0,"d":1,"rain":2,"grass":8434838,"foliage":6332795,"water":1332635,"map":11853020,"dim":0,"tags":["frozen","monster"]},{"id":36,"n":"savanna_plateau","pt":"Planalto da savana","t":1,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":2461864,"map":14602612,"dim":0,"tags":["animal","monster","savanna"]},{"id":164,"n":"savanna_plateau_mutated","pt":"Planalto da savana (variante)","t":1,"d":0.5,"rain":1,"grass":8635204,"foliage":6599190,"water":4501493,"map":14602612,"dim":0,"tags":["animal","monster","savanna"]},{"id":39,"n":"mesa_plateau","pt":"Planalto das terras áridas","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":5603486,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":167,"n":"mesa_plateau_mutated","pt":"Planalto das terras áridas (variante)","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":4501493,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":1,"n":"plains","pt":"Planície","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":4501493,"map":9286496,"dim":0,"tags":["animal","monster","plains"]},{"id":129,"n":"sunflower_plains","pt":"Planície de girassóis","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":4501493,"map":11918216,"dim":0,"tags":["animal","monster","plains"]},{"id":12,"n":"ice_plains","pt":"Planície nevada","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":1332635,"map":15790320,"dim":0,"tags":["frozen"]},{"id":186,"n":"meadow","pt":"Prado","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":4501493,"map":8633197,"dim":0,"tags":["mountains","monster"]},{"id":16,"n":"beach","pt":"Praia","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":1408171,"map":16440917,"dim":0,"tags":["beach","monster"]},{"id":15,"n":"mushroom_island_shore","pt":"Praia dos cogumelos","t":0.9,"d":1,"rain":1,"grass":5622335,"foliage":2865935,"water":8487315,"map":16440917,"dim":0,"tags":[]},{"id":26,"n":"cold_beach","pt":"Praia nevada","t":0.05,"d":0.3,"rain":2,"grass":8565907,"foliage":6595192,"water":1336229,"map":16445632,"dim":0,"tags":["beach","cold","monster"]},{"id":7,"n":"river","pt":"Rio","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":34047,"map":3170559,"dim":0,"tags":["river"]},{"id":11,"n":"frozen_river","pt":"Rio congelado","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":1594256,"map":10526975,"dim":0,"tags":["frozen","river"]},{"id":35,"n":"savanna","pt":"Savana","t":1.2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":2919324,"map":12431967,"dim":0,"tags":["animal","monster","savanna"]},{"id":163,"n":"savanna_mutated","pt":"Savana varrida pelo vento","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":2461864,"map":14602612,"dim":0,"tags":["animal","monster","savanna"]},{"id":21,"n":"jungle","pt":"Selva","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1352389,"map":5470985,"dim":0,"tags":["animal","jungle","monster"]},{"id":149,"n":"jungle_mutated","pt":"Selva (variante)","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1810136,"map":6788116,"dim":0,"tags":["animal","jungle","monster"]},{"id":48,"n":"bamboo_jungle","pt":"Selva de bambu","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1352389,"map":7769620,"dim":0,"tags":["animal","jungle","monster"]},{"id":23,"n":"jungle_edge","pt":"Selva esparsa","t":0.95,"d":0.8,"rain":1,"grass":6604863,"foliage":4110351,"water":887523,"map":7906852,"dim":0,"tags":["animal","jungle","monster"]},{"id":151,"n":"jungle_edge_mutated","pt":"Selva esparsa (variante)","t":0.95,"d":0.8,"rain":1,"grass":6604863,"foliage":4110351,"water":4501493,"map":7906852,"dim":0,"tags":["animal","jungle","monster"]},{"id":5,"n":"taiga","pt":"Taiga","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":2650242,"map":747097,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":133,"n":"taiga_mutated","pt":"Taiga (variante)","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":1993602,"map":1473646,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":160,"n":"redwood_taiga_mutated","pt":"Taiga de abetos antigos","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":4501493,"map":7240805,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":32,"n":"mega_taiga","pt":"Taiga de pinheiros antigos","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":2977143,"map":5858897,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":30,"n":"cold_taiga","pt":"Taiga nevada","t":-0.5,"d":0.4,"rain":2,"grass":8434838,"foliage":6332795,"water":2121347,"map":3233098,"dim":0,"tags":["animal","cold","forest","monster","taiga"]},{"id":158,"n":"cold_taiga_mutated","pt":"Taiga nevada (variante)","t":-0.5,"d":0.4,"rain":2,"grass":8434838,"foliage":6332795,"water":2121347,"map":4286813,"dim":0,"tags":["animal","cold","forest","monster","taiga"]},{"id":37,"n":"mesa","pt":"Terras áridas (mesa)","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":5144449,"map":14238997,"dim":0,"tags":["animal","mesa","monster"]},{"id":38,"n":"mesa_plateau_stone","pt":"Terras áridas com árvores","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":5603486,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":166,"n":"mesa_plateau_stone_mutated","pt":"Terras áridas com árvores (variante)","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":4501493,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":165,"n":"mesa_bryce","pt":"Terras áridas erodidas","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":4816793,"map":14238997,"dim":0,"tags":["animal","mesa","monster"]},{"id":178,"n":"soulsand_valley","pt":"Vale das almas","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":6174768,"dim":1,"tags":["nether"]}];
 var BIO_BY_ID = {}; BIOMES.forEach(function (b) { BIO_BY_ID[b.id] = b; });
 var bioPaint = new Map(), bioOrig = new Map(), bioVer = 0, bioSaveFlag = false;
-var bio = { id: 12, r: 4, sq: false, erase: false, show: false };
+var bio = { id: 12, r: 4, sq: false, erase: false, show: false, terra: true };
 try { var bio0 = JSON.parse(localStorage.getItem('bloco-a-bloco-bioma') || 'null'); if (bio0) bio = Object.assign(bio, bio0); } catch (e) {}
 function bioPrefs() { try { localStorage.setItem('bloco-a-bloco-bioma', JSON.stringify(bio)); } catch (e) {} }
 function bioKey(cx, cz) { return cx + ',' + cz; }
 function bioCol(map, x, z) { var a = map.get(bioKey(x >> 4, z >> 4)); return a ? a[((z & 15) << 4) | (x & 15)] : 255; }
 function bioPainted(x, z) { var v = bioCol(bioPaint, x, z); return v === 255 ? -1 : v; }
-function bioAt(x, z) { var v = bioCol(bioPaint, x, z); if (v === 255) v = bioCol(bioOrig, x, z); return v === 255 ? -1 : v; }
+function bioAt(x, z) { if (!bioPaint.size && !bioOrig.size) return -1; var v = bioCol(bioPaint, x, z); if (v === 255) v = bioCol(bioOrig, x, z); return v === 255 ? -1 : v; }
 function bioReset() { bioPaint.clear(); bioOrig.clear(); bioVer++; bioSaveFlag = true; }
+/* Cor da grama, das folhas e da água pelo bioma da coluna: as texturas tingidas (com a cor padrão do pacote) são
+   multiplicadas pela razão cor do bioma / cor padrão; as formas (capim, cipó, água) recebem a cor do bioma direto.
+   0 = coluna sem bioma ou cor que não depende do bioma (folhas de abeto e de bétula, por exemplo). */
+var BIO_TINT_KIND = { 9551193: 'grass', 7842607: 'foliage', 4159204: 'water' };
+function bioTint(def, x, z) { var k = BIO_TINT_KIND[def]; if (!k) return 0; var id = bioAt(x, z); if (id < 0) return 0; var e = BIO_BY_ID[id]; return e ? e[k] : 0; }
+function bioTintRatio(def, x, z) { var c = bioTint(def, x, z); if (!c || c === def) return null; return [(c >> 16 & 255) / (def >> 16 & 255), (c >> 8 & 255) / (def >> 8 & 255), (c & 255) / (def & 255)]; }
+/* Coluna mudou de bioma: refaz a malha dos pedaços dela (a cor muda) */
+function bioRemesh(x, z) { var cx = x >> 4, cz = z >> 4; for (var cy = 0; cy * 16 < SY; cy++) if (W.has(ckey(cx, cy, cz))) dirty.add(cx + ',' + cy + ',' + cz); }
 /* Grava sem histórico (o histórico chama isto ao desfazer e refazer) */
 function bioSetRaw(x, z, id) {
   var k = bioKey(x >> 4, z >> 4), a = bioPaint.get(k), o = ((z & 15) << 4) | (x & 15);
   if (!a) { if (id < 0) return; a = new Uint8Array(256).fill(255); bioPaint.set(k, a); }
-  a[o] = id < 0 ? 255 : id; bioVer++; bioSaveFlag = true;
+  a[o] = id < 0 ? 255 : id; bioVer++; bioSaveFlag = true; bioRemesh(x, z);
   if (wio && wio.area) wio.bioEdited.add(k);
   if (id < 0 && a.every(function (v) { return v === 255; })) bioPaint.delete(k);
 }
@@ -5307,9 +5330,10 @@ function bioColumns(c, fn) {
 function bioTarget(t) { return t && (t.hit || t.place); }
 function bioApply(t) {
   var c = bioTarget(t); if (!c) return 0;
-  var n = 0, id = bio.erase ? -1 : bio.id;
-  bioColumns(c, function (x, z) { if (bioSet(x, z, id)) n++; });
+  var n = 0, id = bio.erase ? -1 : bio.id, cols = [];
+  bioColumns(c, function (x, z) { if (bioSet(x, z, id)) { n++; cols.push(x, z); } });
   if (stroke) stroke.n = (stroke.n || 0) + n;
+  if (id >= 0 && bio.terra && cols.length) bioTerra(cols, id, stroke);
   if (n) bioChanged();
   return n;
 }
@@ -5322,17 +5346,146 @@ function bioStart(t, shift) {
   stroke = { mode: 'biome', cells: new Set(), n: 0 }; beginBatch('Pincel de bioma'); bioApply(t); stroke.last = c.join(); stroke.on = true;
 }
 function bioDrag(t) { var c = bioTarget(t); if (!c || c.join() === stroke.last) return; bioApply(t); stroke.last = c.join(); }
-function bioEnd(sm) { if (sm.n) toast(sm.n.toLocaleString('pt-BR') + ' colunas ' + (bio.erase ? 'voltaram ao bioma original' : 'com o bioma ' + BIO_BY_ID[bio.id].pt) + '.'); }
+function bioEnd(sm) { if (sm.n) toast(sm.n.toLocaleString('pt-BR') + ' colunas ' + (bio.erase ? 'voltaram ao bioma original' : 'com o bioma ' + BIO_BY_ID[bio.id].pt) + bioTerraTxt(sm.terra) + '.', 5000); }
 /* Aplicar na seleção (as colunas da área marcada) */
 function bioFillSel() {
   if (!sel) { toast('Marque uma área com Selecionar (V) primeiro.'); return; }
-  var id = bio.erase ? -1 : bio.id, n = 0;
+  var id = bio.erase ? -1 : bio.id, n = 0, cols = [], st = {};
   beginBatch('Bioma na seleção');
-  for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) if (bioSet(x, z, id)) n++;
+  for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) if (bioSet(x, z, id)) { n++; cols.push(x, z); }
+  if (id >= 0 && bio.terra && cols.length) bioTerra(cols, id, st);
   endBatch(); bioChanged();
-  toast(n ? n.toLocaleString('pt-BR') + ' colunas ' + (id < 0 ? 'voltaram ao original.' : 'com o bioma ' + BIO_BY_ID[id].pt + '.') : 'A seleção já estava com esse bioma.');
+  toast(n ? n.toLocaleString('pt-BR') + ' colunas ' + (id < 0 ? 'voltaram ao original' : 'com o bioma ' + BIO_BY_ID[id].pt) + bioTerraTxt(st.terra) + '.' : 'A seleção já estava com esse bioma.', 5000);
 }
 function bioChanged() { bioVer++; requestRender(); updateStatus(); }
+
+/* ---------- Transformar o terreno pelo bioma ---------- */
+/* Com "Transformar o terreno" ligado, cada coluna que muda de bioma ganha o chão, a cobertura e a vegetação do bioma,
+   como o jogo gera: deserto vira areia sobre arenito, com cactos e arbustos secos; a planície nevada ganha neve e a
+   água vira gelo; a selva, árvores da selva e samambaias... Só mexe no "chão natural" (grama, terra, areia, neve,
+   terracota, netherrack...) e nas plantas soltas; construções (tábuas, pedra, tijolos...) e troncos ficam como estão.
+   Tudo entra no mesmo passo do histórico que a pincelada. */
+var BIO_GROUND = /^(grass_block|dirt|coarse_dirt|podzol|mycelium|sand|red_sand|sandstone|red_sandstone|mud|snow_block|powder_snow|rooted_dirt|moss_block|pale_moss_block|gravel|clay|calcite|packed_ice|netherrack|crimson_nylium|warped_nylium|soul_sand|soul_soil|end_stone|terracotta|(white|orange|yellow|brown|red|light_gray)_terracotta)$/;
+var BIO_PLANT = /^(short_grass|tall_grass|fern|large_fern|dead_bush|short_dry_grass|tall_dry_grass|bush|firefly_bush|leaf_litter|snow|sweet_berry_bush|cactus|cactus_flower|bamboo|bamboo_sapling|lily_pad|moss_carpet|pale_moss_carpet|pale_hanging_moss|pink_petals|wildflowers|sunflower|lilac|rose_bush|peony|poppy|dandelion|blue_orchid|allium|azure_bluet|(red|orange|white|pink)_tulip|oxeye_daisy|cornflower|lily_of_the_valley|torchflower|open_eyeblossom|closed_eyeblossom|brown_mushroom|red_mushroom|crimson_roots|warped_roots|nether_sprouts|crimson_fungus|warped_fungus|twisting_vines|weeping_vines|sugar_cane|melon|pumpkin)$/;
+var BIO_FLOWERS = ['poppy', 'dandelion', 'allium', 'azure_bluet', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip', 'oxeye_daisy', 'cornflower', 'lily_of_the_valley'];
+var MESA_BANDS = ['terracotta', 'orange_terracotta', 'terracotta', 'yellow_terracotta', 'brown_terracotta', 'terracotta', 'red_terracotta', 'white_terracotta', 'orange_terracotta', 'light_gray_terracotta', 'terracotta', 'red_terracotta', 'orange_terracotta', 'terracotta', 'yellow_terracotta', 'white_terracotta'];
+/* Receita de cada bioma: camadas do chão (de cima para baixo; função = escolha por coluna), neve, gelo na água,
+   árvores [muda, chance por coluna, 2 × 2], plantas [bloco, chance] e enfeites especiais */
+function bioRecipe(b) {
+  var n = b.n, G = ['grass_block', 'dirt', 'dirt'], snow = b.rain === 2, R;
+  var grass = function (p) { return [['short_grass', p]]; };
+  if (/lush_caves|dripstone|deep_dark|sulfur_caves/.test(n)) return null; // biomas de caverna: só o bioma
+  if (n === 'desert' || n === 'desert_hills' || n === 'desert_mutated') R = { layers: ['sand', 'sand', 'sand', 'sandstone', 'sandstone'], plants: [['dead_bush', 0.012]], cactus: 0.01 };
+  else if (/^mesa/.test(n)) R = n === 'mesa_plateau_stone' || n === 'mesa_plateau_stone_mutated'
+    ? { layers: [function () { return Math.random() < 0.5 ? 'coarse_dirt' : 'grass_block'; }, 'dirt', 'mesa'], trees: [['oak_sapling', 0.01]], plants: grass(0.1) }
+    : { layers: ['red_sand', 'mesa', 'mesa', 'mesa', 'mesa', 'mesa', 'mesa', 'mesa'], plants: [['dead_bush', 0.01]], cactus: 0.004 };
+  else if (n === 'beach' || /ocean$/.test(n) && /warm|lukewarm/.test(n)) R = { layers: ['sand', 'sand', 'sand', 'sandstone'] };
+  else if (n === 'cold_beach') R = { layers: ['sand', 'sand', 'sand', 'sandstone'] };
+  else if (n === 'stone_beach') R = { layers: ['stone', 'stone', 'stone'] };
+  else if (n === 'river' || n === 'frozen_river') R = { layers: ['sand', 'sand', 'clay'] };
+  else if (/ocean/.test(n)) R = { layers: ['gravel', 'gravel', 'gravel'] };
+  else if (n === 'mushroom_island' || n === 'mushroom_island_shore') R = { layers: ['mycelium', 'dirt', 'dirt'], plants: [['red_mushroom', 0.012], ['brown_mushroom', 0.012]], trees: [['red_mushroom', 0.003], ['brown_mushroom', 0.003]] };
+  else if (n === 'ice_plains_spikes') R = { layers: ['snow_block', 'snow_block', 'dirt'], spikes: 0.004 };
+  else if (n === 'jagged_peaks' || n === 'frozen_peaks') R = { layers: [function () { return Math.random() < 0.25 ? 'packed_ice' : 'snow_block'; }, 'snow_block', 'stone'] };
+  else if (n === 'snowy_slopes') R = { layers: [function () { return Math.random() < 0.15 ? 'powder_snow' : 'snow_block'; }, 'snow_block', 'stone'] };
+  else if (n === 'stony_peaks') R = { layers: [function () { return Math.random() < 0.25 ? 'calcite' : 'stone'; }, 'stone', 'stone'] };
+  else if (n === 'extreme_hills_mutated') R = { layers: [function () { return Math.random() < 0.6 ? 'gravel' : 'grass_block'; }, 'dirt', 'stone'], trees: [['spruce_sapling', 0.004]] };
+  else if (/^extreme_hills/.test(n)) R = { layers: G, trees: [['spruce_sapling', /trees/.test(n) ? 0.02 : 0.003], ['oak_sapling', /trees/.test(n) ? 0.01 : 0.002]], plants: grass(0.15) };
+  else if (n === 'swampland' || n === 'swampland_mutated') R = { layers: G, trees: [['oak_sapling', 0.012]], plants: [['blue_orchid', 0.02], ['short_grass', 0.25]], lily: 0.12 };
+  else if (n === 'mangrove_swamp') R = { layers: ['mud', 'mud', 'mud', 'dirt'], trees: [['mangrove_propagule', 0.03]], lily: 0.08 };
+  else if (n === 'flower_forest') R = { layers: G, trees: [['oak_sapling', 0.02], ['birch_sapling', 0.008]], plants: [['flowers', 0.3], ['short_grass', 0.1]] };
+  else if (/^birch_forest/.test(n)) R = { layers: G, trees: [['birch_sapling', 0.05]], plants: [['short_grass', 0.2], ['flowers', 0.02]] };
+  else if (/^roofed_forest/.test(n)) R = { layers: G, trees: [['dark_oak_sapling', 0.04, 1], ['oak_sapling', 0.01]], plants: [['short_grass', 0.1], ['red_mushroom', 0.01], ['brown_mushroom', 0.01]] };
+  else if (n === 'pale_garden') R = { layers: G, trees: [['pale_oak_sapling', 0.035, 1]], plants: [['pale_moss_carpet', 0.15], ['short_grass', 0.05]] };
+  else if (/^forest|^dappled_forest/.test(n)) R = { layers: G, trees: [['oak_sapling', 0.04], ['birch_sapling', 0.01]], plants: [['short_grass', 0.2], ['flowers', 0.02], ['leaf_litter', n === 'dappled_forest' ? 0.08 : 0]] };
+  else if (/^mega_taiga|^redwood_taiga/.test(n)) R = { layers: [function () { var r = Math.random(); return r < 0.5 ? 'podzol' : r < 0.75 ? 'coarse_dirt' : 'grass_block'; }, 'dirt', 'dirt'], trees: [['spruce_sapling', 0.02, 1], ['spruce_sapling', 0.02]], plants: [['fern', 0.15], ['sweet_berry_bush', 0.01], ['brown_mushroom', 0.005]] };
+  else if (/taiga/.test(n)) R = { layers: G, trees: [['spruce_sapling', 0.05]], plants: [['fern', 0.15], ['short_grass', 0.1], ['sweet_berry_bush', 0.008]] };
+  else if (n === 'grove') R = { layers: G, trees: [['spruce_sapling', 0.035]] };
+  else if (n === 'bamboo_jungle' || n === 'bamboo_jungle_hills') R = { layers: [function () { return Math.random() < 0.4 ? 'podzol' : 'grass_block'; }, 'dirt', 'dirt'], trees: [['jungle_sapling', 0.015]], bamboo: 0.15, plants: [['fern', 0.15]] };
+  else if (/^jungle_edge/.test(n)) R = { layers: G, trees: [['jungle_sapling', 0.015], ['oak_sapling', 0.008]], plants: [['fern', 0.15], ['short_grass', 0.2]] };
+  else if (/^jungle/.test(n)) R = { layers: G, trees: [['jungle_sapling', 0.01, 1], ['jungle_sapling', 0.05], ['oak_sapling', 0.01]], plants: [['fern', 0.2], ['short_grass', 0.2], ['melon', 0.003]] };
+  else if (/^savanna/.test(n)) R = { layers: G, trees: [['acacia_sapling', 0.008], ['oak_sapling', 0.002]], plants: [['short_grass', 0.4]] };
+  else if (n === 'cherry_grove') R = { layers: G, trees: [['cherry_sapling', 0.02]], plants: [['pink_petals', 0.15], ['short_grass', 0.15]] };
+  else if (n === 'meadow') R = { layers: G, trees: [['oak_sapling', 0.001]], plants: [['short_grass', 0.4], ['flowers', 0.15]] };
+  else if (n === 'sunflower_plains' || n === 'plains') R = { layers: G, trees: [['oak_sapling', 0.002]], plants: [['short_grass', 0.3], ['flowers', n === 'plains' ? 0.02 : 0.06], ['pumpkin', 0.0005]] };
+  else if (n === 'ice_plains' || n === 'ice_mountains') R = { layers: G, trees: [['spruce_sapling', 0.004]] };
+  else if (n === 'hell') R = { layers: ['netherrack', 'netherrack', 'netherrack'] };
+  else if (n === 'crimson_forest') R = { layers: ['crimson_nylium', 'netherrack', 'netherrack'], trees: [['crimson_fungus', 0.02]], plants: [['crimson_roots', 0.15], ['crimson_fungus', 0.02]] };
+  else if (n === 'warped_forest') R = { layers: ['warped_nylium', 'netherrack', 'netherrack'], trees: [['warped_fungus', 0.02]], plants: [['warped_roots', 0.15], ['warped_fungus', 0.02], ['nether_sprouts', 0.05]] };
+  else if (n === 'soulsand_valley') R = { layers: [function () { return Math.random() < 0.5 ? 'soul_sand' : 'soul_soil'; }, 'soul_soil', 'netherrack'] };
+  else if (n === 'basalt_deltas') R = { layers: [function () { var r = Math.random(); return r < 0.5 ? 'basalt' : r < 0.95 ? 'blackstone' : 'magma_block'; }, 'basalt', 'netherrack'] };
+  else if (n === 'the_end') R = { layers: ['end_stone', 'end_stone', 'end_stone'] };
+  else R = { layers: G, plants: grass(0.2) };
+  R.snow = snow && !/peaks|slopes|spikes/.test(n); R.ice = snow;
+  return R;
+}
+var bioRecipeCache = {};
+function bioCell(nm, y) { return cellFromName(nm === 'mesa' ? MESA_BANDS[((y % 16) + 16) % 16] : nm === 'flowers' ? BIO_FLOWERS[Math.floor(Math.random() * BIO_FLOWERS.length)] : nm); }
+function bioJ(v) { return v ? BLOCKS[cellBlock(v)].java : ''; }
+function bioFreeAt(x, y, z) { if (x < 0 || z < 0 || x >= SX || z >= SZ || y >= SY) return false; var v = gget(x, y, z); return !v || BIO_PLANT.test(bioJ(v)); }
+/* cols = [x0, z0, x1, z1, ...]; st recebe as contagens (st.terra) */
+function bioTerra(cols, id, st) {
+  var b = BIO_BY_ID[id]; if (!b) return;
+  var R = bioRecipeCache[id] || (bioRecipeCache[id] = bioRecipe(b) || 0); if (!R) return;
+  var T = st.terra || (st.terra = { chao: 0, arvores: 0, plantas: 0, neve: 0, gelo: 0, cactos: 0 });
+  var top0 = Math.min(SY - 1, layerMax()), saved = symBusy, grow = [];
+  symBusy = true; // a simetria não espelha o terreno (o bioma não é espelhado)
+  try {
+    for (var i = 0; i < cols.length; i += 2) {
+      var x = cols[i], z = cols[i + 1], y, v, j, leaves = false, plants = [];
+      for (y = top0; y >= 0; y--) {
+        v = gget(x, y, z); if (!v) continue; j = bioJ(v);
+        if (BIO_PLANT.test(j)) { plants.push(y); continue; }
+        if (/leaves$/.test(j)) { leaves = true; continue; }
+        break;
+      }
+      if (y < 0) continue;
+      var water = j === 'water';
+      if (!water && !BIO_GROUND.test(j)) continue; // construção, tronco, pedra: não mexe
+      plants.forEach(function (py) { editSet(x, py, z, 0); });
+      if (water) {
+        if (R.ice) { editSet(x, y, z, cellFromName('ice')); T.gelo++; }
+        else if (R.lily && Math.random() < R.lily && bioFreeAt(x, y + 1, z)) { editSet(x, y + 1, z, cellFromName('lily_pad')); T.plantas++; }
+        continue;
+      }
+      for (var k = 0; k < R.layers.length && y - k >= 0; k++) {
+        var cv = gget(x, y - k, z); if (!BIO_GROUND.test(bioJ(cv))) break;
+        var L = R.layers[k], nv = bioCell(typeof L === 'function' ? L() : L, y - k);
+        if (nv && nv !== cv) { editSet(x, y - k, z, nv); T.chao++; }
+      }
+      if (leaves || y + 1 > top0 || !bioFreeAt(x, y + 1, z)) continue;
+      var r = Math.random(), acc = 0, done = false;
+      (R.trees || []).forEach(function (t) { if (done) return; acc += t[1]; if (r < acc) { grow.push([x, y + 1, z, t[0], t[2]]); done = true; } });
+      if (done) continue;
+      if (R.cactus) { acc += R.cactus; if (r < acc) { if (bioFreeAt(x + 1, y + 1, z) && bioFreeAt(x - 1, y + 1, z) && bioFreeAt(x, y + 1, z + 1) && bioFreeAt(x, y + 1, z - 1)) { var hc = 1 + Math.floor(Math.random() * 3); for (k = 1; k <= hc && y + k <= top0; k++) editSet(x, y + k, z, cellFromName('cactus')); T.cactos++; } continue; } }
+      if (R.bamboo) { acc += R.bamboo; if (r < acc) { var hb = 4 + Math.floor(Math.random() * 8); for (k = 1; k <= hb && y + k <= top0 && bioFreeAt(x, y + k, z); k++) editSet(x, y + k, z, cellFromName('bamboo')); T.plantas++; continue; } }
+      if (R.spikes) { acc += R.spikes; if (r < acc) { var hs = 4 + Math.floor(Math.random() * 10); for (k = 1; k <= hs && y + k <= top0; k++) editSet(x, y + k, z, cellFromName('packed_ice')); T.gelo++; continue; } }
+      (R.plants || []).forEach(function (p) { if (done || !p[1]) return; acc += p[1]; if (r < acc) { var pv = bioCell(p[0], y + 1); if (pv) { editSet(x, y + 1, z, pv); T.plantas++; } done = true; } });
+      if (!done && R.snow) { editSet(x, y + 1, z, cellFromName('snow')); T.neve++; }
+    }
+    // árvores depois do chão, para o tronco nascer na terra já trocada; 2 × 2 = quatro mudas em quadrado
+    grow.forEach(function (g) {
+      var x = g[0], y = g[1], z = g[2], sv = cellFromName(g[3]), pts = g[4] ? [[0, 0], [1, 0], [0, 1], [1, 1]] : [[0, 0]];
+      if (!sv) return;
+      for (var q = 0; q < pts.length; q++) { var px = x + pts[q][0], pz = z + pts[q][1]; if (!bioFreeAt(px, y, pz) || !BIO_GROUND.test(bioJ(gget(px, y - 1, pz)))) return; }
+      pts.forEach(function (q) { editSet(x + q[0], y, z + q[1], sv); });
+      var res = treeGrow([x, y, z], false);
+      if (!res || res.err) pts.forEach(function (q) { if (gget(x + q[0], y, z + q[1]) === sv) editSet(x + q[0], y, z + q[1], 0); });
+      else T.arvores++;
+    });
+  } finally { symBusy = saved; }
+}
+function bioTerraTxt(T) {
+  if (!T) return '';
+  var p = [];
+  if (T.chao) p.push(T.chao.toLocaleString('pt-BR') + ' blocos de chão trocados');
+  if (T.arvores) p.push(T.arvores + (T.arvores > 1 ? ' árvores' : ' árvore'));
+  if (T.cactos) p.push(T.cactos + (T.cactos > 1 ? ' cactos' : ' cacto'));
+  if (T.plantas) p.push(T.plantas + ' plantas');
+  if (T.neve) p.push(T.neve + ' camadas de neve');
+  if (T.gelo) p.push(T.gelo + ' de gelo');
+  return p.length ? ' (' + p.join(', ') + ')' : '';
+}
 
 /* ---------- Aviso do canto ---------- */
 function bioClimate(b) { return (b.rain === 2 ? 'neva' : b.rain === 1 ? 'chove' : 'sem chuva') + ', temperatura ' + String(b.t).replace('.', ','); }
@@ -5355,6 +5508,8 @@ function updateBioChip() {
   $('bioR').textContent = bio.r;
   c.querySelectorAll('[data-bs]').forEach(function (x) { x.setAttribute('aria-pressed', String((x.getAttribute('data-bs') === 'sq') === bio.sq)); });
   $('bioErase').setAttribute('aria-pressed', String(bio.erase));
+  $('bioTerra').setAttribute('aria-pressed', String(bio.terra));
+  $('bioPlates').setAttribute('aria-pressed', String(bio.show));
   $('bioFill').disabled = !sel;
 }
 function setBioR(r) { bio.r = Math.max(0, Math.min(32, r)); bioPrefs(); updateBioChip(); updatePreview(); }
@@ -5364,11 +5519,14 @@ $('bioChip').addEventListener('click', function (e) {
   else if (b.id === 'bioMinus') return setBioR(bio.r - 1);
   else if (b.id === 'bioPlus') return setBioR(bio.r + 1);
   else if (b.id === 'bioErase') bio.erase = !bio.erase;
+  else if (b.id === 'bioTerra') { bio.terra = !bio.terra; toast(bio.terra ? 'Transformar o terreno: ligado. Ao pintar, o chão, as plantas, a neve e as árvores mudam conforme o bioma.' : 'Transformar o terreno: desligado. O pincel troca só o bioma (e a cor da grama).', 5000); }
   else if (b.id === 'bioFill') return bioFillSel();
+  else if (b.id === 'bioPlates') return bioToggleShow();
   bioPrefs(); updateBioChip(); updatePreview();
 });
 $('bioSel').addEventListener('change', function (e) { bio.id = +e.target.value; bio.erase = false; e.target.dataset.v = String(bio.id); bioPrefs(); updateBioChip(); });
-$('bioShow').addEventListener('click', function () { bio.show = !bio.show; bioPrefs(); updateBioChip(); requestRender(); $('menu').open = false; toast(bio.show ? 'Biomas à vista: cada coluna com bioma ganha uma placa colorida em cima (Y, o pincel de bioma, também mostra).' : 'Biomas escondidos (aparecem com o pincel de bioma).', 5000); });
+function bioToggleShow() { bio.show = !bio.show; bioPrefs(); updateBioChip(); requestRender(); toast(bio.show ? 'Placas dos biomas à vista: cada coluna com bioma ganha uma placa colorida em cima.' : 'Placas dos biomas escondidas: a grama, as folhas e a água mostram a cor de cada bioma.', 5000); }
+$('bioShow').addEventListener('click', function () { $('menu').open = false; bioToggleShow(); });
 /* Prévia: o contorno do pincel na altura do alvo */
 function bioPreview(t, accent) {
   var c = bioTarget(t); if (!c) return;
@@ -5392,7 +5550,7 @@ function bioTops(cx, cz) {
 }
 function updateBioView() {
   if (!scene) return;
-  var on = bio.show || tool === 'biome', key = on ? bioVer + '|' + verCounter + '|' + (layerOn ? layerY : -1) : '';
+  var on = bio.show, key = on ? bioVer + '|' + verCounter + '|' + (layerOn ? layerY : -1) : '';
   if (key === bioKeyDrawn) return;
   // as placas acompanham o topo das colunas: refaz no máximo a cada 250 ms enquanto se constrói
   var now = performance.now(); if (key && bioKeyDrawn && now - (updateBioView.t || 0) < 250) { requestRender(); return; }
@@ -5433,7 +5591,7 @@ function bioCount() {
 
 /* ---------- Guardar: projeto (.json) e salvamento automático ---------- */
 function bioRecord() { var o = {}; bioPaint.forEach(function (a, k) { o[k] = b64(a); }); return o; }
-function bioFromRecord(o) { bioPaint.clear(); if (o) Object.keys(o).forEach(function (k) { bioPaint.set(k, unb64(o[k])); }); bioVer++; }
+function bioFromRecord(o) { bioPaint.clear(); if (o) Object.keys(o).forEach(function (k) { bioPaint.set(k, unb64(o[k])); }); bioVer++; dirtyAll(); }
 
 /* ---------- Mundo do jogo: ler e gravar a chave 0x2B (Data3D) ---------- */
 /* Lê os 24 (ou 8 no Nether, 16 no End) armazenamentos de bioma; devolve { hm: Int16Array(256), subs: [Uint8Array(4096) de ids] } */
@@ -5484,6 +5642,7 @@ function bioFromWorld(d3, ecx, ecz) {
     if (s) a[(z << 4) | x] = s[(x << 8) | (z << 4) | (hy & 15)];
   }
   bioOrig.set(bioKey(ecx, ecz), a);
+  for (var cy = 0; cy * 16 < SY; cy++) if (W.has(ckey(ecx, cy, ecz))) dirty.add(ecx + ',' + cy + ',' + ecz);
 }
 /* Grava as colunas pintadas na chave 0x2B dos chunks da área (todas as alturas da coluna) */
 async function bioCommit() {

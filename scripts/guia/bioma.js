@@ -1,4 +1,5 @@
-// Capturas do pincel de bioma para o guia: um terreno com três biomas pintados e a camada colorida ligada, o mapa de um mundo no modo Biomas:
+// Capturas do pincel de bioma para o guia: o mesmo terreno pintado de quatro biomas, só com a cor e com o terreno
+// transformado, e o mapa de um mundo no modo Biomas:
 // node scripts/guia/bioma.js <url do editor> <pacote Bedrock .zip> <pasta de saída> [mundo .mcworld gerado pelo jogo]
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
@@ -13,18 +14,23 @@ const WORLD = process.argv[5] || path.join(__dirname, '../../tests/fixtures/mund
   await p.waitForFunction(() => /blocos com textura/.test(document.getElementById('toast').textContent), null, { timeout: 300000 });
   const ev = s => p.evaluate(x => window.__bab.ev(x), s);
   const hide = async () => { await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(600); };
-  // terreno de grama com um morro e uma casinha; três biomas pintados: planície nevada, pântano e deserto
-  await ev(`(function(){ newWorld(48, 24, 48); var g=cellFromName('grass_block'), d=cellFromName('dirt'), s=cellFromName('stone'), pl=cellFromName('oak_planks'), lg=cellFromName('oak_log'); beginBatch();
-    for (var x=0;x<48;x++) for (var z=0;z<48;z++) { var h = Math.round(7 * Math.exp(-((x-34)*(x-34)+(z-12)*(z-12))/70)); for (var y=0;y<=2+h;y++) editSet(x,y,z, h>3 && y>2+h-2 ? s : y===2+h ? g : d); }
-    for (var x=8;x<15;x++) for (var z=30;z<37;z++) for (var y=3;y<7;y++) if (x===8||x===14||z===30||z===36) editSet(x,y,z, (x===8||x===14)&&(z===30||z===36) ? lg : pl);
-    endBatch();
-    beginBatch('Pincel de bioma');
-    for (var x=0;x<48;x++) for (var z=0;z<48;z++) { var id = x + z < 40 ? 12 : x > z + 6 ? 2 : 6; bioSet(x, z, id); }
-    endBatch();
-    bio.show = true; bio.id = 6; bio.r = 5; setTool('biome'); updateBioChip();
-    Object.assign(cam,{yaw:0.55,pitch:0.68,dist:58,tx:24,ty:3,tz:24}); updateCamera(); requestRender(); })()`);
-  await p.mouse.move(330, 600); await p.waitForTimeout(2500); await hide();
-  await p.screenshot({ path: path.join(OUT, 'bioma.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 800 } });
+  // o mesmo terreno nos quatro quadrantes (grama, capim, papoulas, um lago; uma casa de tábuas num deles), pintado
+  // de deserto, pântano, planície nevada e selva: primeiro só o bioma (a cor muda), depois com "Transformar o terreno"
+  const scene = `(function(){ newWorld(64, 40, 64); var R = (function(){ var s=11; return function(){ s=(s*16807)%2147483647; return s/2147483647; }; })(); Math.random = R; TREE_R = R;
+    var g=cellFromName('grass_block'), d=cellFromName('dirt'), w=cellFromName('water'), sg=cellFromName('short_grass'), po=cellFromName('poppy'), pl=cellFromName('oak_planks'), lg=cellFromName('oak_log'); beginBatch();
+    for (var x=0;x<64;x++) for (var z=0;z<64;z++) { var lx=x%32, lz=z%32, pond=(lx-20)*(lx-20)+(lz-9)*(lz-9) < 14;
+      for (var y=0;y<=3;y++) editSet(x,y,z, y<3 ? d : pond ? w : g);
+      if (pond) editSet(x,2,z,w); else { var r=R(); if (r<0.25) editSet(x,4,z,sg); else if (r<0.29) editSet(x,4,z,po); } }
+    for (var x=6;x<12;x++) for (var z=4;z<10;z++) for (var y=4;y<8;y++) if (x===6||x===11||z===4||z===9||y===7) editSet(x,y,z,(x===6||x===11)&&(z===4||z===9)?lg:pl);
+    endBatch(); bio.show=false; bio.sq=true; bio.r=15; setTool('biome');
+    Object.assign(cam,{yaw:0.6,pitch:0.62,dist:78,tx:32,ty:4,tz:32}); updateCamera(); requestRender(); })()`;
+  const paint = terra => ev(`(function(){ bio.terra=${terra}; [[15,15,2],[15,47,6],[47,15,12],[47,47,21]].forEach(function(e){ bio.id=e[2]; stroke={mode:'biome',cells:new Set(),n:0}; beginBatch('Pincel de bioma'); bioApply({hit:[e[0],3,e[1]]}); endBatch(); stroke=null; }); bio.id=2; bio.r=5; updateBioChip(); })()`);
+  await ev(scene); await paint(false);
+  await p.mouse.move(1270, 790); await p.waitForTimeout(3000); await hide();
+  await p.screenshot({ path: path.join(OUT, 'bioma-cor.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
+  await ev(scene); await paint(true);
+  await p.mouse.move(1270, 790); await p.waitForTimeout(3500); await hide();
+  await p.screenshot({ path: path.join(OUT, 'bioma.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
   // o mapa do mundo de teste no modo Biomas
   await p.click('#menu summary'); await p.click('#worldBtn').catch(() => {});
   await p.setInputFiles('#worldIn', WORLD);

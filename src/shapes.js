@@ -361,7 +361,7 @@ function fluidGeom(b, s, x, y, z) {
 }
 function emitShape(b, s, x, y, z, O, C, G) {
   var o = fullProps(b, s, x, y, z), g = b.java === 'water' || b.java === 'lava' ? fluidGeom(b, s, x, y, z) : shapeGeom(b, o);
-  var T = b.kind === 1 ? G : C, tintC = b.java === 'redstone_wire' ? wireTint(+o.power || 0) : b.shape.tint;
+  var T = b.kind === 1 ? G : C, tintC = b.java === 'redstone_wire' ? wireTint(+o.power || 0) : bioTint(b.shape.tint, x, z) || b.shape.tint; // capim, cipó e água pelo bioma (src/biome.js)
   var tr = (tintC >> 16 & 255) / 255, tg = (tintC >> 8 & 255) / 255, tb = (tintC & 255) / 255;
   for (var i = 0; i < g.length; i++) {
     var q = g[i];

@@ -208,7 +208,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>12</td><td><b>Balde</b></td><td><kbd>F</kbd></td><td>Clique num bloco: enche o espaço fechado ao lado da face clicada, até bater nos blocos (veja abaixo).</td><td>Troca a região ligada do mesmo bloco clicado pelo bloco da hotbar.</td></tr>
       <tr><td>13</td><td><b>Selecionar</b></td><td><kbd>V</kbd></td><td>Dois cliques marcam os cantos opostos de uma área (em blocos ou no vazio). Com a área marcada: mover, copiar, recortar, colar, apagar e substituir (veja abaixo).</td><td>—</td></tr>
       <tr><td>14</td><td><b>Pincel de troca</b></td><td><kbd>M</kbd></td><td>Pinta trocando só um tipo de bloco (a máscara) pelo bloco da hotbar, dentro de uma esfera ou cubo; o resto fica igual (veja abaixo).</td><td>Escolhe a máscara: o bloco clicado.</td></tr>
-      <tr><td>15</td><td><b>Pincel de bioma</b></td><td><kbd>Y</kbd></td><td>Pinta o bioma (planície nevada, pântano, deserto…) nas colunas do chão, em círculo ou quadrado; o bioma vai junto para o mundo exportado (veja abaixo).</td><td>Conta-gotas: pega o bioma da coluna clicada.</td></tr>
+      <tr><td>15</td><td><b>Pincel de bioma</b></td><td><kbd>Y</kbd></td><td>Pinta o bioma (planície nevada, pântano, deserto…) nas colunas do chão, em círculo ou quadrado: a grama ganha a cor do bioma e, com Transformar o terreno, o chão e a vegetação mudam (areia e cactos no deserto, neve, árvores…). O bioma vai junto para o mundo exportado (veja abaixo).</td><td>Conta-gotas: pega o bioma da coluna clicada.</td></tr>
       <tr><td>16</td><td><b>Pincel de mistura</b></td><td><kbd>Q</kbd></td><td>Pinta com vários blocos de uma vez, cada um com uma porcentagem: cada voxel do pincel sorteia o seu (veja abaixo).</td><td>Põe o bloco clicado na mistura.</td></tr>
       <tr><td>17</td><td><b>Esculpir terreno</b></td><td><kbd>K</kbd></td><td>Segure para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave (veja abaixo).</td><td>Troca elevar por afundar (e vice-versa) durante o traço.</td></tr>
       <tr><td>18</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
@@ -290,22 +290,49 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   </ul>
 
   <h3 id="bioma">Pincel de bioma</h3>
-  <p>O bioma decide a cor da grama, das folhas e da água, se chove ou neva e quais criaturas nascem. No site, ele é pintado por coluna (como no jogo, que guarda um bioma para cada x e z em cada altura) e vai junto quando o mundo é exportado: tanto numa área de um mundo do jogo quanto numa construção feita do zero.</p>
-  <figure><img src="img/bioma.jpg" alt="Terreno de grama com um morro e uma casinha, coberto por placas coloridas: cinza-claro da planície nevada, verde do pântano e laranja do deserto, com o aviso do pincel de bioma no canto" width="972" height="800" loading="lazy"><figcaption>Três biomas pintados: planície nevada (cinza-claro), pântano (verde) e deserto (laranja). O aviso do canto mostra o bioma escolhido, se chove ou neva e a temperatura; a barra de status, o bioma da coluna apontada.</figcaption></figure>
+  <p>O bioma decide a cor da grama, das folhas e da água, se chove ou neva e quais criaturas nascem. No site, ele é pintado por coluna (como no jogo, que guarda um bioma para cada x e z em cada altura) e vai junto quando o mundo é exportado: tanto numa área de um mundo do jogo quanto numa construção feita do zero. Ao pintar, o site já mostra a <b>cor do bioma</b> e, com <b>Transformar o terreno</b> ligado, troca o chão e faz nascer a vegetação do bioma.</p>
+  <div class="grid2">
+    <figure><img src="img/bioma-cor.jpg" alt="O mesmo terreno de grama com um lago em cada quadrante, pintado de deserto (grama amarelada), pântano (verde-escuro, água acinzentada), planície nevada (verde-acinzentado, água azul-escura) e selva (verde vivo)" width="972" height="772" loading="lazy"><figcaption>Só o bioma (Transformar o terreno desligado): a grama, o capim e a água ganham a cor de cada bioma, como no jogo. Deserto ao fundo, planície nevada à direita, pântano à esquerda e selva na frente.</figcaption></figure>
+    <figure><img src="img/bioma.jpg" alt="O mesmo terreno com o terreno transformado: deserto de areia com cactos, planície nevada com neve, gelo no lago e abetos, pântano com carvalhos de cipó e selva com árvores grandes; a casa de tábuas continua igual" width="972" height="772" loading="lazy"><figcaption>Com <b>Transformar o terreno</b>: areia e cactos no deserto, neve, gelo e abetos na planície nevada, carvalhos com cipó no pântano e a selva fechada. A casa de tábuas não muda.</figcaption></figure>
+  </div>
   <ol class="steps">
-    <li>Escolha a ferramenta <b>Pincel de bioma</b> (<kbd>Y</kbd>). As colunas com bioma ganham uma placa colorida em cima, com a cor do bioma.</li>
+    <li>Escolha a ferramenta <b>Pincel de bioma</b> (<kbd>Y</kbd>).</li>
     <li>No aviso do canto, escolha o <b>bioma</b> na lista (89 biomas do Bedrock 1.26, em grupos: superfície, água e praia, cavernas, Nether e End), o <b>raio</b> (0 a 32, nos botões − e + ou nas teclas <kbd>-</kbd> e <kbd>+</kbd>) e a forma (<b>Círculo</b> ou <b>Quadrado</b>).</li>
+    <li>Deixe <b>Transformar o terreno</b> ligado (aceso) para o chão e a vegetação mudarem junto, ou desligue para trocar só o bioma (e a cor).</li>
     <li>Clique ou arraste sobre o chão. <b>Apagar</b> tira o bioma pintado (a coluna volta ao bioma original do mundo, ou fica sem bioma). <b>Pintar a seleção</b> pinta de uma vez todas as colunas da área marcada com Selecionar (<kbd>V</kbd>).</li>
   </ol>
   <ul class="plain">
     <li><kbd>Shift</kbd> + clique pega o bioma da coluna clicada (conta-gotas).</li>
     <li>Um traço é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd> (no histórico, “Pincel de bioma”). Os biomas são salvos no projeto (.json) e no navegador.</li>
-    <li><b>Projeto → Mostrar biomas</b> deixa as placas à vista mesmo com outras ferramentas.</li>
+    <li><b>Cor pelo bioma</b>: a grama (o topo do bloco e o capim), as folhas de carvalho, selva, acácia, carvalho-escuro e mangue, o cipó e a água ficam com a cor do bioma da coluna, a mesma que o jogo usa (tirada dos arquivos do Bedrock 1.26). Folhas de abeto e de bétula têm cor fixa no jogo e não mudam. Colunas sem bioma ficam com a cor do pacote de texturas.</li>
+    <li><b>No jogo não é preciso recolocar a grama</b>: o jogo calcula a cor pelo bioma na hora de desenhar, então o mundo exportado já abre com as cores certas.</li>
+    <li><b>Placas</b> (no aviso do canto) ou <b>Projeto → Mostrar biomas</b>: uma placa colorida em cima de cada coluna, com a cor do bioma no mapa. Serve para ver os limites de cada bioma, inclusive em cima de pedra e construções.</li>
+    <li><b>Transformar o terreno</b> age só nas colunas que mudam de bioma e só no <b>chão natural</b> (grama, terra, areia, arenito, neve, terracota, lama, micélio, netherrack, pedra do End...) e nas plantas soltas (capim, flores, cactos, neve fina). Construções (tábuas, pedra, tijolos, vidro...) e troncos ficam como estão; debaixo de uma copa, só o chão muda. As árvores crescem com o mesmo gerador do <b>Usar</b> numa muda (cap. 03); as grandes (carvalho-escuro, abeto e árvore da selva gigantes) precisam de espaço 2 × 2. Tudo entra no mesmo passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd> da pincelada, e o aviso no fim diz quantos blocos de chão, árvores, plantas e camadas de neve entraram.</li>
     <li><b>Numa área de um mundo do jogo</b>, o site lê o bioma de cada coluna (o da altura do chão) e mostra na barra de status. Ao pintar, a coluna inteira recebe o bioma, do fundo ao céu (as cavernas embaixo deixam de ser cavernas exuberantes, por exemplo). Chunks que o jogo ainda não gerou não recebem bioma.</li>
     <li><b>Numa construção feita do zero</b>, use Exportar → <b>Exportar mundo novo (.mcworld)</b> (cap. 11): é o único formato que leva os biomas. O .mcstructure e o .schem guardam só blocos.</li>
     <li><b>Conferido no servidor oficial do Bedrock (1.26)</b>: o jogo aceita o bioma pintado como se fosse natural. Num chunk de planície pintado de planície nevada, à noite nasceram errantes (esqueletos do frio, que só nascem em biomas gelados) só dentro dele. O mundo novo exportado abre com os blocos e os biomas no lugar.</li>
     <li><b>Não dá</b> para criar pelo site as <b>áreas de nascimento de estruturas</b> (os saqueadores do posto avançado, as bruxas da cabana, os blazes da fortaleza, os guardiões do monumento): foi testado no servidor oficial copiando os registros dessas áreas de um posto avançado real para outro lugar, e lá não nasceu nenhum saqueador em dez rodadas, enquanto no posto real nasceram 30 no mesmo tempo. O jogo só aceita essas áreas quando foi ele que gerou a estrutura. Pintar pântano faz nascer o que o jogo faz nascer em qualquer pântano, não as bruxas da cabana.</li>
   </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>Biomas</th><th>Chão</th><th>O que nasce</th></tr></thead>
+    <tbody>
+      <tr><td>Deserto</td><td>3 de areia sobre 2 de arenito</td><td>Cactos de 1 a 3 blocos (sem nada encostado, como no jogo) e arbustos secos.</td></tr>
+      <tr><td>Terras áridas (mesa)</td><td>Areia vermelha sobre faixas de terracota coloridas (pela altura)</td><td>Arbustos secos e cactos raros. A versão com árvores tem terra grossa, grama e carvalhos.</td></tr>
+      <tr><td>Planície, planície de girassóis, prado</td><td>Grama sobre terra</td><td>Capim, flores (mais no prado) e um carvalho de vez em quando.</td></tr>
+      <tr><td>Florestas (comum, de bétulas, florida, carvalho-escuro, jardim pálido)</td><td>Grama sobre terra</td><td>Carvalhos e bétulas; bétulas; muitas flores; carvalhos-escuros 2 × 2 e cogumelos; carvalhos-pálidos 2 × 2 e musgo pálido.</td></tr>
+      <tr><td>Taiga, taiga gigante, bosque</td><td>Grama (na gigante, podzol e terra grossa)</td><td>Abetos (gigantes 2 × 2 na taiga gigante), samambaias e arbustos de frutas doces.</td></tr>
+      <tr><td>Selva, borda da selva, selva de bambu</td><td>Grama (na de bambu, com podzol)</td><td>Árvores da selva (algumas gigantes), samambaias, melancias; touceiras de bambu de 4 a 11 blocos.</td></tr>
+      <tr><td>Savana, colinas, cerejal</td><td>Grama sobre terra</td><td>Acácias e capim; abetos e carvalhos espaçados; cerejeiras e pétalas rosadas.</td></tr>
+      <tr><td>Pântano, mangue</td><td>Grama; no mangue, lama</td><td>Carvalhos com cipó, orquídeas azuis e vitórias-régias na água; mangues.</td></tr>
+      <tr><td>Biomas com neve (planície nevada, taiga nevada, praia nevada...)</td><td>O do bioma</td><td>Neve fina por cima do chão e gelo na superfície da água; na planície de espinhos, blocos de neve e torres de gelo compactado.</td></tr>
+      <tr><td>Picos e encostas</td><td>Blocos de neve, neve fofa, gelo compactado, pedra e calcita</td><td>—</td></tr>
+      <tr><td>Praias, rios e oceanos</td><td>Areia (praias, oceanos quentes), areia e argila (rios), cascalho (oceanos frios) ou pedra (costa de pedra)</td><td>—</td></tr>
+      <tr><td>Campos de cogumelos</td><td>Micélio</td><td>Cogumelos e cogumelos gigantes.</td></tr>
+      <tr><td>Nether</td><td>Netherrack; nílio carmesim ou distorcido; areia e terra das almas; basalto e pedra-negra</td><td>Fungos gigantes, raízes e brotos nas florestas.</td></tr>
+      <tr><td>End</td><td>Pedra do End</td><td>—</td></tr>
+      <tr><td>Biomas de caverna</td><td colspan="2">Só o bioma (o terreno não muda).</td></tr>
+    </tbody>
+  </table></div>
 
   <h3>Esculpir terreno</h3>
   <figure><img src="img/esculpir.jpg" alt="Terreno de grama com dois morros arredondados ligados por uma encosta suavizada, um vale afundado e o disco azul do pincel sobre o chão" width="972" height="718" loading="lazy"><figcaption>Dois morros feitos com <b>Elevar</b>, a encosta entre eles com <b>Suavizar</b> e um vale com <b>Afundar</b>. O disco azul mostra onde o pincel vai agir.</figcaption></figure>
@@ -712,7 +739,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
         <tr><td>Mostrar/ocultar grade</td><td>Liga e desliga a grade do chão (<kbd>G</kbd>).</td></tr>
         <tr><td>Água e lava escorrem: sim/não</td><td>Liga e desliga o escorrer da água e da lava (cap. 07). Fica guardado no navegador.</td></tr>
-        <tr><td>Mostrar biomas: sim/não</td><td>Deixa à vista as placas coloridas dos biomas mesmo com outras ferramentas (cap. 03). Fica guardado no navegador.</td></tr>
+        <tr><td>Mostrar biomas: sim/não</td><td>Mostra uma placa colorida com a cor de cada bioma em cima das colunas (o mesmo que o botão Placas do pincel de bioma, cap. 03). Fica guardado no navegador.</td></tr>
         <tr><td>Redstone funcionando: sim/não</td><td>Liga e desliga a simulação dos circuitos (cap. 07). Fica guardado no navegador.</td></tr>
         <tr><td>Texturas…</td><td>Carrega e organiza pacotes de recursos (cap. 10).</td></tr>
         <tr><td>Tema</td><td>Alterna automático (segue o sistema), claro e escuro.</td></tr>
@@ -934,7 +961,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
       <tr><td>Primeira pessoa</td><td>Precisa de teclado e mouse (no celular dá para olhar arrastando, mas não andar). Lajes, escadas e cercas contam como bloco inteiro (o degrau de 1 bloco é subido sozinho); portas e portões deixam passar abertos ou fechados.</td></tr>
       <tr><td>Mundo do jogo</td><td>Só Bedrock (o .mcworld); mundos do Java ainda não. No máximo 512 × 512 por vez (troque de área para editar mais). Pedaços num formato muito antigo do jogo ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Conferido no servidor oficial do Bedrock (1.26): um mundo gerado pelo jogo, editado e exportado pelo site abre sem erros, com os blocos e os estados iguais; ainda assim, teste primeiro numa cópia do mundo.</td></tr>
-      <tr><td>Biomas</td><td>O pincel pinta a coluna inteira com um bioma só (não dá para pôr uma caverna exuberante embaixo de uma planície). O site não recalcula a cor da grama e das folhas pelo bioma: os blocos continuam com a cor do pacote de texturas. Áreas de nascimento de estruturas (saqueadores, bruxas da cabana, blazes, guardiões) não podem ser criadas: o jogo ignora as feitas fora da geração (testado). O .mcstructure e o .schem não levam bioma; só o mundo exportado.</td></tr>
+      <tr><td>Biomas</td><td>O pincel pinta a coluna inteira com um bioma só (não dá para pôr uma caverna exuberante embaixo de uma planície). Só o topo do bloco de grama muda de cor: a lateral continua com a cor do pacote. A vegetação do Transformar o terreno imita o jogo, mas não é igual ao gerador do Minecraft (sem estruturas, lagos, cogumelos de pântano ou blocos de abelha). Áreas de nascimento de estruturas (saqueadores, bruxas da cabana, blazes, guardiões) não podem ser criadas: o jogo ignora as feitas fora da geração (testado). O .mcstructure e o .schem não levam bioma; só o mundo exportado.</td></tr>
       <tr><td>Importação</td><td>Nomes de versões antigas (Java antes da 1.13, nomes antigos do Bedrock) e o .schematic do MCEdit não abrem. A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
       <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>
       <tr><td>Crafter</td><td>Gira só nas quatro direções horizontais.</td></tr>
