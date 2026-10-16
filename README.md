@@ -23,6 +23,7 @@ data/shapes.json        Blocos que não são cubos: modelos e blockstates Java, 
 src/shapes.js           Formas no editor: modelo do estado, conexões pelos vizinhos, colocação, exportação
 src/import.js           Importação de .mcstructure e .schem (leitor de NBT e correspondência de blocos)
 src/worldio.js          Mundo do jogo (Bedrock .mcworld): leitor e gravador de LevelDB, sub-chunks, mapa, área, exportação
+src/javaworld.js        Mundo do Java (.zip com level.dat e region/*.mca, Anvil 1.18+): regiões, chunks, longs empacotados, biomas Java <-> Bedrock; importação do .litematic
 src/measure.js          Medidas (cotas X, Y e Z) na tela
 src/world.js            Mundo em chunks esparsos com paleta, desfazer compacto, salvar no IndexedDB
 src/symmetry.js         Simetria (espelho) em X, Y e Z
@@ -50,6 +51,8 @@ tests/test_export.js    Gera um .schem e um .mcstructure e lê os dois de volta 
 tests/test_world.js     Lê o mundo de teste (índice do LevelDB, sub-chunks, dados de blocos) e grava/relê um .log
 tests/fixtures/mundo-teste.mcworld  Mundo pequeno do Bedrock para os testes e as capturas (scripts/gen_testworld.py)
 scripts/gen_testworld.py  Gera o mundo de teste com o LevelDB da Mojang (pip install amulet-leveldb)
+tests/fixtures/mundo-java.zip, casa.litematic  Mundo do Java e .litematic de teste (scripts/gen_javaworld.py, pip install nbtlib)
+tests/test_javaworld.js Lê o mundo do Java de teste, regrava um arquivo de região e confere os longs empacotados
 dist/bloco-a-bloco.html Versão local (Three.js embutido), downloads diretos
 dist/artifact.html      Versão para publicar como artefato do Claude (Three.js via CDN)
 ```
@@ -140,6 +143,12 @@ Projeto > Abrir mundo do jogo aceita o `.mcworld` exportado pelo Bedrock, um `.z
 - **Exportação**: copia as entradas do zip original sem descomprimir (só o cabeçalho é refeito, sem a pasta de cima) e acrescenta `db/NNNNNN.log` com as chaves novas (número de arquivo e sequência depois dos do banco, registros com CRC32C mascarado, lotes de até 1 MB cortados em blocos de 32 KB). O jogo aplica o log ao abrir.
 - **Sessão**: o arquivo do mundo, as mudanças gravadas e a área ficam no IndexedDB (`wio:file`, `wio:patches`, `wio:meta`); o salvamento automático guarda só os pedaços editados da área (vazios incluídos), e ao recarregar a área é lida do mundo e os pedaços salvos vão por cima.
 - **Validação**: o `.mcworld` exportado foi aberto com o LevelDB da Mojang (pacote `amulet-leveldb`, o mesmo código de recuperação do jogo) e comparado com o original: num mundo real de 94 mil chaves, só mudaram as posições editadas e o mapa de alturas dos dois chunks. Falta abrir no jogo.
+
+## Mundo do Java e .litematic
+
+`src/javaworld.js`. O `.zip` precisa ter `level.dat` e `region/r.X.Z.mca` (Nether em `DIM-1/region`, End em `DIM1/region`; também aceita `dimensions/minecraft/<dim>/region`). Cada região: cabeçalho de 4 KB (setor de 3 bytes + quantidade de setores por chunk), 4 KB de datas, e os chunks com tamanho, compressão (1 gzip, 2 zlib, 3 nenhuma, +128 em `c.X.Z.mcc`; LZ4 não) e NBT big-endian. Chunks 1.18+: `sections` com `block_states` (paleta `{Name, Properties}` e longs com no mínimo 4 bits por índice, sem atravessar longs, posição y·256 + z·16 + x) e `biomes` (paleta de nomes, 4 × 4 × 4). `Status` diferente de `full` = não gerado. Ao gravar: só as posições diferentes mudam, `BlockLight`/`SkyLight` saem dos pedaços mexidos, `Heightmaps` sai e `isLightOn` = 0 (o jogo refaz), dados de blocos das posições trocadas saem; a região é refeita com os chunks mudados em zlib e os outros copiados como estavam; o `.zip` de saída tem a pasta do mundo dentro. Biomas Java ↔ números do Bedrock pela tabela `JW_BIO` (os só do Bedrock vão para o mais parecido, `JW_BIO_ALT`). Conferido com a amulet-core (`pip install amulet-core`).
+
+`.litematic`: NBT gzip, `Regions` com `Position`, `Size` (pode ser negativo: o canto mínimo é Position + Size + 1), `BlockStatePalette` e `BlockStates` com no mínimo 2 bits por índice, **atravessando** os longs, posição (y·Z + z)·X + x. Várias regiões viram uma construção só.
 
 ## Exportação
 

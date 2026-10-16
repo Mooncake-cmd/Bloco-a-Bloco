@@ -11,7 +11,7 @@ function updateGhostChip() {
   c.hidden = !layerOn; if (c.hidden) return;
   $('ghostOn').setAttribute('aria-pressed', String(ghost.on)); $('ghostOn').textContent = ghost.on ? 'Ligado' : 'Desligado';
   var ry = layerY - ghost.off;
-  $('ghostRef').textContent = ry >= 0 ? 'camada Y ' + (wio && wio.area ? ry + WIO_DIMS[wio.area.dim].min : ry) + ' (' + ghost.off + ' abaixo)' : 'abaixo do chão';
+  $('ghostRef').textContent = ry >= 0 ? 'camada Y ' + (wio && wio.area ? ry + wioDim(wio.area.dim).min : ry) + ' (' + ghost.off + ' abaixo)' : 'abaixo do chão';
   $('ghostMinus').disabled = ghost.off <= 1; $('ghostPlus').disabled = ghost.off >= Math.min(64, layerY);
 }
 /* Chamado a cada quadro: refaz o fantasma quando a camada, a referência ou os blocos mudam */

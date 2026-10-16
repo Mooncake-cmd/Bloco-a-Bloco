@@ -6,7 +6,7 @@
   "scripts": {
     "blocks": "node scripts/gen_blocks.js && node scripts/gen_shapes.js",
     "build": "node scripts/build.js",
-    "test": "node tests/test_export.js && node tests/test_world.js"
+    "test": "node tests/test_export.js && node tests/test_world.js && node tests/test_javaworld.js"
   },
   "dependencies": {
     "three": "0.128.0"

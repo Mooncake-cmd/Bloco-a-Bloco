@@ -125,7 +125,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <div class="fact"><b>1.229</b><span>blocos na paleta: todos do Bedrock 1.26, menos os 160 da Education Edition (mais 64 variantes de parede usadas sozinhas)</span></div>
     <div class="fact"><b>19</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>paletas de blocos prontas, editáveis, mais as que você criar</span></div>
-    <div class="fact"><b>2 + 1</b><span>formatos de saída e entrada: .mcstructure, .schem e projeto .json, além de mundos inteiros do Bedrock (.mcworld)</span></div>
+    <div class="fact"><b>2 + 2</b><span>formatos de saída e de entrada: .mcstructure, .schem, .litematic e projeto .json, além de mundos inteiros do Bedrock (.mcworld) e do Java (.zip)</span></div>
     <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
   </div>
 </header>
@@ -722,7 +722,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="projeto">
   <h2><span class="n">09</span>Menu Projeto</h2>
   <div class="side">
-    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="266" height="760" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
+    <figure><img src="img/menu.jpg" alt="Menu Projeto aberto" width="311" height="760" loading="lazy" style="max-width:260px"><figcaption>O menu fica no canto direito da barra.</figcaption></figure>
     <div class="tbl"><table>
       <thead><tr><th>Item</th><th>O que faz</th></tr></thead>
       <tbody>
@@ -732,7 +732,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Histórico (linha do tempo)…</td><td>A linha do tempo com todas as ações e ramos; o mesmo que o relógio da barra (cap. 03).</td></tr>
         <tr><td>Paletas de blocos…</td><td>Cria, edita, reordena e exclui paletas; o mesmo que o aviso ✎ Paletas (cap. 06).</td></tr>
         <tr><td>Biblioteca de construções…</td><td>Construções guardadas com nome, para colar em qualquer projeto ou mundo (cap. 03).</td></tr>
-        <tr><td>Abrir mundo do jogo (.mcworld)…</td><td>Abre um mundo do Bedrock para editar uma área dele e exportar o mundo com as mudanças (cap. 12).</td></tr>
+        <tr><td>Abrir mundo do jogo (Bedrock ou Java)…</td><td>Abre um mundo do Bedrock (.mcworld) ou do Java (.zip com a pasta do mundo) para editar uma área dele e exportar o mundo com as mudanças (cap. 12).</td></tr>
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
@@ -807,14 +807,22 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <h2><span class="n">12</span>Importar e mundos do jogo</h2>
   <figure><img src="img/importado.jpg" alt="Estrutura de 300 por 59 por 300 importada de um .schem" width="1280" height="800" loading="lazy"><figcaption>Um .schem de 300 × 59 × 300 com 107 mil blocos, aberto inteiro em menos de um segundo no computador de teste.</figcaption></figure>
   <ul class="plain">
-    <li><b>Projeto → Abrir projeto ou estrutura…</b> aceita <code>.json</code> (projeto), <code>.mcstructure</code> e <code>.schem</code> (Sponge v2 e v3).</li>
+    <li><b>Projeto → Abrir projeto ou estrutura…</b> aceita <code>.json</code> (projeto), <code>.mcstructure</code>, <code>.schem</code> (Sponge v2 e v3) e <code>.litematic</code> (Litematica, veja abaixo).</li>
     <li>O espaço passa a ter o tamanho da estrutura. A construção atual é substituída; salve antes se quiser guardá-la.</li>
     <li>O aviso no final diz quantos blocos entraram, o tamanho e quais blocos desconhecidos ficaram de fora.</li>
     <li>Conexões (cercas, muros, redstone, escadas) são recalculadas pelos vizinhos.</li>
     <li>No .mcstructure, o vazio de estrutura vira espaço vazio, e o editor escolhe o estado que mais combina com o do arquivo. Quando o Bedrock não guarda um detalhe (ex.: para onde um botão no chão está virado), fica o padrão do jogo.</li>
     <li>Exportar e importar de volta foi testado e devolve a construção idêntica, nos dois formatos.</li>
   </ul>
-  <h3 id="mundo">Editar um mundo do jogo (.mcworld)</h3>
+  <h3 id="litematic">Arquivos do Litematica (.litematic)</h3>
+  <figure><img src="img/litematic.jpg" alt="Casa de tábuas importada de um .litematic, cortada pela camada para mostrar o baú, a escada e o tronco deitado" width="972" height="772" loading="lazy" style="max-width:720px"><figcaption>A casa de teste importada de um .litematic (com a camada ligada para ver o interior). O aviso conta o bloco desconhecido que ficou de fora.</figcaption></figure>
+  <ul class="plain">
+    <li>O <b>Litematica</b> é o mod do Java mais usado para copiar construções e projetá-las no mundo. Os arquivos <code>.litematic</code> dele abrem em <b>Projeto → Abrir projeto ou estrutura…</b>, como um .schem.</li>
+    <li>Escadas, portas, troncos, lajes e as outras propriedades vêm como estão no arquivo. Um .litematic com várias regiões vira uma construção só, com cada região no lugar dela.</li>
+    <li>Testado com uma construção real de 171 × 15 × 105 (140.967 blocos, 63 tipos de bloco na paleta): abriu em menos de um segundo no computador de teste, com a mesma contagem de cada bloco que o arquivo tem.</li>
+    <li>O site ainda não <b>grava</b> .litematic: para levar de volta ao Java, use o .schem (o Litematica não abre .schem, mas o WorldEdit e o Axiom abrem).</li>
+  </ul>
+  <h3 id="mundo">Editar um mundo do jogo (.mcworld ou Java)</h3>
   <p>Dá para abrir um mundo inteiro do Bedrock, editar uma parte dele no site e levar de volta para o jogo com a construção pronta, no lugar certo.</p>
   <div class="grid2">
     <figure><img src="img/mundo-mapa.jpg" alt="Janela do mundo com o mapa visto de cima, os botões Mundo normal, Nether e End, e um quadrado marcando a área" width="900" height="760" loading="lazy"><figcaption>O mapa visto de cima: o quadrado é a área que vai para o editor, e o ponto laranja é onde você estava no jogo.</figcaption></figure>
@@ -841,6 +849,21 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Na área aberta, a barra de status mostra o bioma da coluna apontada, e o pincel de bioma (cap. 03) troca o bioma; ele vai junto em Exportar mundo.</li>
     <li>O site guarda no navegador o arquivo do mundo, a área aberta e as mudanças: se a página recarregar, tudo volta. <b>Novo</b> (ou abrir outro projeto) fecha o mundo, e o que não foi exportado se perde.</li>
     <li>O site edita uma cópia: o mundo no jogo não muda até você importar o arquivo exportado. Mundos de Realms e servidores não podem ser editados assim.</li>
+  </ul>
+  <h3 id="java">Mundos do Java</h3>
+  <figure><img src="img/mundo-java.jpg" alt="Área de um mundo do Java aberta no editor, com a camada cortando uma casa de tábuas: baú, escada, tronco deitado e um bloco desconhecido em roxo; a grama de um lado amarelada (deserto) e do outro mais verde (floresta)" width="972" height="772" loading="lazy"><figcaption>Uma área do mundo de teste do Java. O bloco roxo é um bloco que o editor não conhece: ele volta igual para o mundo. A cor da grama segue o bioma de cada coluna (deserto à direita, floresta à esquerda).</figcaption></figure>
+  <ol class="steps">
+    <li><b>No computador:</b> ache a pasta do mundo (no jogo: Um jogador → escolha o mundo → <b>Editar</b> → <b>Abrir pasta do mundo</b>; ela fica em <code>.minecraft\saves</code>). Compacte essa pasta num <code>.zip</code> (no Windows: botão direito → Enviar para → Pasta compactada).</li>
+    <li><b>No site:</b> Projeto → <b>Abrir mundo do jogo (Bedrock ou Java)…</b> e escolha o .zip. O resto é igual ao Bedrock: mapa (com Terreno e Biomas e o destaque dos chunks não gerados), Mundo normal / Nether / End, área de até 512 × 512, editar, trocar de área.</li>
+    <li><b>Exportar mundo</b> gera <code>nome-do-mundo-editado.zip</code> com a pasta do mundo dentro. <b>Feche o jogo</b>, guarde uma cópia do mundo original e extraia o .zip na pasta <code>saves</code>: o mundo aparece na lista (com o mesmo nome; renomeie a pasta se quiser os dois).</li>
+  </ol>
+  <ul class="plain">
+    <li>Mundos do <b>Java 1.18 em diante</b> (o formato com altura de −64 a 319). Chunks de versões mais antigas aparecem como não gerados: abra o mundo uma vez numa versão nova do jogo para ele converter.</li>
+    <li>O Nether do Java tem 256 de altura (o teto de rocha-mãe fica no y 127); o mapa mostra o chão abaixo do teto.</li>
+    <li>Os nomes dos blocos do Java são os mesmos do site, então nada se perde na conversão. Blocos que só existem no Bedrock (como permitir e negar) viram ar no mundo do Java, e o aviso conta quantos.</li>
+    <li>Ao gravar, o site troca só os blocos que mudaram e marca os chunks mexidos para o jogo refazer a luz e o mapa de alturas ao abrir. Baús e placas apagados levam os dados junto; baús e placas novos entram vazios.</li>
+    <li><b>Biomas</b>: o Java guarda um bioma a cada 4 × 4 × 4 blocos (o Bedrock, a cada bloco). O pincel de bioma funciona, mas cada quadrado de 4 × 4 colunas fica com o bioma pintado que mais aparece nele.</li>
+    <li>Conferido com o mundo de teste do Java (gerado pelo <code>scripts/gen_javaworld.py</code>) e lido de volta pela amulet-core, uma biblioteca independente que entende mundos do Java: blocos, propriedades, biomas, o Nether e o End saíram certos. O jogo Java em si não pôde ser testado aqui (o download dele é bloqueado neste ambiente): teste primeiro numa cópia do mundo.</li>
   </ul>
 </section>
 
@@ -960,7 +983,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
       <tr><td>Primeira pessoa</td><td>Precisa de teclado e mouse (no celular dá para olhar arrastando, mas não andar). Lajes, escadas e cercas contam como bloco inteiro (o degrau de 1 bloco é subido sozinho); portas e portões deixam passar abertos ou fechados.</td></tr>
-      <tr><td>Mundo do jogo</td><td>Só Bedrock (o .mcworld); mundos do Java ainda não. No máximo 512 × 512 por vez (troque de área para editar mais). Pedaços num formato muito antigo do jogo ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Conferido no servidor oficial do Bedrock (1.26): um mundo gerado pelo jogo, editado e exportado pelo site abre sem erros, com os blocos e os estados iguais; ainda assim, teste primeiro numa cópia do mundo.</td></tr>
+      <tr><td>Mundo do jogo</td><td>Bedrock (.mcworld) e Java 1.18 ou mais novo (.zip com a pasta do mundo). No máximo 512 × 512 por vez (troque de área para editar mais). Pedaços num formato muito antigo do jogo ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Conferido no servidor oficial do Bedrock (1.26): um mundo gerado pelo jogo, editado e exportado pelo site abre sem erros, com os blocos e os estados iguais. O mundo do Java foi conferido com a amulet-core, não no jogo. Chunks do Java comprimidos com LZ4 (opção de alguns servidores) não abrem. Teste sempre numa cópia do mundo.</td></tr>
       <tr><td>Biomas</td><td>O pincel pinta a coluna inteira com um bioma só (não dá para pôr uma caverna exuberante embaixo de uma planície). Só o topo do bloco de grama muda de cor: a lateral continua com a cor do pacote. A vegetação do Transformar o terreno imita o jogo, mas não é igual ao gerador do Minecraft (sem estruturas, lagos, cogumelos de pântano ou blocos de abelha). Áreas de nascimento de estruturas (saqueadores, bruxas da cabana, blazes, guardiões) não podem ser criadas: o jogo ignora as feitas fora da geração (testado). O .mcstructure e o .schem não levam bioma; só o mundo exportado.</td></tr>
       <tr><td>Importação</td><td>Nomes de versões antigas (Java antes da 1.13, nomes antigos do Bedrock) e o .schematic do MCEdit não abrem. A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
       <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>

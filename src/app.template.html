@@ -243,8 +243,8 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
         <div class="pop">
           <button class="tbtn txt" id="newBtn">Novo (limpar tudo)</button>
           <button class="tbtn txt" id="saveBtn">Salvar projeto (.json)</button>
-          <button class="tbtn txt" id="openBtn">Abrir projeto ou estrutura…</button>
-          <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (.mcworld)…</button>
+          <button class="tbtn txt" id="openBtn" title=".json, .mcstructure, .schem ou .litematic">Abrir projeto ou estrutura…</button>
+          <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (Bedrock ou Java)…</button>
           <button class="tbtn txt" id="libBtn">Biblioteca de construções…</button>
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
@@ -262,7 +262,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <a class="tbtn txt" id="guideLink" href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">Guia de uso completo ↗</a>
         </div>
       </details>
-      <input type="file" id="fileIn" accept=".json,.mcstructure,.schem,application/json" hidden>
+      <input type="file" id="fileIn" accept=".json,.mcstructure,.schem,.litematic,application/json" hidden>
       <input type="file" id="worldIn" accept=".mcworld,.zip,application/zip" hidden>
       <input type="file" id="packIn" accept=".zip,.mcpack,.mcaddon,application/zip" hidden>
       <input type="file" id="packDirIn" webkitdirectory hidden>
@@ -1952,6 +1952,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%REDSTONE_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
+/*%%JAVAWORLD_JS%%*/
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
@@ -2080,7 +2081,7 @@ async function pool(items, n, fn) {
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 function voxelOf(x, y, z, v) {
   var bi = cellBlock(v);
-  if (bi === PRES_BI) { var pe = wio && wio.pres[cellOri(v)], pt = pe ? nbtPalTyped(pe.raw) : null; return [x, y, z, bi, null, pt ? { bn: pt.name.replace(/^minecraft:/, ''), bs: pt.states, bv: pt.version } : null]; }
+  if (bi === PRES_BI) { var pe = wio && wio.pres[cellOri(v)], pt = pe && !pe.key ? nbtPalTyped(pe.raw) : null; return [x, y, z, bi, null, pt ? { bn: pt.name.replace(/^minecraft:/, ''), bs: pt.states, bv: pt.version } : null]; }
   return BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]; }
 function collectVoxels(box) {
   var out = [];
@@ -2129,7 +2130,7 @@ function openExport() {
   var pieces = bb ? Math.ceil(bb.w / BE_PIECE[0]) * Math.ceil(bb.h / BE_PIECE[1]) * Math.ceil(bb.l / BE_PIECE[2]) : 0;
   openDialog(
     '<h3>Exportar construção</h3>' +
-    (wio && wio.area ? '<div class="get"><b>Mundo do jogo: ' + esc(wio.name) + '</b><small>Gera uma cópia do mundo (.mcworld) com tudo o que você mudou em todas as áreas. No jogo, ela vira um mundo novo; o original continua como estava.</small><div class="row"><button class="btn primary" id="exWorld">Exportar mundo (.mcworld)</button></div></div>' : '') +
+    (wio && wio.area ? '<div class="get"><b>Mundo do jogo: ' + esc(wio.name) + '</b><small>' + (wio.java ? 'Gera uma cópia do mundo do Java (.zip com a pasta do mundo) com tudo o que você mudou em todas as áreas. Extraia na pasta saves do Minecraft Java.' : 'Gera uma cópia do mundo (.mcworld) com tudo o que você mudou em todas as áreas. No jogo, ela vira um mundo novo; o original continua como estava.') + '</small><div class="row"><button class="btn primary" id="exWorld">' + (wio.java ? 'Exportar mundo (.zip, Java)' : 'Exportar mundo (.mcworld)') + '</button></div></div>' : '') +
     '<div class="info">Tamanho: ' + dim + '<br>Blocos: ' + blockCount.toLocaleString('pt-BR') + '</div>' +
     '<label>Nome do arquivo<input type="text" id="exName" value="construcao" maxlength="40"></label>' +
     '<label class="check"><input type="checkbox" id="exKeep" checked><span>Bedrock: deixar o terreno intacto onde a construção tem ar (usa blocos vazios de estrutura). Desmarque para a construção substituir tudo no retângulo por ar.</span></label>' +
@@ -2257,7 +2258,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
-    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças; no jogo, ela vira um mundo novo.</span>' +
+    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
@@ -2306,12 +2307,12 @@ $('worldArea').addEventListener('click', function () { wioArea(); });
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
   var f = e.target.files && e.target.files[0]; if (!f) return;
-  if (/\.(mcstructure|schem)$/i.test(f.name)) {
+  if (/\.(mcstructure|schem|litematic)$/i.test(f.name)) {
     e.target.value = '';
     busy('Abrindo ' + f.name + '…', null);
     f.arrayBuffer().then(async function (ab) {
       var u8 = new Uint8Array(ab);
-      if (/\.mcstructure$/i.test(f.name)) importMcstructure(u8); else importSchem(await gunzipMaybe(u8));
+      if (/\.mcstructure$/i.test(f.name)) importMcstructure(u8); else if (/\.litematic$/i.test(f.name)) await importLitematic(u8); else importSchem(await gunzipMaybe(u8));
     }).catch(function (x) { toast(x.message || 'Não foi possível abrir o arquivo.', 8000); }).then(busyEnd);
     return;
   }

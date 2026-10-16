@@ -370,8 +370,9 @@ function bioFromWorld(d3, ecx, ecz) {
 }
 /* Grava as colunas pintadas na chave 0x2B dos chunks da área (todas as alturas da coluna) */
 async function bioCommit() {
+  if (wio && wio.java) return jwBioCommit();
   if (!wio || !wio.area || !wio.bioEdited.size) return 0;
-  var A = wio.area, dim = A.dim, D = WIO_DIMS[dim], nsub = D.h >> 4, n = 0;
+  var A = wio.area, dim = A.dim, D = wioDim(dim), nsub = D.h >> 4, n = 0;
   for (var k of wio.bioEdited) {
     var p = k.split(','), ecx = +p[0], ecz = +p[1], cx = (A.x0 >> 4) + ecx, cz = (A.z0 >> 4) + ecz, col = wio.dims[dim].get(cx + ',' + cz);
     if (!col || !col.ok) continue; // chunk não gerado: o jogo refaria o bioma ao gerar
