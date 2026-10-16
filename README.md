@@ -33,6 +33,7 @@ src/walk.js             Primeira pessoa: pointer lock, WASD, pulo, voo, colisão
 src/ghost.js            Camada fantasma: blocos de uma camada de baixo, translúcidos, na altura da camada
 src/history.js          Histórico em árvore: cada ação é um nó, ramos ao mudar depois de voltar, linha do tempo e versões marcadas
 src/redstone.js         Redstone funcionando: pó, tochas, repetidores, comparadores, observadores, lâmpadas, portas, pistões, trilhos (tiques do jogo)
+src/biome.js            Pincel de bioma: biomas por coluna (pintados e lidos do mundo), placas coloridas, leitura e gravação da chave 0x2B (Data3D)
 src/mixbrush.js         Pincel de mistura: 2 a 10 blocos com porcentagens (soma 100%), amostragem ponderada por voxel
 src/palettes.js         Paletas: as do site editáveis (por cima de catOf) e as do usuário, no localStorage
 src/maskbrush.js        Pincel de troca (pincel 3D com máscara)
@@ -41,6 +42,9 @@ src/trees.js            Árvores que crescem com Usar nas mudas (geradores por t
 src/selection.js        Selecionar, copiar, recortar, colar (com giro), apagar e substituir na área
 scripts/gen_blocks.js   Regera blocks.json e bedrock_textures.json a partir de minecraft-data, minecraft-assets e Mojang/bedrock-samples (precisa de internet)
 scripts/gen_shapes.js   Regera shapes.json (minecraft-assets 26.1, minecraft-data Java 1.21.11 e blocksJ2B do Bedrock 1.26)
+data/biomes.json        89 biomas do Bedrock 1.26: id numérico, nome, nome em português, clima, cores (grama, folhas, água, mapa), dimensão, marcadores
+scripts/gen_biomes.js   Regera biomes.json a partir do Mojang/bedrock-samples (BEDROCK_SAMPLES_DIR=pasta extraída)
+data/leveldat-plano.dat level.dat de um mundo plano criativo gerado pelo servidor oficial 1.26.52 (modelo do mundo novo)
 scripts/build.js        Junta template + exportadores + blocos e gera os dois HTML em dist/
 tests/test_export.js    Gera um .schem e um .mcstructure e lê os dois de volta com prismarine-nbt
 tests/test_world.js     Lê o mundo de teste (índice do LevelDB, sub-chunks, dados de blocos) e grava/relê um .log
@@ -56,7 +60,7 @@ dist/artifact.html      Versão para publicar como artefato do Claude (Three.js 
 npm install
 npm run blocks   # opcional: regenera data/blocks.json
 npm run build    # gera dist/*.html
-npm test         # valida os exportadores
+npm test         # valida os exportadores e o leitor/gravador de mundos
 ```
 
 ## Como o editor funciona
@@ -132,6 +136,7 @@ Projeto > Abrir mundo do jogo aceita o `.mcworld` exportado pelo Bedrock, um `.z
 - **Sub-chunks** (chave x, z, [dimensão], 0x2f, y; versões 8 e 9): camadas com paleta em NBT little-endian e índices empacotados em palavras de 32 bits (posição x·256 + z·16 + y). A paleta é guardada crua: blocos que o editor não conhece viram o bloco "Bloco do jogo" (`bab_preserved#n`, índice numa lista do mundo) e voltam com os bytes originais.
 - **Área**: até 512 × 512, altura toda da dimensão (−64 a 319, 0 a 127, 0 a 255), alinhada a chunks. Camada 2 (água dentro do bloco) aparece quando a camada 1 está vazia. Cor da cama vem dos dados de blocos (0x31).
 - **Gravação**: ao trocar de área ou exportar, cada pedaço editado é comparado, posição por posição, com o original (ou com a versão já gravada); só as posições diferentes mudam (camada 2 vira ar nelas). Dados de blocos das posições mudadas saem (camas novas ganham os seus), o mapa de alturas (0x2b, `z·16 + x`, altura − mínimo + 1) é refeito nas colunas mexidas e a soma de verificação antiga (0x3b) é apagada. Chunks não gerados pelo jogo não recebem nada.
+- **Biomas** (chave 0x2B, Data3D): 512 bytes de mapa de alturas (int16, `z·16 + x`, relativo ao y mínimo) e depois um bloco por sub-chunk: `0xFF` repete o anterior, cabeçalho `1` traz um id só (int32), senão `(bits << 1) | 1`, palavras de 32 bits com os índices (posição x·256 + z·16 + y), a quantidade e os ids (int32, os números de `mojang-biomes.json`). Ao abrir uma área, o site guarda o bioma de cada coluna na altura do mapa de alturas (mostrado na barra de status e no mapa, modo Biomas). As colunas pintadas são gravadas em todas as alturas (todos os sub-chunks da coluna) ao trocar de área ou exportar.
 - **Exportação**: copia as entradas do zip original sem descomprimir (só o cabeçalho é refeito, sem a pasta de cima) e acrescenta `db/NNNNNN.log` com as chaves novas (número de arquivo e sequência depois dos do banco, registros com CRC32C mascarado, lotes de até 1 MB cortados em blocos de 32 KB). O jogo aplica o log ao abrir.
 - **Sessão**: o arquivo do mundo, as mudanças gravadas e a área ficam no IndexedDB (`wio:file`, `wio:patches`, `wio:meta`); o salvamento automático guarda só os pedaços editados da área (vazios incluídos), e ao recarregar a área é lida do mundo e os pedaços salvos vão por cima.
 - **Validação**: o `.mcworld` exportado foi aberto com o LevelDB da Mojang (pacote `amulet-leveldb`, o mesmo código de recuperação do jogo) e comparado com o original: num mundo real de 94 mil chaves, só mudaram as posições editadas e o mapa de alturas dos dois chunks. Falta abrir no jogo.
@@ -141,6 +146,7 @@ Projeto > Abrir mundo do jogo aceita o `.mcworld` exportado pelo Bedrock, um `.z
 - `.schem`: NBT gzip, Sponge v3, DataVersion 4671 (Java 1.21.11). Folhas saem com `persistent=true`.
 - `.mcstructure`: NBT little-endian sem compressão, índices na ordem X, Y, Z, versão de bloco 18090528. Segunda camada toda -1. Opção "preservar terreno" usa `minecraft:structure_void` nas células vazias.
 - Nomes Bedrock vêm de `minecraft-data` (edição bedrock 1.26.51), com tabela de apelidos em `scripts/gen_blocks.js` (ex.: `bricks` vira `brick_block`, `magma_block` vira `magma`). Blocos sem equivalente Bedrock são descartados da paleta.
+- **Mundo novo** (`.mcworld`, sem mundo aberto): `level.dat` vem de `data/leveldat-plano.dat` (NBT lido e regravado com tipos, trocando nome, semente, data e nascimento); o banco sai com `CURRENT`, `MANIFEST-000002` (comparador, log 3, próximo arquivo 4) e `000003.log` com todas as chaves. Cada chunk do espaço do editor ganha os sub-chunks (chão plano de y −64 a −61: rocha-mãe, 2 terras e grama; a construção a partir de y −60), 0x2B (alturas e o bioma pintado de cada coluna, planície onde não há), 0x2C = 42 (versão do chunk), 0x36 = 2 (terminado) e 0x31 (camas). Conferido no servidor 1.26.52: blocos, estados e biomas no lugar.
 - No artefato do Claude os downloads só aceitam algumas extensões, então `.schem` e `.mcstructure` saem dentro de um `.zip` (gerado por `makeZip` em `src/exporters.js`).
 
 ## Não testado ainda
@@ -169,6 +175,8 @@ Projeto > Abrir mundo do jogo aceita o `.mcworld` exportado pelo Bedrock, um `.z
 1. O servidor gera um mundo (`tickingarea add 0 0 0 95 0 95 gen` força a geração em volta do 0,0); a pasta do mundo, zipada, vira `.mcworld`.
 2. `node scripts/bds/site.js <url do editor> <mundo.mcworld> <pasta>` abre o mundo no site, constrói blocos com estados e circuitos de redstone em y = 100, exporta desligado e ligado (`editado-off/on.mcworld`) e grava os `setblock` que ligam as alavancas (`cmds-on.json`).
 3. O servidor abre `editado-off`, recebe os `setblock` e para; `python3 scripts/bds/cmp.py <pasta com leveldb e nbtle> <mundo A> <mundo B> A B` compara a região bloco a bloco (nome e estados). Os estados que o jogo acrescenta sozinho (`minecraft:corner` das escadas, `connection_*` de cercas e vidraças) não são erro.
+
+Biomas, na 1.26.52: pintar planície nevada num chunk de planície faz nascer errantes só nele (o jogo trata o bioma pintado como natural). Áreas de nascimento de estruturas (registros 0x77 do chunk: posto avançado, cabana da bruxa) copiadas de uma estrutura real para outro lugar não funcionam: em 10 rodadas de 30 s, 0 saqueadores na cópia e 30 no posto real (zumbis nasceram normalmente na cópia).
 
 Resultado na 1.26.52: desligado igual; ligado igual em todos os circuitos (só a metade de cima da porta: o jogo guarda `open_bit` só na de baixo). O teste achou e corrigiu a alavanca no chão/teto exportada invertida e o funil exportado travado.
 

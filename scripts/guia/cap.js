@@ -27,7 +27,7 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await shot('medidas', { x: 0, y: 54, width: 972, height: 718 });
   await cam(VIEW);
   // barra de ferramentas
-  const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere', 'shape2', 'fill', 'select', 'mask', 'mix', 'sculpt', 'ruler', 'tp']) tsel[t] = '[data-tool="' + t + '"]';
+  const tsel = {}; for (const t of ['place', 'erase', 'pick', 'use', 'rotate', 'line', 'box', 'hbox', 'sphere', 'hsphere', 'shape2', 'fill', 'select', 'mask', 'biome', 'mix', 'sculpt', 'ruler', 'tp']) tsel[t] = '[data-tool="' + t + '"]';
   Object.assign(tsel, { undo: '#undo', hist: '#histBtn', redo: '#redo', meas: '#measTbtn', layer: '#layerBtn', range: '#layerRange', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary' });
   await shot('barra', { x: 0, y: 0, width: 972, height: 54 }, await rectsOf(p, tsel));
   // hotbar e status

@@ -305,17 +305,18 @@ function wioBase(dec, cells0, cells1, i, beds, wx, wy, wz) {
   return v;
 }
 /* Entrada de paleta (NBT) para uma célula do editor, na posição dada (as formas dependem dos vizinhos) */
-function wioEntry(v, x, y, z) {
+function wioEntry(v, x, y, z, C) {
   if (!v) return wioAir();
+  C = C || wio;
   var bi = cellBlock(v), b = BLOCKS[bi];
-  if (bi === PRES_BI) { var e = wio.pres[cellOri(v)]; return e ? e.raw : wioAir(); }
+  if (bi === PRES_BI) { var e = C.pres[cellOri(v)]; return e ? e.raw : wioAir(); }
   var r;
   if (b.shape) { var s = shapeExport(b, cellOri(v), x, y, z); r = { n: s.bn, s: s.bs, v: s.bv, ent: s.ent }; }
   else { var be = MCExport.bedrockEntry(b, b.ori ? cellOri(v) : null); r = { n: be.name, s: be.states, v: be.version }; }
-  var key = r.n + JSON.stringify(r.s) + r.v, raw = wio.entries.get(key);
+  var key = r.n + JSON.stringify(r.s) + r.v, raw = C.entries.get(key);
   if (!raw) {
     raw = nbtRootLE({ name: { t: 'string', v: 'minecraft:' + r.n }, states: { t: 'compound', v: r.s }, version: { t: 'int', v: r.v || WIO_BLOCK_VERSION } });
-    wio.entries.set(key, raw);
+    C.entries.set(key, raw);
   }
   return r.ent ? { raw: raw, ent: r.ent } : raw;
 }
@@ -343,7 +344,7 @@ async function wioOpenFile(file, prog) {
   var dbNames = zip.paths.filter(function (p) { return p.indexOf(pre + 'db/') === 0 && p.indexOf('/', pre.length + 3) < 0; }).map(function (p) { return p.slice(pre.length + 3); });
   var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog);
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
-    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), legacy: 0 };
+    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0 };
   try { var nm = new TextDecoder().decode(await zip.read(pre + 'levelname.txt')).trim(); if (nm) w.name = nm; } catch (e) {}
   try { var ld = await zip.read(pre + 'level.dat'), lo = nbtRead(ld.subarray(8), true); if (lo.LevelName) w.name = lo.LevelName; w.spawn = [lo.SpawnX | 0, lo.SpawnZ | 0]; } catch (e) {}
   // chunks de cada dimensão: os que existem (chave de versão) e os sub-chunks guardados
@@ -386,6 +387,7 @@ async function wioMap(dim, prog) {
   cols.forEach(function (c) { x0 = Math.min(x0, c.x); z0 = Math.min(z0, c.z); x1 = Math.max(x1, c.x); z1 = Math.max(z1, c.z); });
   var bw = (x1 - x0 + 1) * 16, bh = (z1 - z0 + 1) * 16, sc = Math.max(1, Math.ceil(Math.max(bw, bh) / 4096));
   var W2 = Math.ceil(bw / sc), H2 = Math.ceil(bh / sc), img = new ImageData(W2, H2), hgt = new Int16Array(W2 * H2).fill(-32768);
+  var bimg = new ImageData(W2, H2), bid = new Uint8Array(W2 * H2).fill(255), bcnt = {}; // mapa dos biomas (o bioma no topo de cada coluna)
   var D = WIO_DIMS[dim];
   var extra = new Map(); // sub-chunks criados pelas edições (ainda não estão no índice do mundo)
   wio.patches.forEach(function (v, k) { if (!v || k.length !== (dim ? 14 : 10) || k.charCodeAt(dim ? 12 : 8) !== 0x2f) return; var u = new DataView(wioBytes(k.slice(0, 8)).buffer), y = k.charCodeAt(k.length - 1), ck = u.getInt32(0, true) + ',' + u.getInt32(4, true); if (!extra.has(ck)) extra.set(ck, []); extra.get(ck).push(y > 127 ? y - 256 : y); });
@@ -408,7 +410,13 @@ async function wioMap(dim, prog) {
         }
       }
     }
+    var b3 = null; try { var d3r = await wioGet(wioKey(c.x, c.z, dim, 0x2b)); if (d3r && d3r.length > 512) b3 = bioDecode3D(d3r); } catch (e) {}
     for (var q2 = 0; q2 < 256; q2++) {
+      if (b3 && top[q2] !== -32768) { // q2 = x*16 + z aqui
+        var ry = top[q2] - D.min, sb = b3.subs[ry >> 4] || b3.subs[b3.subs.length - 1], bv = sb ? sb[((q2 >> 4) << 8) | ((q2 & 15) << 4) | (ry & 15)] : 255;
+        if (bv !== 255) { var bx = Math.floor(((c.x - x0) * 16 + (q2 >> 4)) / sc), bz = Math.floor(((c.z - z0) * 16 + (q2 & 15)) / sc), bo = bz * W2 + bx, bc2 = BIO_BY_ID[bv] ? BIO_BY_ID[bv].map : 0x888888;
+          bid[bo] = bv; bcnt[bv] = (bcnt[bv] || 0) + 1; bimg.data[bo * 4] = bc2 >> 16 & 255; bimg.data[bo * 4 + 1] = bc2 >> 8 & 255; bimg.data[bo * 4 + 2] = bc2 & 255; bimg.data[bo * 4 + 3] = 255; }
+      }
       if (!col[q2]) continue;
       var px = Math.floor(((c.x - x0) * 16 + (q2 >> 4)) / sc), pz = Math.floor(((c.z - z0) * 16 + (q2 & 15)) / sc), o = pz * W2 + px;
       hgt[o] = top[q2]; img.data[o * 4] = col[q2][0]; img.data[o * 4 + 1] = col[q2][1]; img.data[o * 4 + 2] = col[q2][2]; img.data[o * 4 + 3] = 255;
@@ -421,7 +429,7 @@ async function wioMap(dim, prog) {
     var f = a > b2 ? 1.12 : a < b2 ? 0.86 : 1;
     for (var ch = 0; ch < 3; ch++) img.data[o2 * 4 + ch] = Math.min(255, img.data[o2 * 4 + ch] * f);
   }
-  return (wio.maps[dim] = { img: img, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
+  return (wio.maps[dim] = { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
 }
 
 /* ---------- Carregar uma área no editor ---------- */
@@ -435,6 +443,7 @@ async function wioLoadArea(dim, x0, z0, w, d, prog) {
     if (prog && ++n % 16 === 0) prog(n, tot);
     if (!col || !col.ok) { miss++; continue; }
     var beds = await wioBeds(dim, cx, cz);
+    try { var d3 = await wioGet(wioKey(cx, cz, dim, 0x2b)); if (d3 && d3.length > 512) bioFromWorld(d3, a, b); } catch (e) {} // bioma de cada coluna, para mostrar
     for (var ey = 0; ey < ns; ey++) { // todas as alturas: um pedaço criado ao editar (antes só ar) também conta
       var sy = ey + ms, raw = await wioGet(wioKey(cx, cz, dim, 0x2f, sy)); if (!raw) continue;
       var dec = subDecode(raw); if (!dec) { wio.legacy++; continue; }
@@ -594,6 +603,8 @@ async function wioRestore() {
       for (var o = 0; o < 4096; o++) { var x = x0 + (o & 15), y = y0 + (o >> 8), z = z0 + ((o >> 4) & 15); if (inB(x, y, z) && gget(x, y, z)) { gset(x, y, z, 0); blockCount--; } }
       if (!r.empty) chunkFromRecord(r);
     });
+    var wb = await idbDo('readonly', function (st) { return st.get('w:bio'); }).catch(function () { return null; });
+    if (wb) { bioFromRecord(wb); bioPaint.forEach(function (a, k) { wio.bioEdited.add(k); }); bioSaveFlag = false; } // biomas pintados ainda não gravados no mundo
     if (wm && wm.hotbar) { hotbar = wm.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; }); slot = wm.slot | 0; }
     worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; });
     verCounter++; dirtyAll(); renderHotbar(); renderList(); wioChip();
@@ -633,9 +644,9 @@ async function wioOpen(file) {
   } catch (e) { busyEnd(); toast(e.message || 'Não foi possível abrir o mundo.', 9000); }
 }
 async function wioCommitAll() {
-  if (!wio || !wio.area || !wio.edited.size) return null;
+  if (!wio || !wio.area || (!wio.edited.size && !wio.bioEdited.size)) return null;
   busy('Guardando as mudanças da área…', null);
-  try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); await wioSaveSession(false); return r; }
+  try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); r.biomes = await bioCommit(); await wioSaveSession(false); return r; }
   finally { busyEnd(); }
 }
 /* Chunks não gerados no mapa da área: no Fim (e em ilhas soltas) o vazio gerado e o nunca gerado ficavam iguais.
@@ -672,7 +683,8 @@ function wioArea() {
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
     '<div class="wtabs mbtns">' + tabs + '</div>' +
     '<div class="wmap"><canvas id="wmCv"></canvas><div class="wzoom"><button id="wmIn" title="Aproximar">+</button><button id="wmOut" title="Afastar">−</button></div></div>' +
-    '<div class="row wmleg"><label class="check"><input type="checkbox" id="wmUn"' + (wioShowUngen() ? ' checked' : '') + '> Destacar chunks não gerados</label><span class="wsw un"></span><span>nunca gerados pelo jogo (vazios no editor)</span><span class="wsw gen"></span><span>gerados (mesmo vazios, como o vazio do Fim)</span><span id="wmHov" class="pen"></span></div>' +
+    '<div class="row wmleg"><span class="mbtns seg2"><button id="wmModeT" aria-pressed="true">Terreno</button><button id="wmModeB" aria-pressed="false">Biomas</button></span><label class="check"><input type="checkbox" id="wmUn"' + (wioShowUngen() ? ' checked' : '') + '> Destacar chunks não gerados</label><span class="wsw un"></span><span>nunca gerados pelo jogo (vazios no editor)</span><span class="wsw gen"></span><span>gerados (mesmo vazios, como o vazio do Fim)</span><span id="wmHov" class="pen"></span></div>' +
+    '<div class="wmbio" id="wmBio" hidden></div>' +
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button></div>' +
@@ -680,7 +692,17 @@ function wioArea() {
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
       overlayRoot.querySelector('.dialog').classList.add('wide');
-      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null, mask = null;
+      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null, bbmp = null, mask = null, bmode = wioArea.bmode || false;
+      var setMode = function (b) {
+        bmode = wioArea.bmode = b; $('wmModeT').setAttribute('aria-pressed', String(!b)); $('wmModeB').setAttribute('aria-pressed', String(b));
+        var L = $('wmBio'); L.hidden = !b || !mp;
+        if (b && mp) { // legenda: os biomas desta dimensão, do que mais aparece ao que menos aparece
+          var ids = Object.keys(mp.bcnt).map(Number).sort(function (x, y) { return mp.bcnt[y] - mp.bcnt[x]; });
+          L.innerHTML = ids.length ? ids.map(function (id) { var bb = BIO_BY_ID[id]; return '<span class="wbl">' + (bb ? bioSw(bb) + esc(bb.pt) : '#' + id) + '</span>'; }).join('') : 'Sem informação de bioma neste mundo.';
+        }
+        draw();
+      };
+      $('wmModeT').onclick = function () { setMode(false); }; $('wmModeB').onclick = function () { setMode(true); };
       $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
       $('wmS').value = String(st.size);
       $('wmNo').onclick = closeDialog;
@@ -716,7 +738,7 @@ function wioArea() {
           g.imageSmoothingEnabled = false; g.drawImage(mask, p0[0], p0[1], mask.width * cw, mask.height * cw);
         }
         g.imageSmoothingEnabled = V.s * mp.sc < 2;
-        g.drawImage(bmp, p0[0], p0[1], mp.w * mp.sc * V.s, mp.h * mp.sc * V.s);
+        g.drawImage(bmode && bbmp ? bbmp : bmp, p0[0], p0[1], mp.w * mp.sc * V.s, mp.h * mp.sc * V.s);
         if (un) {
           if (cw >= 10) { // perto: as divisas dos chunks
             g.strokeStyle = 'rgba(128,128,128,.35)'; g.lineWidth = 1; g.beginPath();
@@ -738,12 +760,12 @@ function wioArea() {
       }
       async function loadDim() {
         overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-wd') === st.dim)); });
-        mp = null; mask = null; st.view = null; draw();
+        mp = null; mask = null; bbmp = null; st.view = null; draw();
         $('wmInfo').textContent = 'Desenhando o mapa…';
         var m = await wioMap(st.dim, function (i, n) { $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
         if (!overlayRoot.contains(cv)) return;
         mp = m; if (!mp) { info(); return; }
-        bmp = await createImageBitmap(mp.img); fit(); draw(); info();
+        bmp = await createImageBitmap(mp.img); bbmp = await createImageBitmap(mp.bimg); fit(); setMode(bmode); info();
       }
       overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) {
         b.onclick = function () { var d = +b.getAttribute('data-wd'); if (d === st.dim) return; st.dim = d; var h = home(d); st.cx = h[0]; st.cz = h[1]; loadDim(); };
@@ -761,7 +783,8 @@ function wioArea() {
         var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
         var x = st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s, z = st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s;
         var cx = Math.floor(x / 16), cz = Math.floor(z / 16), c = wio.dims[st.dim].get(cx + ',' + cz);
-        $('wmHov').textContent = 'X ' + Math.floor(x) + ', Z ' + Math.floor(z) + ' · chunk ' + cx + ', ' + cz + ': ' + (c && c.ok ? 'gerado' : c ? 'num formato antigo (fica vazio)' : 'não gerado');
+        var bi = -1; if (mp) { var px = Math.floor((x - mp.x0) / mp.sc), pz = Math.floor((z - mp.z0) / mp.sc); if (px >= 0 && pz >= 0 && px < mp.w && pz < mp.h) bi = mp.bid[pz * mp.w + px]; }
+        $('wmHov').textContent = 'X ' + Math.floor(x) + ', Z ' + Math.floor(z) + ' · chunk ' + cx + ', ' + cz + ': ' + (c && c.ok ? 'gerado' : c ? 'num formato antigo (fica vazio)' : 'não gerado') + (bi >= 0 && bi !== 255 && BIO_BY_ID[bi] ? ' · ' + BIO_BY_ID[bi].pt : '');
       });
       cv.addEventListener('pointerleave', function () { $('wmHov').textContent = ''; });
       cv.addEventListener('pointerup', function (e) {
@@ -813,6 +836,142 @@ async function wioExport() {
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
     }
     toast('Mundo exportado: ' + nm + '. Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.' + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : ''), 10000);
+  } catch (e) { reportErr(e); }
+  finally { busyEnd(); }
+}
+
+/* ---------- Mundo novo: a construção feita do zero vira um mundo plano do Bedrock (.mcworld), com os biomas ---------- */
+/* O level.dat vem de um mundo plano criativo gerado pelo servidor oficial (data/leveldat-plano.dat); o site troca o
+   nome, a semente, o ponto de nascimento e a data. O chão plano do jogo (rocha-mãe, 2 de terra, grama) fica de y -64
+   a -61 e a construção começa logo acima: o y 0 do editor é o y -60 do mundo, e o x/z 0 do editor é o x/z 0 do mundo.
+   Todos os chunks do espaço do editor são gravados (blocos, chão, alturas e biomas de cada coluna); os de fora o jogo
+   gera planos, com o bioma de planície. O banco LevelDB sai só com o arquivo de registro (log) e o MANIFEST. */
+var NW_LEVEL = '%%LEVELDAT%%', NW_Y0 = -60, NW_CHUNK_VERSION = 42;
+/* NBT little-endian genérico (lê e grava qualquer tipo, sem perder o tipo de cada valor) */
+function nbtTreeLE(u8) {
+  var p = 0, dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), dec = new TextDecoder();
+  function str() { var n = dv.getUint16(p, true); p += 2; var s = dec.decode(u8.subarray(p, p + n)); p += n; return s; }
+  function pay(t) {
+    var v, n, i;
+    switch (t) {
+      case 1: return u8[p++];
+      case 2: v = dv.getInt16(p, true); p += 2; return v;
+      case 3: v = dv.getInt32(p, true); p += 4; return v;
+      case 4: case 6: v = u8.slice(p, p + 8); p += 8; return v;
+      case 5: v = u8.slice(p, p + 4); p += 4; return v;
+      case 7: n = dv.getInt32(p, true); p += 4; v = u8.slice(p, p + n); p += n; return v;
+      case 8: return str();
+      case 9: { var et = u8[p++]; n = dv.getInt32(p, true); p += 4; var a = []; for (i = 0; i < n; i++) a.push(pay(et)); return { et: et, a: a }; }
+      case 10: { var c = []; for (;;) { var ct = u8[p++]; if (!ct) break; var k = str(); c.push({ k: k, t: ct, v: pay(ct) }); } return c; }
+      case 11: n = dv.getInt32(p, true); p += 4; v = []; for (i = 0; i < n; i++, p += 4) v.push(dv.getInt32(p, true)); return v;
+      case 12: n = dv.getInt32(p, true); p += 4; v = u8.slice(p, p + n * 8); p += n * 8; return v;
+    }
+    throw new Error('NBT: tipo ' + t);
+  }
+  var t = u8[p++], name = str();
+  return { k: name, t: t, v: pay(t) };
+}
+function nbtTreeWrite(root) {
+  var out = [], enc = new TextEncoder();
+  function i32(v) { var b = new Uint8Array(4); new DataView(b.buffer).setInt32(0, v, true); out.push(b); }
+  function str(s) { var e = enc.encode(s), b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, e.length, true); out.push(b, e); }
+  function pay(t, v) {
+    switch (t) {
+      case 1: out.push(new Uint8Array([v & 255])); break;
+      case 2: { var b = new Uint8Array(2); new DataView(b.buffer).setInt16(0, v, true); out.push(b); break; }
+      case 3: i32(v); break;
+      case 4: case 5: case 6: out.push(v); break;
+      case 7: i32(v.length); out.push(v); break;
+      case 8: str(v); break;
+      case 9: out.push(new Uint8Array([v.et])); i32(v.a.length); v.a.forEach(function (x) { pay(v.et, x); }); break;
+      case 10: v.forEach(function (e) { out.push(new Uint8Array([e.t])); str(e.k); pay(e.t, e.v); }); out.push(new Uint8Array([0])); break;
+      case 11: i32(v.length); v.forEach(i32); break;
+      case 12: i32(v.length / 8); out.push(v); break;
+    }
+  }
+  out.push(new Uint8Array([root.t])); str(root.k); pay(root.t, root.v);
+  return wioCat(out);
+}
+function nwLong(n) { var b = new Uint8Array(8), dv = new DataView(b.buffer); dv.setUint32(0, n % 4294967296, true); dv.setUint32(4, Math.floor(n / 4294967296), true); return b; }
+function nwLevelDat(name, sx, sz) {
+  var raw = wioBytes(atob(NW_LEVEL)), tree = nbtTreeLE(raw.subarray(8));
+  var set = function (k, v) { tree.v.forEach(function (e) { if (e.k === k) e.v = v; }); };
+  set('LevelName', name); set('RandomSeed', nwLong(Math.floor(Math.random() * 2147483647)));
+  set('LastPlayed', nwLong(Math.floor(Date.now() / 1000))); set('Time', nwLong(0)); set('currentTick', nwLong(0));
+  set('SpawnX', Math.floor(sx / 2)); set('SpawnZ', Math.floor(sz / 2)); set('SpawnY', 32767);
+  var body = nbtTreeWrite(tree), hd = new Uint8Array(8), dv = new DataView(hd.buffer);
+  dv.setInt32(0, new DataView(raw.buffer, raw.byteOffset).getInt32(0, true), true); dv.setInt32(4, body.length, true);
+  return wioCat([hd, body]);
+}
+/* VersionEdit do LevelDB: comparador, arquivo de log atual (3), próximo número de arquivo (4), última sequência */
+function nwManifest(lastSeq) {
+  var cmp = new TextEncoder().encode('leveldb.BytewiseComparator'), b = [1, cmp.length];
+  for (var i = 0; i < cmp.length; i++) b.push(cmp[i]);
+  b.push(2); wioPutVar(b, 3); b.push(9); wioPutVar(b, 0); b.push(3); wioPutVar(b, 4); b.push(4); wioPutVar(b, lastSeq);
+  var pay = new Uint8Array(b), hd = new Uint8Array(7), crc = crcMask(crc32c(pay, crc32c(new Uint8Array([1]))));
+  hd[0] = crc; hd[1] = crc >>> 8; hd[2] = crc >>> 16; hd[3] = crc >>> 24; hd[4] = pay.length; hd[5] = pay.length >> 8; hd[6] = 1;
+  return wioCat([hd, pay]);
+}
+async function nwBuild(name, prog) {
+  var C = { pres: wio ? wio.pres : [], entries: new Map() }, ents = [], lost = 0;
+  var ground = ['bedrock', 'dirt', 'dirt', 'grass_block'].map(function (n) { return wioEntry(cellFromName(n), 0, 0, 0, C); });
+  var air = wioAir(), NC = Math.ceil(SX / 16), NZ = Math.ceil(SZ / 16), ymax = 319 - NW_Y0; // y mais alto do editor que cabe
+  var ver = new Uint8Array([NW_CHUNK_VERSION]), fin = new Uint8Array([2, 0, 0, 0]);
+  for (var cz = 0; cz < NZ; cz++) for (var cx = 0; cx < NC; cx++) {
+    if (prog) { prog(cz * NC + cx, NC * NZ); if (!((cz * NC + cx) & 7)) await new Promise(function (r) { setTimeout(r, 0); }); }
+    var hm = new Int16Array(256), bes = [], tops = new Int16Array(256).fill(-61);
+    for (var sy = -4; sy < 20; sy++) {
+      var ey0 = sy * 16 - NW_Y0; // y do editor no começo deste sub-chunk
+      var has = sy === -4;
+      for (var q = Math.max(0, ey0 >> 4); q <= Math.min(SY - 1, ey0 + 15) >> 4 && !has; q++) if (ey0 + 15 >= 0 && W.has(ckey(cx, q, cz))) has = true;
+      if (!has) continue;
+      var idx = new Uint16Array(4096), pal = [air], pmap = new Map([[wioStr(air), 0]]), any = false;
+      for (var x = 0; x < 16; x++) for (var z = 0; z < 16; z++) for (var y = 0; y < 16; y++) {
+        var wy = sy * 16 + y, ex = cx * 16 + x, ez = cz * 16 + z, ey = wy - NW_Y0, e = null;
+        if (wy < -60) e = ground[wy + 64];
+        else if (ex < SX && ez < SZ && ey < SY) {
+          var v = gget(ex, ey, ez);
+          if (v) { e = wioEntry(v, ex, ey, ez, C); tops[(z << 4) | x] = wy; if (e.ent) { bes.push(nbtRootLE({ id: { t: 'string', v: e.ent.id }, isMovable: { t: 'byte', v: 1 }, color: { t: 'byte', v: e.ent.color }, x: { t: 'int', v: ex }, y: { t: 'int', v: wy }, z: { t: 'int', v: ez } })); e = e.raw; } }
+        }
+        if (!e) continue;
+        var s = wioStr(e), pi = pmap.get(s);
+        if (pi === undefined) { pi = pal.length; pal.push(e); pmap.set(s, pi); }
+        idx[(x << 8) | (z << 4) | y] = pi; any = true;
+      }
+      if (any) ents.push([wioKey(cx, cz, 0, 0x2f, sy), subEncode(sy, [{ idx: idx, pal: pal }])]);
+    }
+    for (var ey = ymax + 1; ey < SY; ey++) for (x = 0; x < 16; x++) for (z = 0; z < 16; z++) if (cx * 16 + x < SX && cz * 16 + z < SZ && gget(cx * 16 + x, ey, cz * 16 + z)) lost++;
+    var subs = [];
+    for (var b = 0; b < 24; b++) {
+      var ids = new Uint8Array(4096);
+      for (x = 0; x < 16; x++) for (z = 0; z < 16; z++) { var bid = bioAt(cx * 16 + x, cz * 16 + z); ids.fill(bid >= 0 && bid < 255 ? bid : 1, (x << 8) | (z << 4), ((x << 8) | (z << 4)) + 16); }
+      subs.push(ids);
+    }
+    for (var i = 0; i < 256; i++) hm[i] = tops[i] + 1 + 64;
+    ents.push([wioKey(cx, cz, 0, 0x2b), bioEncode3D(hm, subs)], [wioKey(cx, cz, 0, 0x2c), ver], [wioKey(cx, cz, 0, 0x36), fin]);
+    if (bes.length) ents.push([wioKey(cx, cz, 0, 0x31), wioCat(bes)]);
+  }
+  ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+  var files = [
+    { name: 'level.dat', data: nwLevelDat(name, SX, SZ) },
+    { name: 'levelname.txt', data: new TextEncoder().encode(name) },
+    { name: 'db/CURRENT', data: new TextEncoder().encode('MANIFEST-000002\n') },
+    { name: 'db/MANIFEST-000002', data: nwManifest(0) },
+    { name: 'db/000003.log', data: ldbLogWrite(ents, 1) }
+  ];
+  return { bytes: MCExport.makeZip(files), chunks: NC * NZ, lost: lost };
+}
+async function nwExport(name) {
+  try {
+    busy('Montando o mundo novo…', 0);
+    var out = await nwBuild(name, function (i, n) { busy('Montando o mundo novo: chunk ' + i + ' de ' + n, i / n); });
+    var nm = cleanName(name) + '.mcworld';
+    if (inArtifact) reportSave(await saveBytes(nm, out.bytes), nm);
+    else {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out.bytes], { type: 'application/octet-stream' })); a.download = nm; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+    }
+    toast('Mundo novo exportado: ' + nm + ' (' + out.chunks + ' chunks). Abra o arquivo no jogo: ele vira um mundo plano criativo com a construção e os biomas pintados, a partir de X 0, Z 0.' + (out.lost ? ' ' + out.lost + ' blocos acima do limite de altura do mundo ficaram de fora.' : ''), 10000);
   } catch (e) { reportErr(e); }
   finally { busyEnd(); }
 }

@@ -365,7 +365,7 @@ function rsAfterBatch(b) {
   if (b.length > 20000 && !rsAny()) return; // edição enorme sem nenhuma redstone no mundo: nada a fazer
   rs.steps = 0;
   var seeds = [];
-  for (var k = 0; k < b.length && seeds.length < 200000; k++) { var p = unidx(b.i[k]); seeds.push(p); rsSeen(p[0], p[1], p[2]); }
+  for (var k = 0; k < b.length && seeds.length < 200000; k++) { if (b.i[k] < 0) continue; var p = unidx(b.i[k]); seeds.push(p); rsSeen(p[0], p[1], p[2]); }
   rs.touched = seeds.concat(rs.touched);
   rsSettle();
   if (rs.steps) { requestRender(); updateStatus(); }

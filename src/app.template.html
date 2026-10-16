@@ -75,7 +75,7 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#mixChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#mixChip,#bioChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
 #crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5;background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
@@ -103,11 +103,13 @@ body.walking #viewport canvas{cursor:none}
 #chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted)}
 #chips button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
 #chips button.mine{border-style:dashed}
-#tools .tbtn{min-width:24px;padding:0 2px}
+#tools .tbtn{min-width:23px;padding:0 1px}
 .mixbar{display:inline-flex;width:84px;height:14px;border-radius:3px;overflow:hidden;border:1px solid var(--line);vertical-align:middle;margin:0 6px;flex:none}
 .mixbar span{height:100%;image-rendering:pixelated}
 .mixbar.big{display:flex;width:100%;height:22px;margin:0;border-radius:6px}
 .mixl{font-size:12px}
+#bioSel{max-width:180px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px}
+.bsw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
 .mxrows{display:flex;flex-direction:column;gap:6px}
 .mxrow{display:flex;align-items:center;gap:8px}
 .mxrow .sw{width:26px;height:26px;border-radius:4px;flex:none}
@@ -147,6 +149,9 @@ body.walking #viewport canvas{cursor:none}
 .wmap canvas{display:block;touch-action:none;cursor:crosshair}
 .wmleg{font-size:12px;color:var(--muted);gap:6px 8px}
 .wmleg .check{font-size:12px}
+.seg2 button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
+.wmbio{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--fg);max-height:84px;overflow:auto;flex:none}
+.wbl{white-space:nowrap}
 .wsw{width:14px;height:14px;border-radius:3px;border:1px solid var(--line);flex:none}
 .wsw.un{background:rgba(214,58,48,.6)}.wsw.gen{background:rgba(96,106,128,.75)}
 #wmHov{margin-left:auto;font-family:var(--font-mono)}
@@ -250,6 +255,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
+          <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
           <button class="tbtn txt" id="helpBtn">Atalhos e ajuda</button>
@@ -262,13 +268,14 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
       <span>Alvo <b id="stPos">–</b></span>
       <span>Bloco <b id="stBlock">–</b></span>
+      <span id="stBioW" hidden>Bioma <b id="stBio">–</b></span>
       <span>Construção <b id="stSize">vazia</b></span>
       <span>Blocos <b id="stCount">0</b></span>
     </div>
@@ -424,7 +431,9 @@ function endBatch() {
 }
 function applyBatch(b, undo) {
   for (var k = 0; k < b.length; k++) {
-    var j = undo ? b.length - 1 - k : k, p = unidx(b.i[j]);
+    var j = undo ? b.length - 1 - k : k;
+    if (b.i[j] < 0) { bioApplyLog(b.i[j], undo ? b.o[j] : b.v[j]); continue; } // coluna de bioma (src/biome.js)
+    var p = unidx(b.i[j]);
     setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
   }
 }
@@ -555,6 +564,7 @@ var TOOLS = [
   ['fill', 'Balde: encher uma área fechada (Shift troca a região do mesmo bloco)', 'F', '<path class="f" d="M4 9l6-6 7 7-6 6z"/><path d="M4 9l6-6 7 7-6 6zM4 9h13M17.5 13.5c0 1.2-.7 2.2-1.5 2.2s-1.5-1-1.5-2.2c0-1 1.5-3 1.5-3s1.5 2 1.5 3z"/>'],
   ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>'],
   ['mask', 'Pincel de troca: troca só o bloco da máscara dentro do raio (Shift + clique escolhe a máscara)', 'M', '<path d="M4 16c2 0 3-1 3-3l6-6 2 2-6 6c0 2-1 3-3 3"/><circle cx="14.5" cy="5.5" r="2.5" class="f"/><path d="M3 3l3 3M17 13l-2 4"/>'],
+  ['biome', 'Pincel de bioma: pinta o bioma das colunas (neve, deserto, pântano...); vai junto ao exportar o mundo (Shift + clique pega o bioma)', 'Y', '<path class="f" d="M4 16c1-7 6-11 13-12-1 7-5 12-12 13z"/><path d="M4 16c1-7 6-11 13-12-1 7-5 12-12 13zM4 17c3-3 6-6 9-9"/>'],
   ['mix', 'Pincel de mistura: vários blocos em porcentagens, sorteados voxel a voxel (Shift + clique põe o bloco clicado na mistura)', 'Q', '<path class="f" d="M3 3h6v6H3zM11 11h6v6h-6z"/><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/>'],
   ['sculpt', 'Esculpir terreno: elevar, afundar, suavizar ou aplainar com um pincel suave (Shift inverte)', 'K', '<path class="f" d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2v5H2z"/><path d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2"/><path d="M13 3v5M10.5 5.5L13 3l2.5 2.5"/>'],
   ['ruler', 'Régua: medir de um bloco a outro (A até B, B até C...)', 'N', '<path class="f" d="M2 13l11-11 5 5L7 18z"/><path d="M2 13l11-11 5 5L7 18zM6 9l2 2M9 6l2 2M12 3l2 2M4.5 11.5l1 1M7.5 8.5l1 1M10.5 5.5l1 1"/>'],
@@ -1053,7 +1063,7 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  mixPreviewReset(); updateEraseChip(); updateMaskChip(); updateMixChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
+  mixPreviewReset(); updateEraseChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
@@ -1077,6 +1087,8 @@ function updatePreview1(t) {
     maskPreview(t, accent);
   } else if (et === 'mix') {
     mixPreview(t, accent);
+  } else if (et === 'biome') {
+    bioPreview(t, accent);
   } else if (et === 'sculpt') {
     sculptPreview(t, info);
   } else if (et === 'ruler') {
@@ -1122,6 +1134,7 @@ function updateStatus() {
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
+  var bc = cell ? bioAt(cell[0], cell[2]) : -1; $('stBioW').hidden = bc < 0; if (bc >= 0) $('stBio').textContent = BIO_BY_ID[bc] ? BIO_BY_ID[bc].pt + (bioPainted(cell[0], cell[2]) >= 0 ? ' (pintado)' : '') : '#' + bc;
   if (anchor && ((anchor2 && hasHeightStep(tool)) || (t && t.place)) && isShape(effTool(lastShift))) {
     var a = anchor, b2 = anchor2 && hasHeightStep(tool) ? shapeEnd(tool, hoverXY && hoverXY[0], hoverXY && hoverXY[1]) : t.place;
     $('stSize').textContent += '  |  forma ' + (Math.abs(a[0] - b2[0]) + 1) + ' × ' + (Math.abs(a[1] - b2[1]) + 1) + ' × ' + (Math.abs(a[2] - b2[2]) + 1);
@@ -1268,6 +1281,7 @@ function pressAt(cx, cy, shift) {
   else if (et === 'tp') { if (shift && t && (t.hit || t.place)) walkStart(t.hit || [t.place[0], t.place[1] - 1, t.place[2]]); else teleportTo(t); }
   else if (et === 'fill') { fillAt(t, shift); }
   else if (et === 'mix') { mixStart(t, shift); }
+  else if (et === 'biome') { bioStart(t, shift); }
   else if (et === 'mask') {
     if (shift) maskPick(t);
     else if (t && t.hit) { stroke = { mode: 'mask', cells: new Set(), n: 0 }; beginBatch(); maskApply(t); stroke.last = t.hit; stroke.on = true; }
@@ -1309,6 +1323,7 @@ function dragAt(cx, cy) {
   if (t) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
     if (stroke.mode === 'mix') { mixDrag(t); c = null; }
+    if (stroke.mode === 'biome') { bioDrag(t); c = null; }
     if (stroke.mode === 'sculpt') c = null; // as pinceladas vêm do relógio do traço, no ponto apontado
     if (stroke.mode === 'mask') { if (c && (!stroke.last || c.join() !== stroke.last.join())) { maskApply(t); stroke.last = c; } c = null; }
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
@@ -1320,7 +1335,7 @@ function dragAt(cx, cy) {
 }
 function releaseStroke() {
   if (stroke && stroke.mode === 'sculpt') sculptEnd();
-  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mix') mixEnd(sm); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
+  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mix') mixEnd(sm); if (sm.mode === 'biome') bioEnd(sm); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
 }
 
 /* ---------- Ponteiro ---------- */
@@ -1930,6 +1945,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%HISTORY_JS%%*/
 /*%%PALETTES_JS%%*/
 /*%%MIX_JS%%*/
+/*%%BIOME_JS%%*/
 /*%%REDSTONE_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
@@ -1974,6 +1990,7 @@ function loadProject(o) {
   }
   if (o.hotbar) hotbar = o.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
   slot = o.slot | 0;
+  if (o.biomes) bioFromRecord(o.biomes); // biomas pintados (src/biome.js)
   verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
 }
@@ -1981,7 +1998,7 @@ function newWorld(sx, sy, sz) {
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
-  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset();
+  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset(); bioReset();
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -2116,12 +2133,14 @@ function openExport() {
     (big ? '<div class="info">A construção passa do tamanho de uma estrutura do Bedrock (64 × 384 × 64). Baixe <b>em pedaços</b>: ' + pieces + ' arquivos .mcstructure num .zip, com um texto dizendo onde carregar cada um.</div>' : '') +
     '<div class="row">' + (big ? '<button class="btn primary" id="exPieces">Baixar em pedaços (.zip, Bedrock)</button><button class="btn" id="exBedrock">.mcstructure inteiro</button>' : '<button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button>') + '<button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
     (boN ? '<div class="info">Só existem no Bedrock e ficam de fora do .schem (Java): ' + boTxt + '. No .mcstructure vão normalmente.</div>' : '') +
+    (wio && wio.area ? '' : '<div class="get"><b>Mundo novo (.mcworld)</b><small>Gera um mundo plano criativo do Bedrock com a construção em cima do chão (x e z 0 do editor = x e z 0 do mundo; y 0 do editor = y -60)' + (bioPaint.size ? ' e os biomas pintados' : '') + ', com o nome do arquivo acima. É o único jeito de levar os biomas: o .mcstructure e o .schem guardam só os blocos.</small><div class="row"><button class="btn" id="exNewWorld">Exportar mundo novo (.mcworld)</button></div></div>') +
     '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
     '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
     function () {
       if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
       $('exClose').onclick = closeDialog;
       if ($('exWorld')) $('exWorld').onclick = function () { closeDialog(); wioExport(); };
+      if ($('exNewWorld')) $('exNewWorld').onclick = function () { var nm = $('exName').value || 'construcao'; closeDialog(); nwExport(nm); };
       var tooBig = function () { if (bb && bb.w * bb.h * bb.l > 150e6) { toast('Construção grande demais para um arquivo só (' + Math.round(bb.w * bb.h * bb.l / 1e6) + ' milhões de espaços na caixa). Use Baixar em pedaços.', 8000); return true; } return false; };
       $('exBedrock').onclick = async function () {
         if (tooBig()) return;
@@ -2362,6 +2381,7 @@ window.addEventListener('keydown', function (e) {
   var k = e.key.toLowerCase();
   if (selectionKey(e, k)) return;
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }
+  if (tool === 'biome' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setBioR(bio.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'mix' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMixR(mix.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'sculpt' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setSculptR(sculpt.r + (k === '-' ? -1 : 1)); return; }
   if (k === 'x' && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleSymChip(); return; }
@@ -2370,7 +2390,7 @@ window.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', q: 'mix', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', q: 'mix', y: 'biome', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
@@ -2432,7 +2452,7 @@ function frame() {
   rebuildDirty();
   updateLightLabels();
   updateMeasure();
-  updateGhost();
+  updateGhost(); updateBioView();
   renderer.render(scene, camera);
 }
 

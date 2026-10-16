@@ -149,6 +149,7 @@ function fluidAfterBatch(b) {
   if (!flowOn || !b) return;
   fluidChanges = 0;
   for (var k = 0; k < b.length; k++) {
+    if (b.i[k] < 0) continue; // bioma
     var p = unidx(b.i[k]);
     fluidTouch(p[0], p[1], p[2]);
   }

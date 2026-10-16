@@ -77,7 +77,7 @@ details.menu .pop button,details.menu .pop a{justify-content:flex-start;height:3
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#mixChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#walkChip,#tpChip,#ghostChip,#worldChip,#maskChip,#mixChip,#bioChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
 #crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5;background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
@@ -105,11 +105,13 @@ body.walking #viewport canvas{cursor:none}
 #chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted)}
 #chips button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
 #chips button.mine{border-style:dashed}
-#tools .tbtn{min-width:24px;padding:0 2px}
+#tools .tbtn{min-width:23px;padding:0 1px}
 .mixbar{display:inline-flex;width:84px;height:14px;border-radius:3px;overflow:hidden;border:1px solid var(--line);vertical-align:middle;margin:0 6px;flex:none}
 .mixbar span{height:100%;image-rendering:pixelated}
 .mixbar.big{display:flex;width:100%;height:22px;margin:0;border-radius:6px}
 .mixl{font-size:12px}
+#bioSel{max-width:180px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px}
+.bsw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
 .mxrows{display:flex;flex-direction:column;gap:6px}
 .mxrow{display:flex;align-items:center;gap:8px}
 .mxrow .sw{width:26px;height:26px;border-radius:4px;flex:none}
@@ -149,6 +151,9 @@ body.walking #viewport canvas{cursor:none}
 .wmap canvas{display:block;touch-action:none;cursor:crosshair}
 .wmleg{font-size:12px;color:var(--muted);gap:6px 8px}
 .wmleg .check{font-size:12px}
+.seg2 button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
+.wmbio{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--fg);max-height:84px;overflow:auto;flex:none}
+.wbl{white-space:nowrap}
 .wsw{width:14px;height:14px;border-radius:3px;border:1px solid var(--line);flex:none}
 .wsw.un{background:rgba(214,58,48,.6)}.wsw.gen{background:rgba(96,106,128,.75)}
 #wmHov{margin-left:auto;font-family:var(--font-mono)}
@@ -252,6 +257,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
+          <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
           <button class="tbtn txt" id="helpBtn">Atalhos e ajuda</button>
@@ -264,13 +270,14 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
     <div id="status">
       <span>Alvo <b id="stPos">–</b></span>
       <span>Bloco <b id="stBlock">–</b></span>
+      <span id="stBioW" hidden>Bioma <b id="stBio">–</b></span>
       <span>Construção <b id="stSize">vazia</b></span>
       <span>Blocos <b id="stCount">0</b></span>
     </div>
@@ -837,6 +844,7 @@ function projectMeta() { return { size: [SX, SY, SZ], hotbar: hotbar.map(functio
 /* Projeto inteiro (Projeto > Salvar projeto): versão 2, por chunks */
 function serialize() {
   var o = projectMeta(); o.v = 2; o.chunks = [];
+  if (bioPaint.size) o.biomes = bioRecord();
   W.forEach(function (ch) {
     var r = chunkRecord(ch);
     if (r.d) { r.w = r.d instanceof Uint16Array ? 2 : 1; r.d = b64(new Uint8Array(r.d.buffer)); }
@@ -863,6 +871,7 @@ function autosave() {
     // num mundo do jogo, o chunk que ficou vazio também é guardado: ao reabrir, a área vem do mundo e o vazio tem de apagá-la
     recs.forEach(function (r) { if (r[1]) st.put(r[1], 'w:c:' + r[0]); else if (wio && wio.area) st.put({ c: r[0].split(',').map(Number), empty: 1 }, 'w:c:' + r[0]); else st.delete('w:c:' + r[0]); });
     st.put(meta, 'w:meta');
+    if (bioSaveFlag || clear) { bioSaveFlag = false; st.put(bioRecord(), 'w:bio'); } // biomas pintados
     histSaveInto(st, clear); // a linha do tempo vai na mesma gravação: construção e histórico sempre combinam
   }).then(function () {
     autosaveBusy = false;
@@ -885,7 +894,7 @@ function loadAutosave() {
       slot = meta.slot | 0;
       worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; }); // já está salvo assim
       verCounter++; dirtyAll(); renderHotbar(); renderList();
-      return true;
+      return idbDo('readonly', function (st) { return st.get('w:bio'); }).then(function (b) { if (b) bioFromRecord(b); bioSaveFlag = false; return true; }, function () { return true; });
     });
   }, function () { return false; });
 }
@@ -958,7 +967,9 @@ function endBatch() {
 }
 function applyBatch(b, undo) {
   for (var k = 0; k < b.length; k++) {
-    var j = undo ? b.length - 1 - k : k, p = unidx(b.i[j]);
+    var j = undo ? b.length - 1 - k : k;
+    if (b.i[j] < 0) { bioApplyLog(b.i[j], undo ? b.o[j] : b.v[j]); continue; } // coluna de bioma (src/biome.js)
+    var p = unidx(b.i[j]);
     setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
   }
 }
@@ -1089,6 +1100,7 @@ var TOOLS = [
   ['fill', 'Balde: encher uma área fechada (Shift troca a região do mesmo bloco)', 'F', '<path class="f" d="M4 9l6-6 7 7-6 6z"/><path d="M4 9l6-6 7 7-6 6zM4 9h13M17.5 13.5c0 1.2-.7 2.2-1.5 2.2s-1.5-1-1.5-2.2c0-1 1.5-3 1.5-3s1.5 2 1.5 3z"/>'],
   ['select', 'Selecionar área: copiar, colar, apagar e substituir (dois cliques)', 'V', '<path d="M3 6V3h3M14 3h3v3M17 14v3h-3M6 17H3v-3M9 3h2M9 17h2M3 9v2M17 9v2" /><path class="f" d="M7 7h6v6H7z"/>'],
   ['mask', 'Pincel de troca: troca só o bloco da máscara dentro do raio (Shift + clique escolhe a máscara)', 'M', '<path d="M4 16c2 0 3-1 3-3l6-6 2 2-6 6c0 2-1 3-3 3"/><circle cx="14.5" cy="5.5" r="2.5" class="f"/><path d="M3 3l3 3M17 13l-2 4"/>'],
+  ['biome', 'Pincel de bioma: pinta o bioma das colunas (neve, deserto, pântano...); vai junto ao exportar o mundo (Shift + clique pega o bioma)', 'Y', '<path class="f" d="M4 16c1-7 6-11 13-12-1 7-5 12-12 13z"/><path d="M4 16c1-7 6-11 13-12-1 7-5 12-12 13zM4 17c3-3 6-6 9-9"/>'],
   ['mix', 'Pincel de mistura: vários blocos em porcentagens, sorteados voxel a voxel (Shift + clique põe o bloco clicado na mistura)', 'Q', '<path class="f" d="M3 3h6v6H3zM11 11h6v6h-6z"/><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/>'],
   ['sculpt', 'Esculpir terreno: elevar, afundar, suavizar ou aplainar com um pincel suave (Shift inverte)', 'K', '<path class="f" d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2v5H2z"/><path d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2"/><path d="M13 3v5M10.5 5.5L13 3l2.5 2.5"/>'],
   ['ruler', 'Régua: medir de um bloco a outro (A até B, B até C...)', 'N', '<path class="f" d="M2 13l11-11 5 5L7 18z"/><path d="M2 13l11-11 5 5L7 18zM6 9l2 2M9 6l2 2M12 3l2 2M4.5 11.5l1 1M7.5 8.5l1 1M10.5 5.5l1 1"/>'],
@@ -1587,7 +1599,7 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  mixPreviewReset(); updateEraseChip(); updateMaskChip(); updateMixChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
+  mixPreviewReset(); updateEraseChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
@@ -1611,6 +1623,8 @@ function updatePreview1(t) {
     maskPreview(t, accent);
   } else if (et === 'mix') {
     mixPreview(t, accent);
+  } else if (et === 'biome') {
+    bioPreview(t, accent);
   } else if (et === 'sculpt') {
     sculptPreview(t, info);
   } else if (et === 'ruler') {
@@ -1656,6 +1670,7 @@ function updateStatus() {
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
+  var bc = cell ? bioAt(cell[0], cell[2]) : -1; $('stBioW').hidden = bc < 0; if (bc >= 0) $('stBio').textContent = BIO_BY_ID[bc] ? BIO_BY_ID[bc].pt + (bioPainted(cell[0], cell[2]) >= 0 ? ' (pintado)' : '') : '#' + bc;
   if (anchor && ((anchor2 && hasHeightStep(tool)) || (t && t.place)) && isShape(effTool(lastShift))) {
     var a = anchor, b2 = anchor2 && hasHeightStep(tool) ? shapeEnd(tool, hoverXY && hoverXY[0], hoverXY && hoverXY[1]) : t.place;
     $('stSize').textContent += '  |  forma ' + (Math.abs(a[0] - b2[0]) + 1) + ' × ' + (Math.abs(a[1] - b2[1]) + 1) + ' × ' + (Math.abs(a[2] - b2[2]) + 1);
@@ -1802,6 +1817,7 @@ function pressAt(cx, cy, shift) {
   else if (et === 'tp') { if (shift && t && (t.hit || t.place)) walkStart(t.hit || [t.place[0], t.place[1] - 1, t.place[2]]); else teleportTo(t); }
   else if (et === 'fill') { fillAt(t, shift); }
   else if (et === 'mix') { mixStart(t, shift); }
+  else if (et === 'biome') { bioStart(t, shift); }
   else if (et === 'mask') {
     if (shift) maskPick(t);
     else if (t && t.hit) { stroke = { mode: 'mask', cells: new Set(), n: 0 }; beginBatch(); maskApply(t); stroke.last = t.hit; stroke.on = true; }
@@ -1843,6 +1859,7 @@ function dragAt(cx, cy) {
   if (t) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
     if (stroke.mode === 'mix') { mixDrag(t); c = null; }
+    if (stroke.mode === 'biome') { bioDrag(t); c = null; }
     if (stroke.mode === 'sculpt') c = null; // as pinceladas vêm do relógio do traço, no ponto apontado
     if (stroke.mode === 'mask') { if (c && (!stroke.last || c.join() !== stroke.last.join())) { maskApply(t); stroke.last = c; } c = null; }
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
@@ -1854,7 +1871,7 @@ function dragAt(cx, cy) {
 }
 function releaseStroke() {
   if (stroke && stroke.mode === 'sculpt') sculptEnd();
-  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mix') mixEnd(sm); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
+  if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mix') mixEnd(sm); if (sm.mode === 'biome') bioEnd(sm); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
 }
 
 /* ---------- Ponteiro ---------- */
@@ -3937,6 +3954,7 @@ function fluidAfterBatch(b) {
   if (!flowOn || !b) return;
   fluidChanges = 0;
   for (var k = 0; k < b.length; k++) {
+    if (b.i[k] < 0) continue; // bioma
     var p = unidx(b.i[k]);
     fluidTouch(p[0], p[1], p[2]);
   }
@@ -5249,6 +5267,258 @@ function openMixEditor(addJava) {
   });
 }
 
+/* ---------- Biomas: pincel, cores e o que vai para o mundo ---------- */
+/* O Bedrock guarda o bioma de cada bloco (chave 0x2B de cada chunk: mapa de alturas e uma paleta de biomas por
+   sub-chunk). Aqui o bioma é por coluna (x, z): o pincel troca a coluna inteira, de baixo até o céu, como o jogo faz
+   com o bioma da superfície. Conferido no servidor oficial 1.26: um chunk pintado de planície nevada faz nascer
+   esqueletos errantes (que só nascem em bioma gelado), e a neve, a cor da grama e as criaturas seguem o bioma.
+   Dois mapas por pedaço de 16 x 16 colunas: bioPaint (o que o usuário pintou: vai para o mundo ao exportar) e
+   bioOrig (o que veio do mundo do jogo, só para mostrar). 255 = sem bioma. As pinceladas entram no histórico como
+   mudanças de índice negativo (-(x + z * SX) - 1), com o bioma + 1 como valor. */
+var BIOMES = [{"id":20,"n":"extreme_hills_edge","pt":"Borda das colinas","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":285909,"map":7763574,"dim":0,"tags":["animal","monster"]},{"id":192,"n":"cherry_grove","pt":"Bosque de cerejeiras","t":0.3,"d":0.8,"rain":1,"grass":11983713,"foliage":11983713,"water":6141935,"map":15902406,"dim":0,"tags":["mountains","monster"]},{"id":185,"n":"grove","pt":"Bosque nevado","t":-0.2,"d":0.8,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["mountains","cold","monster"]},{"id":14,"n":"mushroom_island","pt":"Campos de cogumelos","t":0.9,"d":1,"rain":1,"grass":5622335,"foliage":2865935,"water":9079191,"map":16711935,"dim":0,"tags":[]},{"id":194,"n":"sulfur_caves","pt":"Cavernas de enxofre","t":0.8,"d":0.4,"rain":1,"grass":11249231,"foliage":7842607,"water":3456905,"map":12890160,"dim":0,"tags":["caves","monster"]},{"id":188,"n":"dripstone_caves","pt":"Cavernas de espeleotemas","t":0.2,"d":0,"rain":0,"grass":9221257,"foliage":7381612,"water":4501493,"map":8152656,"dim":0,"tags":["caves","monster"]},{"id":187,"n":"lush_caves","pt":"Cavernas exuberantes","t":0.9,"d":0,"rain":0,"grass":12105051,"foliage":10921010,"water":4501493,"map":6987306,"dim":0,"tags":["caves","lush_caves","monster"]},{"id":18,"n":"forest_hills","pt":"Colinas da floresta","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":355281,"map":1080367,"dim":0,"tags":["animal","hills","monster","forest"]},{"id":28,"n":"birch_forest_hills","pt":"Colinas da floresta de bétulas","t":0.6,"d":0.6,"rain":1,"grass":8960615,"foliage":7055681,"water":685252,"map":4230230,"dim":0,"tags":["animal","forest","hills","monster"]},{"id":22,"n":"jungle_hills","pt":"Colinas da selva","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1810136,"map":6788116,"dim":0,"tags":["animal","hills","jungle","monster"]},{"id":49,"n":"bamboo_jungle_hills","pt":"Colinas da selva de bambu","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1810136,"map":9349408,"dim":0,"tags":["animal","hills","jungle","monster"]},{"id":19,"n":"taiga_hills","pt":"Colinas da taiga","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":2319747,"map":1473646,"dim":0,"tags":["animal","forest","hills","monster","taiga"]},{"id":33,"n":"mega_taiga_hills","pt":"Colinas da taiga antiga","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":2646904,"map":7240805,"dim":0,"tags":["animal","forest","hills","monster","taiga"]},{"id":31,"n":"cold_taiga_hills","pt":"Colinas da taiga nevada","t":-0.5,"d":0.4,"rain":2,"grass":8434838,"foliage":6332795,"water":2382712,"map":4286813,"dim":0,"tags":["animal","cold","forest","hills","monster","taiga"]},{"id":161,"n":"redwood_taiga_hills_mutated","pt":"Colinas de abetos antigos","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":4501493,"map":7240805,"dim":0,"tags":["animal","forest","hills","monster","taiga"]},{"id":156,"n":"birch_forest_hills_mutated","pt":"Colinas de bétulas altas","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":4501493,"map":4230230,"dim":0,"tags":["animal","forest","hills","monster"]},{"id":131,"n":"extreme_hills_mutated","pt":"Colinas de cascalho","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":943019,"map":7763574,"dim":0,"tags":["animal","monster"]},{"id":17,"n":"desert_hills","pt":"Colinas do deserto","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":1735329,"map":16756773,"dim":0,"tags":["desert","hills","monster"]},{"id":3,"n":"extreme_hills","pt":"Colinas varridas pelo vento","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":31735,"map":7763574,"dim":0,"tags":["animal","monster"]},{"id":25,"n":"stone_beach","pt":"Costa de pedra","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":878523,"map":10658436,"dim":0,"tags":["beach","monster"]},{"id":181,"n":"basalt_deltas","pt":"Deltas de basalto","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":4159204,"map":4208182,"dim":1,"tags":["nether"]},{"id":2,"n":"desert","pt":"Deserto","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":3319192,"map":16421912,"dim":0,"tags":["desert","monster"]},{"id":130,"n":"desert_mutated","pt":"Deserto (variante)","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":4501493,"map":16756773,"dim":0,"tags":["desert","monster"]},{"id":8,"n":"hell","pt":"Desertos do Nether","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":12532539,"dim":1,"tags":["nether"]},{"id":184,"n":"snowy_slopes","pt":"Encostas nevadas","t":-0.3,"d":0.9,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["frozen","mountains","monster"]},{"id":190,"n":"deep_dark","pt":"Escuridão profunda","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":4501493,"map":793120,"dim":0,"tags":["caves","deep_dark"]},{"id":4,"n":"forest","pt":"Floresta","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":2004978,"map":353825,"dim":0,"tags":["animal","forest","monster"]},{"id":179,"n":"crimson_forest","pt":"Floresta carmesim","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":14485512,"dim":1,"tags":["nether"]},{"id":27,"n":"birch_forest","pt":"Floresta de bétulas","t":0.6,"d":0.6,"rain":1,"grass":8960615,"foliage":7055681,"water":423886,"map":3175492,"dim":0,"tags":["animal","forest","monster"]},{"id":155,"n":"birch_forest_mutated","pt":"Floresta de bétulas altas","t":0.6,"d":0.6,"rain":1,"grass":8960615,"foliage":7055681,"water":4501493,"map":4230230,"dim":0,"tags":["animal","forest","monster"]},{"id":132,"n":"flower_forest","pt":"Floresta de flores","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":2139084,"map":2985545,"dim":0,"tags":["animal","monster"]},{"id":180,"n":"warped_forest","pt":"Floresta distorcida","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":4821115,"dim":1,"tags":["nether"]},{"id":29,"n":"roofed_forest","pt":"Floresta escura","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":3894481,"map":4215066,"dim":0,"tags":["animal","forest","monster"]},{"id":157,"n":"roofed_forest_mutated","pt":"Floresta escura (variante)","t":0.7,"d":0.8,"rain":1,"grass":7978842,"foliage":5811761,"water":4501493,"map":5399847,"dim":0,"tags":["animal","forest","monster"]},{"id":195,"n":"dappled_forest","pt":"Floresta salpicada","t":0.6,"d":0.6,"rain":1,"grass":14641191,"foliage":15109680,"water":3625300,"map":15109680,"dim":0,"tags":["animal","monster","forest"]},{"id":34,"n":"extreme_hills_plus_trees","pt":"Floresta varrida pelo vento","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":943019,"map":6588260,"dim":0,"tags":["animal","forest","monster"]},{"id":162,"n":"extreme_hills_plus_trees_mutated","pt":"Floresta varrida pelo vento (variante)","t":0.2,"d":0.3,"rain":1,"grass":9090184,"foliage":7185259,"water":943019,"map":6588260,"dim":0,"tags":["animal","forest","monster"]},{"id":193,"n":"pale_garden","pt":"Jardim pálido","t":0.7,"d":0.8,"rain":1,"grass":7832178,"foliage":8883574,"water":7768221,"map":9870476,"dim":0,"tags":["monster"]},{"id":13,"n":"ice_mountains","pt":"Montanhas de gelo","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":1136295,"map":15790320,"dim":0,"tags":["frozen"]},{"id":9,"n":"the_end","pt":"O End","t":0.5,"d":0.5,"rain":0,"grass":9287793,"foliage":7448398,"water":6443678,"map":8421631,"dim":2,"tags":["the_end"]},{"id":0,"n":"ocean","pt":"Oceano","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":1542100,"map":112,"dim":0,"tags":["monster","ocean"]},{"id":46,"n":"frozen_ocean","pt":"Oceano congelado","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":2453685,"map":9474240,"dim":0,"tags":["frozen","monster","ocean"]},{"id":10,"n":"legacy_frozen_ocean","pt":"Oceano congelado (antigo)","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":9474240,"dim":0,"tags":["frozen","ocean"]},{"id":47,"n":"deep_frozen_ocean","pt":"Oceano congelado profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":2453685,"map":9474240,"dim":0,"tags":["deep","frozen","monster","ocean"]},{"id":44,"n":"cold_ocean","pt":"Oceano frio","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":2130121,"map":2130112,"dim":0,"tags":["cold","monster","ocean"]},{"id":45,"n":"deep_cold_ocean","pt":"Oceano frio profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":2130121,"map":2105456,"dim":0,"tags":["cold","deep","monster","ocean"]},{"id":42,"n":"lukewarm_ocean","pt":"Oceano morno","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":890587,"map":28864,"dim":0,"tags":["monster","ocean"]},{"id":43,"n":"deep_lukewarm_ocean","pt":"Oceano morno profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":890587,"map":19072,"dim":0,"tags":["deep","monster","ocean"]},{"id":24,"n":"deep_ocean","pt":"Oceano profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":1542100,"map":48,"dim":0,"tags":["deep","monster","ocean"]},{"id":40,"n":"warm_ocean","pt":"Oceano quente","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":176357,"map":41136,"dim":0,"tags":["monster","ocean"]},{"id":41,"n":"deep_warm_ocean","pt":"Oceano quente profundo","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":176357,"map":20592,"dim":0,"tags":["deep","monster","ocean"]},{"id":6,"n":"swampland","pt":"Pântano","t":0.8,"d":0.9,"rain":1,"grass":5011004,"foliage":6975545,"water":6388580,"map":499826,"dim":0,"tags":["animal","monster","swamp"]},{"id":134,"n":"swampland_mutated","pt":"Pântano (variante)","t":0.8,"d":0.5,"rain":1,"grass":5011004,"foliage":6975545,"water":6388580,"map":1228170,"dim":0,"tags":["animal","monster","swamp"]},{"id":191,"n":"mangrove_swamp","pt":"Pântano de mangue","t":0.8,"d":0.9,"rain":1,"grass":5011004,"foliage":9285927,"water":3832426,"map":2935950,"dim":0,"tags":["monster"]},{"id":183,"n":"frozen_peaks","pt":"Picos congelados","t":-0.7,"d":0.9,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["mountains","monster","frozen"]},{"id":182,"n":"jagged_peaks","pt":"Picos irregulares","t":-0.7,"d":0.9,"rain":2,"grass":8434838,"foliage":6332795,"water":4501493,"map":15790320,"dim":0,"tags":["mountains","monster","frozen"]},{"id":189,"n":"stony_peaks","pt":"Picos rochosos","t":1,"d":0.3,"rain":1,"grass":10141002,"foliage":8563742,"water":4501493,"map":10395294,"dim":0,"tags":["mountains","monster"]},{"id":140,"n":"ice_plains_spikes","pt":"Pináculos de gelo","t":0,"d":1,"rain":2,"grass":8434838,"foliage":6332795,"water":1332635,"map":11853020,"dim":0,"tags":["frozen","monster"]},{"id":36,"n":"savanna_plateau","pt":"Planalto da savana","t":1,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":2461864,"map":14602612,"dim":0,"tags":["animal","monster","savanna"]},{"id":164,"n":"savanna_plateau_mutated","pt":"Planalto da savana (variante)","t":1,"d":0.5,"rain":1,"grass":8635204,"foliage":6599190,"water":4501493,"map":14602612,"dim":0,"tags":["animal","monster","savanna"]},{"id":39,"n":"mesa_plateau","pt":"Planalto das terras áridas","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":5603486,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":167,"n":"mesa_plateau_mutated","pt":"Planalto das terras áridas (variante)","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":4501493,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":1,"n":"plains","pt":"Planície","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":4501493,"map":9286496,"dim":0,"tags":["animal","monster","plains"]},{"id":129,"n":"sunflower_plains","pt":"Planície de girassóis","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":4501493,"map":11918216,"dim":0,"tags":["animal","monster","plains"]},{"id":12,"n":"ice_plains","pt":"Planície nevada","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":1332635,"map":15790320,"dim":0,"tags":["frozen"]},{"id":186,"n":"meadow","pt":"Prado","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":4501493,"map":8633197,"dim":0,"tags":["mountains","monster"]},{"id":16,"n":"beach","pt":"Praia","t":0.8,"d":0.4,"rain":1,"grass":9616473,"foliage":7842607,"water":1408171,"map":16440917,"dim":0,"tags":["beach","monster"]},{"id":15,"n":"mushroom_island_shore","pt":"Praia dos cogumelos","t":0.9,"d":1,"rain":1,"grass":5622335,"foliage":2865935,"water":8487315,"map":16440917,"dim":0,"tags":[]},{"id":26,"n":"cold_beach","pt":"Praia nevada","t":0.05,"d":0.3,"rain":2,"grass":8565907,"foliage":6595192,"water":1336229,"map":16445632,"dim":0,"tags":["beach","cold","monster"]},{"id":7,"n":"river","pt":"Rio","t":0.5,"d":0.5,"rain":1,"grass":9287793,"foliage":7448398,"water":34047,"map":3170559,"dim":0,"tags":["river"]},{"id":11,"n":"frozen_river","pt":"Rio congelado","t":0,"d":0.5,"rain":2,"grass":8434838,"foliage":6332795,"water":1594256,"map":10526975,"dim":0,"tags":["frozen","river"]},{"id":35,"n":"savanna","pt":"Savana","t":1.2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":2919324,"map":12431967,"dim":0,"tags":["animal","monster","savanna"]},{"id":163,"n":"savanna_mutated","pt":"Savana varrida pelo vento","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":2461864,"map":14602612,"dim":0,"tags":["animal","monster","savanna"]},{"id":21,"n":"jungle","pt":"Selva","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1352389,"map":5470985,"dim":0,"tags":["animal","jungle","monster"]},{"id":149,"n":"jungle_mutated","pt":"Selva (variante)","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1810136,"map":6788116,"dim":0,"tags":["animal","jungle","monster"]},{"id":48,"n":"bamboo_jungle","pt":"Selva de bambu","t":0.95,"d":0.9,"rain":1,"grass":5884732,"foliage":3193611,"water":1352389,"map":7769620,"dim":0,"tags":["animal","jungle","monster"]},{"id":23,"n":"jungle_edge","pt":"Selva esparsa","t":0.95,"d":0.8,"rain":1,"grass":6604863,"foliage":4110351,"water":887523,"map":7906852,"dim":0,"tags":["animal","jungle","monster"]},{"id":151,"n":"jungle_edge_mutated","pt":"Selva esparsa (variante)","t":0.95,"d":0.8,"rain":1,"grass":6604863,"foliage":4110351,"water":4501493,"map":7906852,"dim":0,"tags":["animal","jungle","monster"]},{"id":5,"n":"taiga","pt":"Taiga","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":2650242,"map":747097,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":133,"n":"taiga_mutated","pt":"Taiga (variante)","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":1993602,"map":1473646,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":160,"n":"redwood_taiga_mutated","pt":"Taiga de abetos antigos","t":0.25,"d":0.8,"rain":1,"grass":8828291,"foliage":6857828,"water":4501493,"map":7240805,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":32,"n":"mega_taiga","pt":"Taiga de pinheiros antigos","t":0.3,"d":0.8,"rain":1,"grass":8828543,"foliage":6858079,"water":2977143,"map":5858897,"dim":0,"tags":["animal","forest","monster","taiga"]},{"id":30,"n":"cold_taiga","pt":"Taiga nevada","t":-0.5,"d":0.4,"rain":2,"grass":8434838,"foliage":6332795,"water":2121347,"map":3233098,"dim":0,"tags":["animal","cold","forest","monster","taiga"]},{"id":158,"n":"cold_taiga_mutated","pt":"Taiga nevada (variante)","t":-0.5,"d":0.4,"rain":2,"grass":8434838,"foliage":6332795,"water":2121347,"map":4286813,"dim":0,"tags":["animal","cold","forest","monster","taiga"]},{"id":37,"n":"mesa","pt":"Terras áridas (mesa)","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":5144449,"map":14238997,"dim":0,"tags":["animal","mesa","monster"]},{"id":38,"n":"mesa_plateau_stone","pt":"Terras áridas com árvores","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":5603486,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":166,"n":"mesa_plateau_stone_mutated","pt":"Terras áridas com árvores (variante)","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":4501493,"map":16602914,"dim":0,"tags":["animal","mesa","monster"]},{"id":165,"n":"mesa_bryce","pt":"Terras áridas erodidas","t":2,"d":0,"rain":0,"grass":9470285,"foliage":11445290,"water":4816793,"map":14238997,"dim":0,"tags":["animal","mesa","monster"]},{"id":178,"n":"soulsand_valley","pt":"Vale das almas","t":2,"d":0,"rain":0,"grass":12498516,"foliage":11445290,"water":9460055,"map":6174768,"dim":1,"tags":["nether"]}];
+var BIO_BY_ID = {}; BIOMES.forEach(function (b) { BIO_BY_ID[b.id] = b; });
+var bioPaint = new Map(), bioOrig = new Map(), bioVer = 0, bioSaveFlag = false;
+var bio = { id: 12, r: 4, sq: false, erase: false, show: false };
+try { var bio0 = JSON.parse(localStorage.getItem('bloco-a-bloco-bioma') || 'null'); if (bio0) bio = Object.assign(bio, bio0); } catch (e) {}
+function bioPrefs() { try { localStorage.setItem('bloco-a-bloco-bioma', JSON.stringify(bio)); } catch (e) {} }
+function bioKey(cx, cz) { return cx + ',' + cz; }
+function bioCol(map, x, z) { var a = map.get(bioKey(x >> 4, z >> 4)); return a ? a[((z & 15) << 4) | (x & 15)] : 255; }
+function bioPainted(x, z) { var v = bioCol(bioPaint, x, z); return v === 255 ? -1 : v; }
+function bioAt(x, z) { var v = bioCol(bioPaint, x, z); if (v === 255) v = bioCol(bioOrig, x, z); return v === 255 ? -1 : v; }
+function bioReset() { bioPaint.clear(); bioOrig.clear(); bioVer++; bioSaveFlag = true; }
+/* Grava sem histórico (o histórico chama isto ao desfazer e refazer) */
+function bioSetRaw(x, z, id) {
+  var k = bioKey(x >> 4, z >> 4), a = bioPaint.get(k), o = ((z & 15) << 4) | (x & 15);
+  if (!a) { if (id < 0) return; a = new Uint8Array(256).fill(255); bioPaint.set(k, a); }
+  a[o] = id < 0 ? 255 : id; bioVer++; bioSaveFlag = true;
+  if (wio && wio.area) wio.bioEdited.add(k);
+  if (id < 0 && a.every(function (v) { return v === 255; })) bioPaint.delete(k);
+}
+function bioSet(x, z, id) {
+  var old = bioPainted(x, z); if (old === id) return false;
+  bioSetRaw(x, z, id);
+  if (batch) batch.add(-(x + z * SX) - 1, old + 1, id + 1);
+  return true;
+}
+/* Desfazer/refazer: índice negativo = coluna de bioma */
+function bioApplyLog(i, val) { var c = -i - 1, z = Math.floor(c / SX), x = c - z * SX; bioSetRaw(x, z, val - 1); }
+
+/* ---------- Pincel ---------- */
+function bioColumns(c, fn) {
+  var r = bio.r, R2 = (r + 0.5) * (r + 0.5);
+  for (var dz = -r; dz <= r; dz++) for (var dx = -r; dx <= r; dx++) {
+    if (!bio.sq && dx * dx + dz * dz > R2) continue;
+    var x = c[0] + dx, z = c[2] + dz; if (x < 0 || z < 0 || x >= SX || z >= SZ) continue;
+    fn(x, z);
+  }
+}
+function bioTarget(t) { return t && (t.hit || t.place); }
+function bioApply(t) {
+  var c = bioTarget(t); if (!c) return 0;
+  var n = 0, id = bio.erase ? -1 : bio.id;
+  bioColumns(c, function (x, z) { if (bioSet(x, z, id)) n++; });
+  if (stroke) stroke.n = (stroke.n || 0) + n;
+  if (n) bioChanged();
+  return n;
+}
+function bioStart(t, shift) {
+  var c = bioTarget(t); if (!c) return;
+  if (shift) { // conta-gotas: o bioma da coluna
+    var b = bioAt(c[0], c[2]); if (b < 0) { toast('Esta coluna não tem bioma definido.'); return; }
+    bio.id = b; bio.erase = false; bioPrefs(); updateBioChip(); toast('Bioma: ' + BIO_BY_ID[b].pt); return;
+  }
+  stroke = { mode: 'biome', cells: new Set(), n: 0 }; beginBatch('Pincel de bioma'); bioApply(t); stroke.last = c.join(); stroke.on = true;
+}
+function bioDrag(t) { var c = bioTarget(t); if (!c || c.join() === stroke.last) return; bioApply(t); stroke.last = c.join(); }
+function bioEnd(sm) { if (sm.n) toast(sm.n.toLocaleString('pt-BR') + ' colunas ' + (bio.erase ? 'voltaram ao bioma original' : 'com o bioma ' + BIO_BY_ID[bio.id].pt) + '.'); }
+/* Aplicar na seleção (as colunas da área marcada) */
+function bioFillSel() {
+  if (!sel) { toast('Marque uma área com Selecionar (V) primeiro.'); return; }
+  var id = bio.erase ? -1 : bio.id, n = 0;
+  beginBatch('Bioma na seleção');
+  for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) if (bioSet(x, z, id)) n++;
+  endBatch(); bioChanged();
+  toast(n ? n.toLocaleString('pt-BR') + ' colunas ' + (id < 0 ? 'voltaram ao original.' : 'com o bioma ' + BIO_BY_ID[id].pt + '.') : 'A seleção já estava com esse bioma.');
+}
+function bioChanged() { bioVer++; requestRender(); updateStatus(); }
+
+/* ---------- Aviso do canto ---------- */
+function bioClimate(b) { return (b.rain === 2 ? 'neva' : b.rain === 1 ? 'chove' : 'sem chuva') + ', temperatura ' + String(b.t).replace('.', ','); }
+var BIO_GROUPS = [['Superfície', function (b) { return b.dim === 0 && !/ocean|river|beach|shore/.test(b.n) && b.tags.indexOf('caves') < 0 && !/lush_caves|dripstone|deep_dark|sulfur_caves/.test(b.n); }],
+  ['Água e praia', function (b) { return b.dim === 0 && /ocean|river|beach|shore/.test(b.n); }],
+  ['Cavernas', function (b) { return /lush_caves|dripstone|deep_dark|sulfur_caves/.test(b.n); }], ['Nether', function (b) { return b.dim === 1; }], ['End', function (b) { return b.dim === 2; }]];
+function bioOptions(sel) {
+  return BIO_GROUPS.map(function (g) {
+    return '<optgroup label="' + g[0] + '">' + BIOMES.filter(g[1]).map(function (b) { return '<option value="' + b.id + '"' + (b.id === sel ? ' selected' : '') + '>' + esc(b.pt) + '</option>'; }).join('') + '</optgroup>';
+  }).join('');
+}
+function bioSw(b) { return '<span class="bsw" style="background:#' + ('00000' + b.map.toString(16)).slice(-6) + '"></span>'; }
+function updateBioChip() {
+  var c = $('bioChip'), on = tool === 'biome';
+  c.hidden = !on; $('bioShow').textContent = 'Mostrar biomas: ' + (bio.show ? 'sim' : 'não');
+  if (!on) return;
+  if ($('bioSel').dataset.v !== String(bio.id)) { $('bioSel').innerHTML = bioOptions(bio.id); $('bioSel').dataset.v = String(bio.id); }
+  var b = BIO_BY_ID[bio.id];
+  $('bioInfo').innerHTML = bio.erase ? 'apaga o que foi pintado (volta ao bioma original)' : bioSw(b) + esc(bioClimate(b));
+  $('bioR').textContent = bio.r;
+  c.querySelectorAll('[data-bs]').forEach(function (x) { x.setAttribute('aria-pressed', String((x.getAttribute('data-bs') === 'sq') === bio.sq)); });
+  $('bioErase').setAttribute('aria-pressed', String(bio.erase));
+  $('bioFill').disabled = !sel;
+}
+function setBioR(r) { bio.r = Math.max(0, Math.min(32, r)); bioPrefs(); updateBioChip(); updatePreview(); }
+$('bioChip').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.hasAttribute('data-bs')) bio.sq = b.getAttribute('data-bs') === 'sq';
+  else if (b.id === 'bioMinus') return setBioR(bio.r - 1);
+  else if (b.id === 'bioPlus') return setBioR(bio.r + 1);
+  else if (b.id === 'bioErase') bio.erase = !bio.erase;
+  else if (b.id === 'bioFill') return bioFillSel();
+  bioPrefs(); updateBioChip(); updatePreview();
+});
+$('bioSel').addEventListener('change', function (e) { bio.id = +e.target.value; bio.erase = false; e.target.dataset.v = String(bio.id); bioPrefs(); updateBioChip(); });
+$('bioShow').addEventListener('click', function () { bio.show = !bio.show; bioPrefs(); updateBioChip(); requestRender(); $('menu').open = false; toast(bio.show ? 'Biomas à vista: cada coluna com bioma ganha uma placa colorida em cima (Y, o pincel de bioma, também mostra).' : 'Biomas escondidos (aparecem com o pincel de bioma).', 5000); });
+/* Prévia: o contorno do pincel na altura do alvo */
+function bioPreview(t, accent) {
+  var c = bioTarget(t); if (!c) return;
+  var d = 2 * bio.r + 1;
+  ghostEdges.material.color.copy(accent); ghostEdges.scale.set(d, 1.02, d); setBoxAt(ghostEdges, c); ghostEdges.visible = true;
+}
+
+/* ---------- Biomas à vista: uma placa colorida em cima de cada coluna com bioma ---------- */
+var bioInst = null, bioKeyDrawn = '', BIO_MAX = 600000;
+/* Altura do topo de cada coluna de um pedaço 16 x 16 (-1 = coluna vazia) */
+function bioTops(cx, cz) {
+  var tops = new Int32Array(256).fill(-1), left = 256, top = (SY - 1) >> 4;
+  for (var cy = top; cy >= 0 && left; cy--) {
+    var ch = W.get(ckey(cx, cy, cz)); if (!ch) continue;
+    for (var o = 0; o < 256; o++) {
+      if (tops[o] >= 0) continue;
+      for (var ly = 15; ly >= 0; ly--) { var v = ch.d ? ch.pal[ch.d[(ly << 8) | o]] : ch.u; if (v) { tops[o] = (cy << 4) + ly; left--; break; } }
+    }
+  }
+  return tops;
+}
+function updateBioView() {
+  if (!scene) return;
+  var on = bio.show || tool === 'biome', key = on ? bioVer + '|' + verCounter + '|' + (layerOn ? layerY : -1) : '';
+  if (key === bioKeyDrawn) return;
+  // as placas acompanham o topo das colunas: refaz no máximo a cada 250 ms enquanto se constrói
+  var now = performance.now(); if (key && bioKeyDrawn && now - (updateBioView.t || 0) < 250) { requestRender(); return; }
+  updateBioView.t = now; bioKeyDrawn = key;
+  if (!bioInst) {
+    var g = new THREE.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2);
+    bioInst = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }), BIO_MAX);
+    bioInst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(BIO_MAX * 3), 3);
+    bioInst.frustumCulled = false; bioInst.renderOrder = 4; scene.add(bioInst);
+  }
+  var n = 0;
+  if (on) {
+    var m = new THREE.Matrix4(), col = new THREE.Color(), keys = new Set(), lim = layerOn ? layerY : SY - 1;
+    bioPaint.forEach(function (a, k) { keys.add(k); }); bioOrig.forEach(function (a, k) { keys.add(k); });
+    keys.forEach(function (k) {
+      if (n >= BIO_MAX) return;
+      var p = k.split(','), cx = +p[0], cz = +p[1], tops = bioTops(cx, cz), A = bioPaint.get(k), B = bioOrig.get(k);
+      for (var o = 0; o < 256 && n < BIO_MAX; o++) {
+        var id = A ? A[o] : 255; if (id === 255) id = B ? B[o] : 255; if (id === 255) continue;
+        var x = (cx << 4) + (o & 15), z = (cz << 4) + (o >> 4); if (x >= SX || z >= SZ) continue;
+        var y = Math.min(tops[o], lim) + 1.03;
+        m.setPosition(x + 0.5, y, z + 0.5); bioInst.setMatrixAt(n, m);
+        var c = BIO_BY_ID[id] ? BIO_BY_ID[id].map : 0x888888; col.setHex(c); bioInst.setColorAt(n, col); n++;
+      }
+    });
+  }
+  bioInst.count = n; bioInst.instanceMatrix.needsUpdate = true; bioInst.instanceColor.needsUpdate = true;
+  requestRender();
+}
+/* Biomas presentes (para a legenda): id -> colunas */
+function bioCount() {
+  var c = {};
+  var add = function (a, b) { for (var o = 0; o < 256; o++) { var id = a ? a[o] : 255; if (id === 255 && b) id = b[o]; if (id !== 255) c[id] = (c[id] || 0) + 1; } };
+  var keys = new Set(); bioPaint.forEach(function (a, k) { keys.add(k); }); bioOrig.forEach(function (a, k) { keys.add(k); });
+  keys.forEach(function (k) { add(bioPaint.get(k), bioOrig.get(k)); });
+  return c;
+}
+
+/* ---------- Guardar: projeto (.json) e salvamento automático ---------- */
+function bioRecord() { var o = {}; bioPaint.forEach(function (a, k) { o[k] = b64(a); }); return o; }
+function bioFromRecord(o) { bioPaint.clear(); if (o) Object.keys(o).forEach(function (k) { bioPaint.set(k, unb64(o[k])); }); bioVer++; }
+
+/* ---------- Mundo do jogo: ler e gravar a chave 0x2B (Data3D) ---------- */
+/* Lê os 24 (ou 8 no Nether, 16 no End) armazenamentos de bioma; devolve { hm: Int16Array(256), subs: [Uint8Array(4096) de ids] } */
+function bioDecode3D(u8) {
+  var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), hm = new Int16Array(256), p = 512, subs = [], prev = null;
+  for (var i = 0; i < 256; i++) hm[i] = dv.getInt16(i * 2, true);
+  while (p < u8.length) {
+    var h = u8[p++];
+    if (h === 0xFF) { subs.push(prev); continue; }
+    var bits = h >> 1, ids = new Uint8Array(4096);
+    if (!bits) { ids.fill(Math.min(254, dv.getInt32(p, true))); p += 4; }
+    else {
+      var per = Math.floor(32 / bits), nw = Math.ceil(4096 / per), idx = new Uint16Array(4096), mask = (1 << bits) - 1, k = 0;
+      for (var w = 0; w < nw; w++) { var word = dv.getUint32(p + w * 4, true); for (var j = 0; j < per && k < 4096; j++, k++) idx[k] = (word >>> (j * bits)) & mask; }
+      p += nw * 4; var n = dv.getInt32(p, true); p += 4; var pal = [];
+      for (var q = 0; q < n; q++) { pal.push(Math.min(254, dv.getInt32(p, true))); p += 4; }
+      for (k = 0; k < 4096; k++) ids[k] = pal[idx[k]] || 0;
+    }
+    subs.push(ids); prev = ids;
+  }
+  return { hm: hm, subs: subs };
+}
+function bioEncode3D(hm, subs) {
+  var parts = [], h = new Uint8Array(512), dv = new DataView(h.buffer);
+  for (var i = 0; i < 256; i++) dv.setInt16(i * 2, hm[i], true);
+  parts.push(h);
+  var prevKey = null;
+  subs.forEach(function (ids) {
+    var key = ids.join(','); if (key === prevKey) { parts.push(new Uint8Array([0xFF])); return; } prevKey = key;
+    var pal = [], map = new Map();
+    for (var k = 0; k < 4096; k++) if (!map.has(ids[k])) { map.set(ids[k], pal.length); pal.push(ids[k]); }
+    if (pal.length === 1) { var s = new Uint8Array(5); s[0] = 1; new DataView(s.buffer).setInt32(1, pal[0], true); parts.push(s); return; }
+    var need = Math.max(1, Math.ceil(Math.log2(pal.length))), bits = [1, 2, 3, 4, 5, 6, 8, 16].filter(function (b) { return b >= need; })[0];
+    var per = Math.floor(32 / bits), nw = Math.ceil(4096 / per), wd = new Uint32Array(nw);
+    for (k = 0; k < 4096; k++) wd[Math.floor(k / per)] |= map.get(ids[k]) << ((k % per) * bits);
+    var b = new Uint8Array(1 + nw * 4 + 4 + pal.length * 4), bv = new DataView(b.buffer);
+    b[0] = (bits << 1) | 1; for (k = 0; k < nw; k++) bv.setUint32(1 + k * 4, wd[k], true);
+    bv.setInt32(1 + nw * 4, pal.length, true); pal.forEach(function (id, q) { bv.setInt32(5 + nw * 4 + q * 4, id, true); });
+    parts.push(b);
+  });
+  return wioCat(parts);
+}
+/* Na área carregada: o bioma de cada coluna na altura do topo (o que aparece no mapa de alturas) */
+function bioFromWorld(d3, ecx, ecz) {
+  var r = bioDecode3D(d3), a = new Uint8Array(256).fill(255);
+  for (var x = 0; x < 16; x++) for (var z = 0; z < 16; z++) {
+    var hy = Math.max(0, r.hm[z * 16 + x] - 1), s = r.subs[hy >> 4] || r.subs[r.subs.length - 1];
+    if (s) a[(z << 4) | x] = s[(x << 8) | (z << 4) | (hy & 15)];
+  }
+  bioOrig.set(bioKey(ecx, ecz), a);
+}
+/* Grava as colunas pintadas na chave 0x2B dos chunks da área (todas as alturas da coluna) */
+async function bioCommit() {
+  if (!wio || !wio.area || !wio.bioEdited.size) return 0;
+  var A = wio.area, dim = A.dim, D = WIO_DIMS[dim], nsub = D.h >> 4, n = 0;
+  for (var k of wio.bioEdited) {
+    var p = k.split(','), ecx = +p[0], ecz = +p[1], cx = (A.x0 >> 4) + ecx, cz = (A.z0 >> 4) + ecz, col = wio.dims[dim].get(cx + ',' + cz);
+    if (!col || !col.ok) continue; // chunk não gerado: o jogo refaria o bioma ao gerar
+    var hk = wioKey(cx, cz, dim, 0x2b), d3 = await wioGet(hk), r;
+    if (d3 && d3.length >= 512) r = bioDecode3D(d3);
+    else r = { hm: new Int16Array(256), subs: [] };
+    while (r.subs.length < nsub) r.subs.push(new Uint8Array(4096).fill(r.subs.length ? r.subs[r.subs.length - 1][0] : 1));
+    r.subs = r.subs.map(function (s) { return s.slice(); });
+    var a = bioPaint.get(k), orig = bioOrig.get(k); if (!a) continue;
+    for (var o = 0; o < 256; o++) {
+      if (a[o] === 255) continue;
+      var x = o & 15, z = o >> 4;
+      for (var s = 0; s < r.subs.length; s++) for (var y = 0; y < 16; y++) r.subs[s][(x << 8) | (z << 4) | y] = a[o];
+      if (orig) orig[o] = a[o];
+      n++;
+    }
+    wio.patches.set(hk, bioEncode3D(r.hm, r.subs));
+  }
+  wio.bioEdited.clear(); if (wio.maps) wio.maps[dim] = null; if (wio.bmaps) wio.bmaps[dim] = null;
+  return n;
+}
+
 /* ---------- Redstone funcionando ---------- */
 /* Simulação no tempo do jogo: 20 tiques por segundo (um tique de redstone = 2 tiques). Segue as regras do Java/Bedrock
    para o que não depende de criaturas nem de itens:
@@ -5616,7 +5886,7 @@ function rsAfterBatch(b) {
   if (b.length > 20000 && !rsAny()) return; // edição enorme sem nenhuma redstone no mundo: nada a fazer
   rs.steps = 0;
   var seeds = [];
-  for (var k = 0; k < b.length && seeds.length < 200000; k++) { var p = unidx(b.i[k]); seeds.push(p); rsSeen(p[0], p[1], p[2]); }
+  for (var k = 0; k < b.length && seeds.length < 200000; k++) { if (b.i[k] < 0) continue; var p = unidx(b.i[k]); seeds.push(p); rsSeen(p[0], p[1], p[2]); }
   rs.touched = seeds.concat(rs.touched);
   rsSettle();
   if (rs.steps) { requestRender(); updateStatus(); }
@@ -6229,17 +6499,18 @@ function wioBase(dec, cells0, cells1, i, beds, wx, wy, wz) {
   return v;
 }
 /* Entrada de paleta (NBT) para uma célula do editor, na posição dada (as formas dependem dos vizinhos) */
-function wioEntry(v, x, y, z) {
+function wioEntry(v, x, y, z, C) {
   if (!v) return wioAir();
+  C = C || wio;
   var bi = cellBlock(v), b = BLOCKS[bi];
-  if (bi === PRES_BI) { var e = wio.pres[cellOri(v)]; return e ? e.raw : wioAir(); }
+  if (bi === PRES_BI) { var e = C.pres[cellOri(v)]; return e ? e.raw : wioAir(); }
   var r;
   if (b.shape) { var s = shapeExport(b, cellOri(v), x, y, z); r = { n: s.bn, s: s.bs, v: s.bv, ent: s.ent }; }
   else { var be = MCExport.bedrockEntry(b, b.ori ? cellOri(v) : null); r = { n: be.name, s: be.states, v: be.version }; }
-  var key = r.n + JSON.stringify(r.s) + r.v, raw = wio.entries.get(key);
+  var key = r.n + JSON.stringify(r.s) + r.v, raw = C.entries.get(key);
   if (!raw) {
     raw = nbtRootLE({ name: { t: 'string', v: 'minecraft:' + r.n }, states: { t: 'compound', v: r.s }, version: { t: 'int', v: r.v || WIO_BLOCK_VERSION } });
-    wio.entries.set(key, raw);
+    C.entries.set(key, raw);
   }
   return r.ent ? { raw: raw, ent: r.ent } : raw;
 }
@@ -6267,7 +6538,7 @@ async function wioOpenFile(file, prog) {
   var dbNames = zip.paths.filter(function (p) { return p.indexOf(pre + 'db/') === 0 && p.indexOf('/', pre.length + 3) < 0; }).map(function (p) { return p.slice(pre.length + 3); });
   var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog);
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
-    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), legacy: 0 };
+    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0 };
   try { var nm = new TextDecoder().decode(await zip.read(pre + 'levelname.txt')).trim(); if (nm) w.name = nm; } catch (e) {}
   try { var ld = await zip.read(pre + 'level.dat'), lo = nbtRead(ld.subarray(8), true); if (lo.LevelName) w.name = lo.LevelName; w.spawn = [lo.SpawnX | 0, lo.SpawnZ | 0]; } catch (e) {}
   // chunks de cada dimensão: os que existem (chave de versão) e os sub-chunks guardados
@@ -6310,6 +6581,7 @@ async function wioMap(dim, prog) {
   cols.forEach(function (c) { x0 = Math.min(x0, c.x); z0 = Math.min(z0, c.z); x1 = Math.max(x1, c.x); z1 = Math.max(z1, c.z); });
   var bw = (x1 - x0 + 1) * 16, bh = (z1 - z0 + 1) * 16, sc = Math.max(1, Math.ceil(Math.max(bw, bh) / 4096));
   var W2 = Math.ceil(bw / sc), H2 = Math.ceil(bh / sc), img = new ImageData(W2, H2), hgt = new Int16Array(W2 * H2).fill(-32768);
+  var bimg = new ImageData(W2, H2), bid = new Uint8Array(W2 * H2).fill(255), bcnt = {}; // mapa dos biomas (o bioma no topo de cada coluna)
   var D = WIO_DIMS[dim];
   var extra = new Map(); // sub-chunks criados pelas edições (ainda não estão no índice do mundo)
   wio.patches.forEach(function (v, k) { if (!v || k.length !== (dim ? 14 : 10) || k.charCodeAt(dim ? 12 : 8) !== 0x2f) return; var u = new DataView(wioBytes(k.slice(0, 8)).buffer), y = k.charCodeAt(k.length - 1), ck = u.getInt32(0, true) + ',' + u.getInt32(4, true); if (!extra.has(ck)) extra.set(ck, []); extra.get(ck).push(y > 127 ? y - 256 : y); });
@@ -6332,7 +6604,13 @@ async function wioMap(dim, prog) {
         }
       }
     }
+    var b3 = null; try { var d3r = await wioGet(wioKey(c.x, c.z, dim, 0x2b)); if (d3r && d3r.length > 512) b3 = bioDecode3D(d3r); } catch (e) {}
     for (var q2 = 0; q2 < 256; q2++) {
+      if (b3 && top[q2] !== -32768) { // q2 = x*16 + z aqui
+        var ry = top[q2] - D.min, sb = b3.subs[ry >> 4] || b3.subs[b3.subs.length - 1], bv = sb ? sb[((q2 >> 4) << 8) | ((q2 & 15) << 4) | (ry & 15)] : 255;
+        if (bv !== 255) { var bx = Math.floor(((c.x - x0) * 16 + (q2 >> 4)) / sc), bz = Math.floor(((c.z - z0) * 16 + (q2 & 15)) / sc), bo = bz * W2 + bx, bc2 = BIO_BY_ID[bv] ? BIO_BY_ID[bv].map : 0x888888;
+          bid[bo] = bv; bcnt[bv] = (bcnt[bv] || 0) + 1; bimg.data[bo * 4] = bc2 >> 16 & 255; bimg.data[bo * 4 + 1] = bc2 >> 8 & 255; bimg.data[bo * 4 + 2] = bc2 & 255; bimg.data[bo * 4 + 3] = 255; }
+      }
       if (!col[q2]) continue;
       var px = Math.floor(((c.x - x0) * 16 + (q2 >> 4)) / sc), pz = Math.floor(((c.z - z0) * 16 + (q2 & 15)) / sc), o = pz * W2 + px;
       hgt[o] = top[q2]; img.data[o * 4] = col[q2][0]; img.data[o * 4 + 1] = col[q2][1]; img.data[o * 4 + 2] = col[q2][2]; img.data[o * 4 + 3] = 255;
@@ -6345,7 +6623,7 @@ async function wioMap(dim, prog) {
     var f = a > b2 ? 1.12 : a < b2 ? 0.86 : 1;
     for (var ch = 0; ch < 3; ch++) img.data[o2 * 4 + ch] = Math.min(255, img.data[o2 * 4 + ch] * f);
   }
-  return (wio.maps[dim] = { img: img, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
+  return (wio.maps[dim] = { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
 }
 
 /* ---------- Carregar uma área no editor ---------- */
@@ -6359,6 +6637,7 @@ async function wioLoadArea(dim, x0, z0, w, d, prog) {
     if (prog && ++n % 16 === 0) prog(n, tot);
     if (!col || !col.ok) { miss++; continue; }
     var beds = await wioBeds(dim, cx, cz);
+    try { var d3 = await wioGet(wioKey(cx, cz, dim, 0x2b)); if (d3 && d3.length > 512) bioFromWorld(d3, a, b); } catch (e) {} // bioma de cada coluna, para mostrar
     for (var ey = 0; ey < ns; ey++) { // todas as alturas: um pedaço criado ao editar (antes só ar) também conta
       var sy = ey + ms, raw = await wioGet(wioKey(cx, cz, dim, 0x2f, sy)); if (!raw) continue;
       var dec = subDecode(raw); if (!dec) { wio.legacy++; continue; }
@@ -6518,6 +6797,8 @@ async function wioRestore() {
       for (var o = 0; o < 4096; o++) { var x = x0 + (o & 15), y = y0 + (o >> 8), z = z0 + ((o >> 4) & 15); if (inB(x, y, z) && gget(x, y, z)) { gset(x, y, z, 0); blockCount--; } }
       if (!r.empty) chunkFromRecord(r);
     });
+    var wb = await idbDo('readonly', function (st) { return st.get('w:bio'); }).catch(function () { return null; });
+    if (wb) { bioFromRecord(wb); bioPaint.forEach(function (a, k) { wio.bioEdited.add(k); }); bioSaveFlag = false; } // biomas pintados ainda não gravados no mundo
     if (wm && wm.hotbar) { hotbar = wm.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; }); slot = wm.slot | 0; }
     worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; });
     verCounter++; dirtyAll(); renderHotbar(); renderList(); wioChip();
@@ -6557,9 +6838,9 @@ async function wioOpen(file) {
   } catch (e) { busyEnd(); toast(e.message || 'Não foi possível abrir o mundo.', 9000); }
 }
 async function wioCommitAll() {
-  if (!wio || !wio.area || !wio.edited.size) return null;
+  if (!wio || !wio.area || (!wio.edited.size && !wio.bioEdited.size)) return null;
   busy('Guardando as mudanças da área…', null);
-  try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); await wioSaveSession(false); return r; }
+  try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); r.biomes = await bioCommit(); await wioSaveSession(false); return r; }
   finally { busyEnd(); }
 }
 /* Chunks não gerados no mapa da área: no Fim (e em ilhas soltas) o vazio gerado e o nunca gerado ficavam iguais.
@@ -6596,7 +6877,8 @@ function wioArea() {
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
     '<div class="wtabs mbtns">' + tabs + '</div>' +
     '<div class="wmap"><canvas id="wmCv"></canvas><div class="wzoom"><button id="wmIn" title="Aproximar">+</button><button id="wmOut" title="Afastar">−</button></div></div>' +
-    '<div class="row wmleg"><label class="check"><input type="checkbox" id="wmUn"' + (wioShowUngen() ? ' checked' : '') + '> Destacar chunks não gerados</label><span class="wsw un"></span><span>nunca gerados pelo jogo (vazios no editor)</span><span class="wsw gen"></span><span>gerados (mesmo vazios, como o vazio do Fim)</span><span id="wmHov" class="pen"></span></div>' +
+    '<div class="row wmleg"><span class="mbtns seg2"><button id="wmModeT" aria-pressed="true">Terreno</button><button id="wmModeB" aria-pressed="false">Biomas</button></span><label class="check"><input type="checkbox" id="wmUn"' + (wioShowUngen() ? ' checked' : '') + '> Destacar chunks não gerados</label><span class="wsw un"></span><span>nunca gerados pelo jogo (vazios no editor)</span><span class="wsw gen"></span><span>gerados (mesmo vazios, como o vazio do Fim)</span><span id="wmHov" class="pen"></span></div>' +
+    '<div class="wmbio" id="wmBio" hidden></div>' +
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button></div>' +
@@ -6604,7 +6886,17 @@ function wioArea() {
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
       overlayRoot.querySelector('.dialog').classList.add('wide');
-      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null, mask = null;
+      var cv = $('wmCv'), g = cv.getContext('2d'), mp = null, bmp = null, bbmp = null, mask = null, bmode = wioArea.bmode || false;
+      var setMode = function (b) {
+        bmode = wioArea.bmode = b; $('wmModeT').setAttribute('aria-pressed', String(!b)); $('wmModeB').setAttribute('aria-pressed', String(b));
+        var L = $('wmBio'); L.hidden = !b || !mp;
+        if (b && mp) { // legenda: os biomas desta dimensão, do que mais aparece ao que menos aparece
+          var ids = Object.keys(mp.bcnt).map(Number).sort(function (x, y) { return mp.bcnt[y] - mp.bcnt[x]; });
+          L.innerHTML = ids.length ? ids.map(function (id) { var bb = BIO_BY_ID[id]; return '<span class="wbl">' + (bb ? bioSw(bb) + esc(bb.pt) : '#' + id) + '</span>'; }).join('') : 'Sem informação de bioma neste mundo.';
+        }
+        draw();
+      };
+      $('wmModeT').onclick = function () { setMode(false); }; $('wmModeB').onclick = function () { setMode(true); };
       $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
       $('wmS').value = String(st.size);
       $('wmNo').onclick = closeDialog;
@@ -6640,7 +6932,7 @@ function wioArea() {
           g.imageSmoothingEnabled = false; g.drawImage(mask, p0[0], p0[1], mask.width * cw, mask.height * cw);
         }
         g.imageSmoothingEnabled = V.s * mp.sc < 2;
-        g.drawImage(bmp, p0[0], p0[1], mp.w * mp.sc * V.s, mp.h * mp.sc * V.s);
+        g.drawImage(bmode && bbmp ? bbmp : bmp, p0[0], p0[1], mp.w * mp.sc * V.s, mp.h * mp.sc * V.s);
         if (un) {
           if (cw >= 10) { // perto: as divisas dos chunks
             g.strokeStyle = 'rgba(128,128,128,.35)'; g.lineWidth = 1; g.beginPath();
@@ -6662,12 +6954,12 @@ function wioArea() {
       }
       async function loadDim() {
         overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-wd') === st.dim)); });
-        mp = null; mask = null; st.view = null; draw();
+        mp = null; mask = null; bbmp = null; st.view = null; draw();
         $('wmInfo').textContent = 'Desenhando o mapa…';
         var m = await wioMap(st.dim, function (i, n) { $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
         if (!overlayRoot.contains(cv)) return;
         mp = m; if (!mp) { info(); return; }
-        bmp = await createImageBitmap(mp.img); fit(); draw(); info();
+        bmp = await createImageBitmap(mp.img); bbmp = await createImageBitmap(mp.bimg); fit(); setMode(bmode); info();
       }
       overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) {
         b.onclick = function () { var d = +b.getAttribute('data-wd'); if (d === st.dim) return; st.dim = d; var h = home(d); st.cx = h[0]; st.cz = h[1]; loadDim(); };
@@ -6685,7 +6977,8 @@ function wioArea() {
         var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
         var x = st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s, z = st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s;
         var cx = Math.floor(x / 16), cz = Math.floor(z / 16), c = wio.dims[st.dim].get(cx + ',' + cz);
-        $('wmHov').textContent = 'X ' + Math.floor(x) + ', Z ' + Math.floor(z) + ' · chunk ' + cx + ', ' + cz + ': ' + (c && c.ok ? 'gerado' : c ? 'num formato antigo (fica vazio)' : 'não gerado');
+        var bi = -1; if (mp) { var px = Math.floor((x - mp.x0) / mp.sc), pz = Math.floor((z - mp.z0) / mp.sc); if (px >= 0 && pz >= 0 && px < mp.w && pz < mp.h) bi = mp.bid[pz * mp.w + px]; }
+        $('wmHov').textContent = 'X ' + Math.floor(x) + ', Z ' + Math.floor(z) + ' · chunk ' + cx + ', ' + cz + ': ' + (c && c.ok ? 'gerado' : c ? 'num formato antigo (fica vazio)' : 'não gerado') + (bi >= 0 && bi !== 255 && BIO_BY_ID[bi] ? ' · ' + BIO_BY_ID[bi].pt : '');
       });
       cv.addEventListener('pointerleave', function () { $('wmHov').textContent = ''; });
       cv.addEventListener('pointerup', function (e) {
@@ -6741,6 +7034,142 @@ async function wioExport() {
   finally { busyEnd(); }
 }
 
+/* ---------- Mundo novo: a construção feita do zero vira um mundo plano do Bedrock (.mcworld), com os biomas ---------- */
+/* O level.dat vem de um mundo plano criativo gerado pelo servidor oficial (data/leveldat-plano.dat); o site troca o
+   nome, a semente, o ponto de nascimento e a data. O chão plano do jogo (rocha-mãe, 2 de terra, grama) fica de y -64
+   a -61 e a construção começa logo acima: o y 0 do editor é o y -60 do mundo, e o x/z 0 do editor é o x/z 0 do mundo.
+   Todos os chunks do espaço do editor são gravados (blocos, chão, alturas e biomas de cada coluna); os de fora o jogo
+   gera planos, com o bioma de planície. O banco LevelDB sai só com o arquivo de registro (log) e o MANIFEST. */
+var NW_LEVEL = 'CgAAANILAAAKAAAIDQBCaW9tZU92ZXJyaWRlFABtaW5lY3JhZnQ6bWluZWNyYWZ0OgESAENlbnRlck1hcHNUb09yaWdpbgABHgBDb25maXJtZWRQbGF0Zm9ybUxvY2tlZENvbnRlbnQAAwoARGlmZmljdWx0eQEAAAAIDwBGbGF0V29ybGRMYXllcnMLAXsiYmlvbWVfaWQiOjEsImJsb2NrX2xheWVycyI6W3siYmxvY2tfbmFtZSI6Im1pbmVjcmFmdDpiZWRyb2NrIiwiY291bnQiOjF9LHsiYmxvY2tfbmFtZSI6Im1pbmVjcmFmdDpkaXJ0IiwiY291bnQiOjJ9LHsiYmxvY2tfbmFtZSI6Im1pbmVjcmFmdDpncmFzc19ibG9jayIsImNvdW50IjoxfV0sImVuY29kaW5nX3ZlcnNpb24iOjYsInByZXNldF9pZCI6bnVsbCwic3RydWN0dXJlX29wdGlvbnMiOm51bGwsIndvcmxkX3ZlcnNpb24iOiJ2ZXJzaW9uLnBvc3RfMV8xOCJ9CgENAEZvcmNlR2FtZVR5cGUAAwgAR2FtZVR5cGUBAAAAAwkAR2VuZXJhdG9yAgAAAAEcAEhhc1VuY29tcGxldGVXb3JsZEZpbGVPbkRpc2sACBAASW52ZW50b3J5VmVyc2lvbgcAMS4yNi41MgEKAElzSGFyZGNvcmUAAQwATEFOQnJvYWRjYXN0AQESAExBTkJyb2FkY2FzdEludGVudAEECgBMYXN0UGxheWVkjbDRagAAAAAICQBMZXZlbE5hbWUFAFBsYW5vAxMATGltaXRlZFdvcmxkT3JpZ2luWAAAAAADEwBMaW1pdGVkV29ybGRPcmlnaW5Z/38AAAMTAExpbWl0ZWRXb3JsZE9yaWdpbloAAAAACR4ATWluaW11bUNvbXBhdGlibGVDbGllbnRWZXJzaW9uAwUAAAABAAAAGgAAADIAAAAAAAAAAAAAAAEPAE11bHRpcGxheWVyR2FtZQEBFQBNdWx0aXBsYXllckdhbWVJbnRlbnQAAwsATmV0aGVyU2NhbGUIAAAAAw4ATmV0d29ya1ZlcnNpb26RCAAAAwgAUGxhdGZvcm0CAAAAAxcAUGxhdGZvcm1Ccm9hZGNhc3RJbnRlbnQAAAAAAQ0AUGxheWVySGFzRGllZAAECgBSYW5kb21TZWVkMnkGAAAAAAABEABTcGF3blYxVmlsbGFnZXJzAAMGAFNwYXduWAAAAAADBgBTcGF3bln/fwAAAwYAU3Bhd25aAAAAAAMOAFN0b3JhZ2VWZXJzaW9uCgAAAAQEAFRpbWVxBAAAAAAAAAMMAFdvcmxkVmVyc2lvbgEAAAADEgBYQkxCcm9hZGNhc3RJbnRlbnQAAAAACgkAYWJpbGl0aWVzAQoAYXR0YWNrbW9icwEBDQBhdHRhY2twbGF5ZXJzAQEFAGJ1aWxkAQEQAGRvb3JzYW5kc3dpdGNoZXMBBQgAZmx5U3BlZWTNzEw9AQYAZmx5aW5nAAEKAGluc3RhYnVpbGQAAQwAaW52dWxuZXJhYmxlAAEJAGxpZ2h0bmluZwABBgBtYXlmbHkAAQQAbWluZQEBAgBvcAABDgBvcGVuY29udGFpbmVycwEBCAB0ZWxlcG9ydAAFEAB2ZXJ0aWNhbEZseVNwZWVkAACAPwUJAHdhbGtTcGVlZM3MzD0AASYAYWxsb3dBbm9ueW1vdXNCbG9ja0Ryb3BzSW5FZGl0b3JXb3JsZHMAAREAYm9udXNDaGVzdEVuYWJsZWQAAREAYm9udXNDaGVzdFNwYXduZWQAAQ0AY2hlYXRzRW5hYmxlZAABEgBjb21tYW5kYmxvY2tvdXRwdXQBARQAY29tbWFuZGJsb2Nrc2VuYWJsZWQBAQ8AY29tbWFuZHNFbmFibGVkAQQLAGN1cnJlbnRUaWNrcQQAAAAAAAADDQBkYXlsaWdodEN5Y2xlAAAAAAEPAGRvZGF5bGlnaHRjeWNsZQEBDQBkb2VudGl0eWRyb3BzAQEKAGRvZmlyZXRpY2sBARIAZG9pbW1lZGlhdGVyZXNwYXduAAEKAGRvaW5zb21uaWEBAREAZG9saW1pdGVkY3JhZnRpbmcAAQkAZG9tb2Jsb290AQENAGRvbW9ic3Bhd25pbmcBAQsAZG90aWxlZHJvcHMBAQ4AZG93ZWF0aGVyY3ljbGUBAQ4AZHJvd25pbmdkYW1hZ2UBAw8AZWRpdG9yV29ybGRUeXBlAAAAAAMIAGVkdU9mZmVyAAAAAAEYAGVkdWNhdGlvbkZlYXR1cmVzRW5hYmxlZAAKCwBleHBlcmltZW50cwEVAGV4cGVyaW1lbnRzX2V2ZXJfdXNlZAABHgBzYXZlZF93aXRoX3RvZ2dsZWRfZXhwZXJpbWVudHMAAAEKAGZhbGxkYW1hZ2UBAQoAZmlyZWRhbWFnZQEBDABmcmVlemVkYW1hZ2UBAxQAZnVuY3Rpb25jb21tYW5kbGltaXQQJwAAARcAaGFzQmVlbkxvYWRlZEluQ3JlYXRpdmUBARUAaGFzTG9ja2VkQmVoYXZpb3JQYWNrAAEVAGhhc0xvY2tlZFJlc291cmNlUGFjawABDgBpbW11dGFibGVXb3JsZAABEQBpc0NyZWF0ZWRJbkVkaXRvcgABFABpc0V4cG9ydGVkRnJvbUVkaXRvcgABFABpc0Zyb21Mb2NrZWRUZW1wbGF0ZQABEwBpc0Zyb21Xb3JsZFRlbXBsYXRlAAETAGlzUmFuZG9tU2VlZEFsbG93ZWQAARAAaXNTaW5nbGVVc2VXb3JsZAABGwBpc1dvcmxkVGVtcGxhdGVPcHRpb25Mb2NrZWQAAQ0Aa2VlcGludmVudG9yeQAJFQBsYXN0T3BlbmVkV2l0aFZlcnNpb24DBQAAAAEAAAAaAAAANAAAAAMAAAAAAAAABQ4AbGlnaHRuaW5nTGV2ZWwAAAAAAw0AbGlnaHRuaW5nVGltZdc+AgADEQBsaW1pdGVkV29ybGREZXB0aBAAAAADEQBsaW1pdGVkV29ybGRXaWR0aBAAAAADFQBtYXhjb21tYW5kY2hhaW5sZW5ndGj//wAAAQsAbW9iZ3JpZWZpbmcBARMAbmF0dXJhbHJlZ2VuZXJhdGlvbgEDEABwZXJtaXNzaW9uc0xldmVsAAAAAAMWAHBsYXllclBlcm1pc3Npb25zTGV2ZWwBAAAAAxkAcGxheWVyc3NsZWVwaW5ncGVyY2VudGFnZWQAAAADDwBwbGF5ZXJ3YXlwb2ludHMBAAAACAQAcHJpZAAAARkAcHJvamVjdGlsZXNjYW5icmVha2Jsb2NrcwEBAwBwdnABBQkAcmFpbkxldmVsAAAAAAMIAHJhaW5UaW1l1sYBAAMPAHJhbmRvbXRpY2tzcGVlZAEAAAABDQByZWNpcGVzdW5sb2NrAQEeAHJlcXVpcmVzQ29waWVkUGFja1JlbW92YWxDaGVjawABFAByZXNwYXduYmxvY2tzZXhwbG9kZQEBEwBzZW5kY29tbWFuZGZlZWRiYWNrAQMUAHNlcnZlckNodW5rVGlja1JhbmdlBAAAAAMcAHNlcnZlckVkaXRvckNvbm5lY3Rpb25Qb2xpY3kAAAAAARAAc2hvd2JvcmRlcmVmZmVjdAEBDwBzaG93Y29vcmRpbmF0ZXMAAQ4Ac2hvd2RheXNwbGF5ZWQAAREAc2hvd2RlYXRobWVzc2FnZXMBARIAc2hvd3JlY2lwZW1lc3NhZ2VzAQEIAHNob3d0YWdzAQEJAHNwYXduTW9icwEDCwBzcGF3bnJhZGl1cwoAAAABEwBzdGFydFdpdGhNYXBFbmFibGVkAAEUAHRleHR1cmVQYWNrc1JlcXVpcmVkAAELAHRudGV4cGxvZGVzAQEVAHRudGV4cGxvc2lvbmRyb3BkZWNheQABEwB1c2VNc2FHYW1lcnRhZ3NPbmx5AQQPAHdvcmxkU3RhcnRDb3VudP3///8AAAAACg4Ad29ybGRfcG9saWNpZXMAAA==', NW_Y0 = -60, NW_CHUNK_VERSION = 42;
+/* NBT little-endian genérico (lê e grava qualquer tipo, sem perder o tipo de cada valor) */
+function nbtTreeLE(u8) {
+  var p = 0, dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), dec = new TextDecoder();
+  function str() { var n = dv.getUint16(p, true); p += 2; var s = dec.decode(u8.subarray(p, p + n)); p += n; return s; }
+  function pay(t) {
+    var v, n, i;
+    switch (t) {
+      case 1: return u8[p++];
+      case 2: v = dv.getInt16(p, true); p += 2; return v;
+      case 3: v = dv.getInt32(p, true); p += 4; return v;
+      case 4: case 6: v = u8.slice(p, p + 8); p += 8; return v;
+      case 5: v = u8.slice(p, p + 4); p += 4; return v;
+      case 7: n = dv.getInt32(p, true); p += 4; v = u8.slice(p, p + n); p += n; return v;
+      case 8: return str();
+      case 9: { var et = u8[p++]; n = dv.getInt32(p, true); p += 4; var a = []; for (i = 0; i < n; i++) a.push(pay(et)); return { et: et, a: a }; }
+      case 10: { var c = []; for (;;) { var ct = u8[p++]; if (!ct) break; var k = str(); c.push({ k: k, t: ct, v: pay(ct) }); } return c; }
+      case 11: n = dv.getInt32(p, true); p += 4; v = []; for (i = 0; i < n; i++, p += 4) v.push(dv.getInt32(p, true)); return v;
+      case 12: n = dv.getInt32(p, true); p += 4; v = u8.slice(p, p + n * 8); p += n * 8; return v;
+    }
+    throw new Error('NBT: tipo ' + t);
+  }
+  var t = u8[p++], name = str();
+  return { k: name, t: t, v: pay(t) };
+}
+function nbtTreeWrite(root) {
+  var out = [], enc = new TextEncoder();
+  function i32(v) { var b = new Uint8Array(4); new DataView(b.buffer).setInt32(0, v, true); out.push(b); }
+  function str(s) { var e = enc.encode(s), b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, e.length, true); out.push(b, e); }
+  function pay(t, v) {
+    switch (t) {
+      case 1: out.push(new Uint8Array([v & 255])); break;
+      case 2: { var b = new Uint8Array(2); new DataView(b.buffer).setInt16(0, v, true); out.push(b); break; }
+      case 3: i32(v); break;
+      case 4: case 5: case 6: out.push(v); break;
+      case 7: i32(v.length); out.push(v); break;
+      case 8: str(v); break;
+      case 9: out.push(new Uint8Array([v.et])); i32(v.a.length); v.a.forEach(function (x) { pay(v.et, x); }); break;
+      case 10: v.forEach(function (e) { out.push(new Uint8Array([e.t])); str(e.k); pay(e.t, e.v); }); out.push(new Uint8Array([0])); break;
+      case 11: i32(v.length); v.forEach(i32); break;
+      case 12: i32(v.length / 8); out.push(v); break;
+    }
+  }
+  out.push(new Uint8Array([root.t])); str(root.k); pay(root.t, root.v);
+  return wioCat(out);
+}
+function nwLong(n) { var b = new Uint8Array(8), dv = new DataView(b.buffer); dv.setUint32(0, n % 4294967296, true); dv.setUint32(4, Math.floor(n / 4294967296), true); return b; }
+function nwLevelDat(name, sx, sz) {
+  var raw = wioBytes(atob(NW_LEVEL)), tree = nbtTreeLE(raw.subarray(8));
+  var set = function (k, v) { tree.v.forEach(function (e) { if (e.k === k) e.v = v; }); };
+  set('LevelName', name); set('RandomSeed', nwLong(Math.floor(Math.random() * 2147483647)));
+  set('LastPlayed', nwLong(Math.floor(Date.now() / 1000))); set('Time', nwLong(0)); set('currentTick', nwLong(0));
+  set('SpawnX', Math.floor(sx / 2)); set('SpawnZ', Math.floor(sz / 2)); set('SpawnY', 32767);
+  var body = nbtTreeWrite(tree), hd = new Uint8Array(8), dv = new DataView(hd.buffer);
+  dv.setInt32(0, new DataView(raw.buffer, raw.byteOffset).getInt32(0, true), true); dv.setInt32(4, body.length, true);
+  return wioCat([hd, body]);
+}
+/* VersionEdit do LevelDB: comparador, arquivo de log atual (3), próximo número de arquivo (4), última sequência */
+function nwManifest(lastSeq) {
+  var cmp = new TextEncoder().encode('leveldb.BytewiseComparator'), b = [1, cmp.length];
+  for (var i = 0; i < cmp.length; i++) b.push(cmp[i]);
+  b.push(2); wioPutVar(b, 3); b.push(9); wioPutVar(b, 0); b.push(3); wioPutVar(b, 4); b.push(4); wioPutVar(b, lastSeq);
+  var pay = new Uint8Array(b), hd = new Uint8Array(7), crc = crcMask(crc32c(pay, crc32c(new Uint8Array([1]))));
+  hd[0] = crc; hd[1] = crc >>> 8; hd[2] = crc >>> 16; hd[3] = crc >>> 24; hd[4] = pay.length; hd[5] = pay.length >> 8; hd[6] = 1;
+  return wioCat([hd, pay]);
+}
+async function nwBuild(name, prog) {
+  var C = { pres: wio ? wio.pres : [], entries: new Map() }, ents = [], lost = 0;
+  var ground = ['bedrock', 'dirt', 'dirt', 'grass_block'].map(function (n) { return wioEntry(cellFromName(n), 0, 0, 0, C); });
+  var air = wioAir(), NC = Math.ceil(SX / 16), NZ = Math.ceil(SZ / 16), ymax = 319 - NW_Y0; // y mais alto do editor que cabe
+  var ver = new Uint8Array([NW_CHUNK_VERSION]), fin = new Uint8Array([2, 0, 0, 0]);
+  for (var cz = 0; cz < NZ; cz++) for (var cx = 0; cx < NC; cx++) {
+    if (prog) { prog(cz * NC + cx, NC * NZ); if (!((cz * NC + cx) & 7)) await new Promise(function (r) { setTimeout(r, 0); }); }
+    var hm = new Int16Array(256), bes = [], tops = new Int16Array(256).fill(-61);
+    for (var sy = -4; sy < 20; sy++) {
+      var ey0 = sy * 16 - NW_Y0; // y do editor no começo deste sub-chunk
+      var has = sy === -4;
+      for (var q = Math.max(0, ey0 >> 4); q <= Math.min(SY - 1, ey0 + 15) >> 4 && !has; q++) if (ey0 + 15 >= 0 && W.has(ckey(cx, q, cz))) has = true;
+      if (!has) continue;
+      var idx = new Uint16Array(4096), pal = [air], pmap = new Map([[wioStr(air), 0]]), any = false;
+      for (var x = 0; x < 16; x++) for (var z = 0; z < 16; z++) for (var y = 0; y < 16; y++) {
+        var wy = sy * 16 + y, ex = cx * 16 + x, ez = cz * 16 + z, ey = wy - NW_Y0, e = null;
+        if (wy < -60) e = ground[wy + 64];
+        else if (ex < SX && ez < SZ && ey < SY) {
+          var v = gget(ex, ey, ez);
+          if (v) { e = wioEntry(v, ex, ey, ez, C); tops[(z << 4) | x] = wy; if (e.ent) { bes.push(nbtRootLE({ id: { t: 'string', v: e.ent.id }, isMovable: { t: 'byte', v: 1 }, color: { t: 'byte', v: e.ent.color }, x: { t: 'int', v: ex }, y: { t: 'int', v: wy }, z: { t: 'int', v: ez } })); e = e.raw; } }
+        }
+        if (!e) continue;
+        var s = wioStr(e), pi = pmap.get(s);
+        if (pi === undefined) { pi = pal.length; pal.push(e); pmap.set(s, pi); }
+        idx[(x << 8) | (z << 4) | y] = pi; any = true;
+      }
+      if (any) ents.push([wioKey(cx, cz, 0, 0x2f, sy), subEncode(sy, [{ idx: idx, pal: pal }])]);
+    }
+    for (var ey = ymax + 1; ey < SY; ey++) for (x = 0; x < 16; x++) for (z = 0; z < 16; z++) if (cx * 16 + x < SX && cz * 16 + z < SZ && gget(cx * 16 + x, ey, cz * 16 + z)) lost++;
+    var subs = [];
+    for (var b = 0; b < 24; b++) {
+      var ids = new Uint8Array(4096);
+      for (x = 0; x < 16; x++) for (z = 0; z < 16; z++) { var bid = bioAt(cx * 16 + x, cz * 16 + z); ids.fill(bid >= 0 && bid < 255 ? bid : 1, (x << 8) | (z << 4), ((x << 8) | (z << 4)) + 16); }
+      subs.push(ids);
+    }
+    for (var i = 0; i < 256; i++) hm[i] = tops[i] + 1 + 64;
+    ents.push([wioKey(cx, cz, 0, 0x2b), bioEncode3D(hm, subs)], [wioKey(cx, cz, 0, 0x2c), ver], [wioKey(cx, cz, 0, 0x36), fin]);
+    if (bes.length) ents.push([wioKey(cx, cz, 0, 0x31), wioCat(bes)]);
+  }
+  ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+  var files = [
+    { name: 'level.dat', data: nwLevelDat(name, SX, SZ) },
+    { name: 'levelname.txt', data: new TextEncoder().encode(name) },
+    { name: 'db/CURRENT', data: new TextEncoder().encode('MANIFEST-000002\n') },
+    { name: 'db/MANIFEST-000002', data: nwManifest(0) },
+    { name: 'db/000003.log', data: ldbLogWrite(ents, 1) }
+  ];
+  return { bytes: MCExport.makeZip(files), chunks: NC * NZ, lost: lost };
+}
+async function nwExport(name) {
+  try {
+    busy('Montando o mundo novo…', 0);
+    var out = await nwBuild(name, function (i, n) { busy('Montando o mundo novo: chunk ' + i + ' de ' + n, i / n); });
+    var nm = cleanName(name) + '.mcworld';
+    if (inArtifact) reportSave(await saveBytes(nm, out.bytes), nm);
+    else {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out.bytes], { type: 'application/octet-stream' })); a.download = nm; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+    }
+    toast('Mundo novo exportado: ' + nm + ' (' + out.chunks + ' chunks). Abra o arquivo no jogo: ele vira um mundo plano criativo com a construção e os biomas pintados, a partir de X 0, Z 0.' + (out.lost ? ' ' + out.lost + ' blocos acima do limite de altura do mundo ficaram de fora.' : ''), 10000);
+  } catch (e) { reportErr(e); }
+  finally { busyEnd(); }
+}
+
 /* ---------- Projeto ---------- */
 var KEY = 'bloco-a-bloco-v1';
 /* Nome na paleta do projeto: id java, com a direção entre colchetes quando não é a inicial (ex.: furnace[facing=east]) */
@@ -6782,6 +7211,7 @@ function loadProject(o) {
   }
   if (o.hotbar) hotbar = o.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
   slot = o.slot | 0;
+  if (o.biomes) bioFromRecord(o.biomes); // biomas pintados (src/biome.js)
   verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
 }
@@ -6789,7 +7219,7 @@ function newWorld(sx, sy, sz) {
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
-  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset();
+  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset(); bioReset();
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -6924,12 +7354,14 @@ function openExport() {
     (big ? '<div class="info">A construção passa do tamanho de uma estrutura do Bedrock (64 × 384 × 64). Baixe <b>em pedaços</b>: ' + pieces + ' arquivos .mcstructure num .zip, com um texto dizendo onde carregar cada um.</div>' : '') +
     '<div class="row">' + (big ? '<button class="btn primary" id="exPieces">Baixar em pedaços (.zip, Bedrock)</button><button class="btn" id="exBedrock">.mcstructure inteiro</button>' : '<button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button>') + '<button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
     (boN ? '<div class="info">Só existem no Bedrock e ficam de fora do .schem (Java): ' + boTxt + '. No .mcstructure vão normalmente.</div>' : '') +
+    (wio && wio.area ? '' : '<div class="get"><b>Mundo novo (.mcworld)</b><small>Gera um mundo plano criativo do Bedrock com a construção em cima do chão (x e z 0 do editor = x e z 0 do mundo; y 0 do editor = y -60)' + (bioPaint.size ? ' e os biomas pintados' : '') + ', com o nome do arquivo acima. É o único jeito de levar os biomas: o .mcstructure e o .schem guardam só os blocos.</small><div class="row"><button class="btn" id="exNewWorld">Exportar mundo novo (.mcworld)</button></div></div>') +
     '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
     '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
     function () {
       if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
       $('exClose').onclick = closeDialog;
       if ($('exWorld')) $('exWorld').onclick = function () { closeDialog(); wioExport(); };
+      if ($('exNewWorld')) $('exNewWorld').onclick = function () { var nm = $('exName').value || 'construcao'; closeDialog(); nwExport(nm); };
       var tooBig = function () { if (bb && bb.w * bb.h * bb.l > 150e6) { toast('Construção grande demais para um arquivo só (' + Math.round(bb.w * bb.h * bb.l / 1e6) + ' milhões de espaços na caixa). Use Baixar em pedaços.', 8000); return true; } return false; };
       $('exBedrock').onclick = async function () {
         if (tooBig()) return;
@@ -7170,6 +7602,7 @@ window.addEventListener('keydown', function (e) {
   var k = e.key.toLowerCase();
   if (selectionKey(e, k)) return;
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }
+  if (tool === 'biome' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setBioR(bio.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'mix' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMixR(mix.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'sculpt' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setSculptR(sculpt.r + (k === '-' ? -1 : 1)); return; }
   if (k === 'x' && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleSymChip(); return; }
@@ -7178,7 +7611,7 @@ window.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', q: 'mix', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
+  var map = { b: 'place', e: 'erase', i: 'pick', t: 'rotate', u: 'use', l: 'line', r: 'box', h: 'hbox', s: 'sphere', o: 'hsphere', v: 'select', m: 'mask', q: 'mix', y: 'biome', k: 'sculpt', n: 'ruler', j: 'tp', c: 'shape2', f: 'fill' };
   if (map[k]) { setTool(map[k]); return; }
   if (k >= '1' && k <= '9') { selectSlot(+k - 1); return; }
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
@@ -7240,7 +7673,7 @@ function frame() {
   rebuildDirty();
   updateLightLabels();
   updateMeasure();
-  updateGhost();
+  updateGhost(); updateBioView();
   renderer.render(scene, camera);
 }
 

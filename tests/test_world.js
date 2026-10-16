@@ -51,6 +51,15 @@ vm.runInContext(fs.readFileSync(path.join(root, 'src/worldio.js'), 'utf8'), ctx)
   check(v1 && v1.length === big.length && v1.every((x, i) => x === big[i]), 'registro: valor de 70 KB (mais de um bloco de 32 KB) lido de volta igual');
   check(v2 === null, 'registro: chave apagada some');
   check((await ctx.ldbGet(db2, ctx.wioKey(1, 1, 0, 0x2f, 3))) !== null, 'registro: as outras chaves continuam');
+  // mundo novo: level.dat do modelo com nome, gerador plano e ponto de nascimento trocados; MANIFEST legível
+  ctx.atob = s => Buffer.from(s, 'base64').toString('latin1');
+  ctx.NW_LEVEL = fs.readFileSync(path.join(root, 'data/leveldat-plano.dat')).toString('base64');
+  const lv = ctx.nwLevelDat('Construção nova', 64, 96), tree = ctx.nbtTreeLE(lv.subarray(8)), get = k => (tree.v.find(e => e.k === k) || {}).v;
+  check(new DataView(lv.buffer, lv.byteOffset).getInt32(4, true) === lv.length - 8, 'level.dat: tamanho no cabeçalho');
+  check(get('LevelName') === 'Construção nova' && get('Generator') === 2 && get('GameType') === 1 && get('SpawnX') === 32 && get('SpawnZ') === 48, 'level.dat: nome, mundo plano, criativo e nascimento no meio');
+  check(ctx.wioStr(ctx.nbtTreeWrite(ctx.nbtTreeLE(fs.readFileSync(path.join(root, 'data/leveldat-plano.dat')).subarray(8)))) === ctx.wioStr(new Uint8Array(fs.readFileSync(path.join(root, 'data/leveldat-plano.dat')).subarray(8))), 'NBT genérico: ler e gravar o level.dat dá os mesmos bytes');
+  const man = ctx.ldbManifest(ctx.nwManifest(5));
+  check(man.ok && man.log === 3 && man.next === 4 && man.seq === 5, 'MANIFEST do mundo novo: log 3, próximo arquivo 4, sequência 5');
   // CRC32C do registro (valor conhecido: "123456789" -> e3069283)
   check(ctx.crc32c(new TextEncoder().encode('123456789')) === 0xe3069283, 'CRC32C');
 })();

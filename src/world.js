@@ -136,6 +136,7 @@ function projectMeta() { return { size: [SX, SY, SZ], hotbar: hotbar.map(functio
 /* Projeto inteiro (Projeto > Salvar projeto): versão 2, por chunks */
 function serialize() {
   var o = projectMeta(); o.v = 2; o.chunks = [];
+  if (bioPaint.size) o.biomes = bioRecord();
   W.forEach(function (ch) {
     var r = chunkRecord(ch);
     if (r.d) { r.w = r.d instanceof Uint16Array ? 2 : 1; r.d = b64(new Uint8Array(r.d.buffer)); }
@@ -162,6 +163,7 @@ function autosave() {
     // num mundo do jogo, o chunk que ficou vazio também é guardado: ao reabrir, a área vem do mundo e o vazio tem de apagá-la
     recs.forEach(function (r) { if (r[1]) st.put(r[1], 'w:c:' + r[0]); else if (wio && wio.area) st.put({ c: r[0].split(',').map(Number), empty: 1 }, 'w:c:' + r[0]); else st.delete('w:c:' + r[0]); });
     st.put(meta, 'w:meta');
+    if (bioSaveFlag || clear) { bioSaveFlag = false; st.put(bioRecord(), 'w:bio'); } // biomas pintados
     histSaveInto(st, clear); // a linha do tempo vai na mesma gravação: construção e histórico sempre combinam
   }).then(function () {
     autosaveBusy = false;
@@ -184,7 +186,7 @@ function loadAutosave() {
       slot = meta.slot | 0;
       worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; }); // já está salvo assim
       verCounter++; dirtyAll(); renderHotbar(); renderList();
-      return true;
+      return idbDo('readonly', function (st) { return st.get('w:bio'); }).then(function (b) { if (b) bioFromRecord(b); bioSaveFlag = false; return true; }, function () { return true; });
     });
   }, function () { return false; });
 }
