@@ -217,6 +217,15 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
   .layer input[type=range]{width:80px}
   .slot{width:36px;height:36px}
 }
+/* Tela limpa (Tab): só a cena 3D, a hotbar e os avisos das ferramentas; as teclas continuam valendo */
+body.clean #toolbar,body.clean #sidebar,body.clean #status{display:none}
+body.clean #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+#cleanChip{position:absolute;right:12px;top:12px;display:none;align-items:center;gap:8px;padding:5px 6px 5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px);font-size:12px;color:var(--muted);z-index:5}
+body.clean #cleanChip{display:flex}
+#cleanChip svg{width:18px;height:18px;fill:none;stroke:var(--fg);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#cleanChip svg .f{fill:var(--accent-soft,rgba(180,90,20,.25))}
+#cleanChip b{color:var(--fg);font-weight:600}
+#cleanChip button{font:inherit;font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--fg);cursor:pointer}
 @media (prefers-reduced-motion:reduce){#toast,#busy .bar i{transition:none}#busy .sp{animation:none}}
 </style>
 
@@ -255,6 +264,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
+          <button class="tbtn txt" id="cleanBtn">Tela limpa (Tab)</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
@@ -271,6 +281,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
     </div>
     <div id="viewport">
       <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
     </div>
@@ -1113,8 +1124,24 @@ function renderTools() {
     return '<button type="button" class="tbtn" data-tool="' + t[0] + '" aria-pressed="' + (t[0] === tool) + '" title="' + t[1] + ' (' + t[2] + ')" aria-label="' + t[1] + '"><svg viewBox="0 0 20 20">' + t[3] + '</svg></button>';
   }).join('');
 }
-function setTool(t) { tool = t; anchor = null; anchor2 = null; if (t !== 'ruler' && rulerPts.length) { rulerHoverKey = null; rulerDraw(); } if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
+function setTool(t) { tool = t; anchor = null; anchor2 = null; if (cleanMode) updateCleanChip(); if (t !== 'ruler' && rulerPts.length) { rulerHoverKey = null; rulerDraw(); } if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
 $('tools').addEventListener('click', function (e) { var b = e.target.closest('[data-tool]'); if (b) setTool(b.getAttribute('data-tool')); });
+/* Tela limpa: esconde a barra de ferramentas, a lista de blocos e a barra de status; a cena ocupa a janela toda.
+   Ferramentas, pincéis, hotbar (1 a 9), desfazer e os outros atalhos continuam funcionando. Um aviso no canto mostra a
+   ferramenta atual e o botão para voltar (no celular, sem teclado). */
+var cleanMode = false;
+function updateCleanChip() {
+  if (!cleanMode) return;
+  var t = TOOLS.filter(function (q) { return q[0] === tool; })[0];
+  $('cleanTool').innerHTML = t ? '<svg viewBox="0 0 20 20" style="vertical-align:-4px;margin-right:6px">' + t[3] + '</svg><b>' + t[1].split(':')[0] + '</b> (' + t[2] + ')' : '';
+}
+function setClean(on) {
+  cleanMode = on; document.body.classList.toggle('clean', on); $('menu').open = false;
+  updateCleanChip(); resize(); requestRender();
+  if (on) toast('Tela limpa: as teclas das ferramentas, a hotbar (1 a 9) e os atalhos continuam valendo. Tab mostra tudo de novo.', 5000);
+}
+$('cleanExit').addEventListener('click', function () { setClean(false); });
+$('cleanBtn').addEventListener('click', function () { setClean(!cleanMode); });
 function isShape(t) { return t === 'line' || t === 'box' || t === 'hbox' || t === 'sphere' || t === 'hsphere' || t === 'shape2'; }
 /* Linha, caixa e caixa oca têm três cliques: início, ponto oposto (a base) e a altura */
 var anchor2 = null;
@@ -8136,7 +8163,8 @@ function openHelp() {
     '<span>Teleporte (<kbd>J</kbd>)</span><span>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo. <kbd>Shift</kbd> + clique (ou o botão Primeira pessoa do aviso): anda dentro da construção.</span>' +
     '<span>Primeira pessoa</span><span>Mouse olha; <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> anda; <kbd>Espaço</kbd> pula; <kbd>F</kbd> liga o voo (<kbd>Espaço</kbd> sobe, <kbd>Shift</kbd> desce); clique esquerdo quebra, direito coloca, roda e 1 a 9 trocam o bloco; <kbd>Esc</kbd> sai.</span>' +
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
-    '<span><kbd>G</kbd></span><span>Grade</span></div>' +
+    '<span><kbd>G</kbd></span><span>Grade</span>' +
+    '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
     '<div class="row"><button class="btn primary" id="hClose">Entendi</button></div>',
@@ -8247,6 +8275,7 @@ window.addEventListener('keydown', function (e) {
   if (e.key === 'Shift') { lastShift = true; updatePreview(); }
   if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerPts.length) rulerClear(); $('menu').open = false; return; }
   if (typing || overlayRoot.firstChild || !camera) return;
+  if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
   var k = e.key.toLowerCase();
   if (selectionKey(e, k)) return;
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }
