@@ -2789,7 +2789,9 @@ function shapeGeom(b, o) {
           });
         }
         // rotação do blockstate: x (para baixo, como no jogo) e depois y
-        pts = pts.map(function (p) { if (ax) p = rotX(p, cx, sx); if (ay || yf) p = rotY(p, cy, sy); return p; });
+        // arredonda o resto do seno e cosseno (cos 90° = 6e-17): sem isso, a face girada não fica exatamente no eixo e
+        // o clique na forma (shapeRayHit) deixa de acertar a escada virada para alguns lados
+        pts = pts.map(function (p) { if (ax) p = rotX(p, cx, sx); if (ay || yf) p = rotY(p, cy, sy); return [Math.round(p[0] * 1e6) / 1e6, Math.round(p[1] * 1e6) / 1e6, Math.round(p[2] * 1e6) / 1e6]; });
         var uv = fc.uv || defaultUV(d, f, t), rr = ((fc.rotation || 0) / 90) % 4;
         var cs = [[uv[0], uv[1]], [uv[2], uv[1]], [uv[2], uv[3]], [uv[0], uv[3]]];
         var uvs = [0, 1, 2, 3].map(function (i) { return cs[(i + 4 - rr) % 4]; });
