@@ -35,6 +35,7 @@ src/ghost.js            Camada fantasma: blocos de uma camada de baixo, translú
 src/history.js          Histórico em árvore: cada ação é um nó, ramos ao mudar depois de voltar, linha do tempo e versões marcadas
 src/redstone.js         Redstone funcionando: pó, tochas, repetidores, comparadores, observadores, lâmpadas, portas, pistões, trilhos (tiques do jogo)
 src/biome.js            Pincel de bioma: biomas por coluna (pintados e lidos do mundo), cor da grama/folhas/água pelo bioma, Transformar o terreno (receitas por bioma), placas coloridas, chave 0x2B (Data3D)
+src/icons.js            Ícones 3D dos blocos (lista, hotbar): cada bloco desenhado como no inventário numa folha só, com o motor e as texturas da cena
 src/mixbrush.js         Pincel de mistura: 2 a 10 blocos com porcentagens (soma 100%), amostragem ponderada por voxel
 src/palettes.js         Paletas: as do site editáveis (por cima de catOf) e as do usuário, no localStorage
 src/maskbrush.js        Pincel de troca (pincel 3D com máscara)

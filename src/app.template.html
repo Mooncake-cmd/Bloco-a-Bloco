@@ -489,6 +489,7 @@ BLOCKS.forEach(function (b) { b.cat = catOf(b); b.hay = (b.java + ' ' + b.name).
 function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
 function swatch(b) {
   if (b.isAir) return 'background:repeating-linear-gradient(45deg,transparent 0 5px,rgba(200,60,40,.35) 5px 7px),' + rgb(b.side);
+  var ic = iconCss(b._bi); if (ic) return ic + ';box-shadow:none;border-radius:0'; // ícone 3D (src/icons.js)
   if (b.icon) return 'background:' + b.icon + ' 0 0/100% 100% no-repeat,' + rgb(b.side) + ';image-rendering:pixelated';
   return 'background:linear-gradient(to bottom,' + rgb(b.top) + ' 0,' + rgb(b.top) + ' 28%,' + rgb(b.side) + ' 28%,' + rgb(b.side) + ' 100%)';
 }
@@ -1893,7 +1894,7 @@ async function applyTextures() {
   var st = $('texStyle');
   if (!st) { st = document.createElement('style'); st.id = 'texStyle'; document.head.appendChild(st); }
   st.textContent = css.length ? ':root{' + css.join(';') + '}' : '';
-  dirtyAll(); renderList(); renderHotbar(); requestRender();
+  dirtyAll(); renderList(); renderHotbar(); requestRender(); renderIcons();
 }
 
 /* Guardar no navegador (IndexedDB). Se não der, os pacotes valem só até recarregar a página. */
@@ -2004,6 +2005,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%MIX_JS%%*/
 /*%%BIOME_JS%%*/
 /*%%REDSTONE_JS%%*/
+/*%%ICONS_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /*%%JAVAWORLD_JS%%*/
@@ -2534,7 +2536,7 @@ async function start() {
   // para o IndexedDB no próximo salvamento; senão, o salvamento automático do IndexedDB
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
-  initThree(); bindCanvas();
+  initThree(); bindCanvas(); renderIcons();
   loadPacks().then(function () { if (packs.length) applyTextures(); });
   var ok = false;
   if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }
