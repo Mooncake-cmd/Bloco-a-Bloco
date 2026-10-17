@@ -641,6 +641,15 @@ const BE_SYN = {
       t: [...new Set(Object.values(f))], pt: f.north, be: { '#name': [[], { '': 'stonecutter' }] }, ent: 0, bo: 1, nb: 1, fc: 1 };
     blocks.push(e); byN.old_stonecutter = e; added.push('old_stonecutter');
   }
+  // 3f. redstone: alvo, bloco musical e lâmpadas de cobre eram cubos sem estado; aqui ganham os estados do Java (força,
+  // nota, acesa/energizada). Entram no fim, marcados rep: no site, cada um toma o lugar do cubo de mesmo nome (o índice
+  // do cubo continua valendo nos projetos e no histórico) e o índice daqui fica como um bloco escondido
+  for (const n of ['target', 'note_block', ...['', 'exposed_', 'weathered_', 'oxidized_'].flatMap(o => ['', 'waxed_'].map(w => w + o + 'copper_bulb'))]) {
+    const e = javaEntry(jd.blocksByName[n]); if (!e) throw new Error('não montou ' + n);
+    e.rep = 1; e.fc = 1; e.k = 0;
+    if (n === 'note_block') { e.p = e.p.map(q => q[0] === 'note' ? [q[0], q[1], 's', q[3]] : q); e.tog = ['note']; } // Usar sobe a nota, como no jogo
+    blocks.push(e); byN[n] = e; added.push(n);
+  }
   // os blocos-fonte que eram cubos (tábuas, troncos, tufo) não precisam de forma própria
   for (const n of ['spruce_planks', 'spruce_log', 'spruce_wood', 'stripped_spruce_log', 'stripped_spruce_wood', 'spruce_leaves', 'tuff', 'polished_tuff', 'tuff_bricks', 'chiseled_tuff'])
     if (!blocks.some(b => b.n === n)) delete states[n];

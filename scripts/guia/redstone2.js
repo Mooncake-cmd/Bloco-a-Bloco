@@ -34,6 +34,21 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   await p.screenshot({ path: path.join(OUT, 'redstone-comparador.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
   await ev(`openFill([3,1,9], BLOCKS[BY_JAVA.chest])`); await p.fill('#fillR', '9'); await p.dispatchEvent('#fillR', 'input'); await p.waitForTimeout(300);
   await (await p.$('.dialog')).screenshot({ path: path.join(OUT, 'redstone-conteudo.jpg'), type: 'jpeg', quality: 85 });
+  await p.keyboard.press('Escape');
+  // etapa 2: lâmpadas de cobre (uma acesa ficou acesa depois do sinal), alvo acertado no centro ligando o pó e uma
+  // lâmpada, bloco musical em cima de tábuas, sino e funil travado pela alavanca
+  await ev(`(function(){ newWorld(20, 10, 14); rsPlayNote = function(){}; rsPlayBell = function(){};
+    var l = []; for (var x = 0; x < 20; x++) for (var z = 0; z < 14; z++) l.push([x, 0, z, 'smooth_stone']); S(l);
+    S([[2,1,3,'lever[face=floor,facing=east]'],[3,1,3,'copper_bulb'],[5,1,3,'lever[face=floor,facing=east]'],[6,1,3,'exposed_copper_bulb'],[8,1,3,'weathered_copper_bulb'],[10,1,3,'oxidized_copper_bulb'],
+       [3,1,7,'target'],[4,1,7,'redstone_wire'],[5,1,7,'redstone_wire'],[6,1,7,'redstone_wire'],[7,1,7,'redstone_lamp'],
+       [9,0,7,'oak_planks'],[9,1,7,'note_block'],[10,1,7,'bell[attachment=floor,facing=north]'],[12,1,7,'lever[face=floor,facing=east]'],[13,1,7,'hopper[facing=down]']]);
+    var lev = function (x, y, z, on) { var v = gget(x, y, z), b = BLOCKS[cellBlock(v)], pr = stateProps(b, cellOri(v)); pr.powered = String(on); beginBatch('alavanca'); editSet(x, y, z, mkCell(cellBlock(v), stateIndex(b, pr))); endBatch(); };
+    lev(2,1,3,true); lev(5,1,3,true); lev(12,1,7,true); })()`);
+  await p.waitForTimeout(500);
+  await ev(`(function(){ var v = gget(5,1,3), b = BLOCKS[cellBlock(v)], pr = stateProps(b, cellOri(v)); pr.powered = 'false'; beginBatch('alavanca'); editSet(5,1,3,mkCell(cellBlock(v), stateIndex(b, pr))); endBatch(); rsHitTarget([3,1,7], { pt: [3.5, 1.5, 7], normal: [0, 0, -1] });
+    setTool('use'); Object.assign(cam,{yaw:0.55,pitch:0.6,dist:15,tx:7.5,ty:1,tz:5.5}); updateCamera(); requestRender(); })()`);
+  await p.mouse.move(1270, 790); await p.waitForTimeout(400); await hide();
+  await p.screenshot({ path: path.join(OUT, 'redstone-cobre.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
   console.log('ok redstone2', errs);
   await b.close();
 })();

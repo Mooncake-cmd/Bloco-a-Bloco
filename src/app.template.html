@@ -265,6 +265,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="cleanBtn">Tela limpa (Tab)</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
+          <button class="tbtn txt" id="rsSndBtn">Sons da redstone: sim</button>
           <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
@@ -1243,11 +1244,14 @@ function useAt(c, back, t) {
   if (growAt(c, back)) return;
   var b = BLOCKS[cellBlock(v)];
   if (b.java === 'chiseled_bookshelf') { useBookshelf(c, v, b, back, t); return; }
+  if (b.java === 'target') { var lv = rsHitTarget(c, t); toast('Alvo: força ' + lv + ' por 1 s (quanto mais perto do centro, mais forte).'); return; }
+  if (b.java === 'bell') { rsPlayBell(); toast('Sino: dlem!'); return; }
   if (RS_CONT.test(b.java) && !(back && b.shape && b.shape.tog.length)) { openFill(c, b); return; }
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
   var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
   var s2 = cycleProp(b, cellOri(v), prop, back && !b.shape.tog[1]);
   beginBatch('Usar: ' + b.name); setShapeState(c, v, s2); endBatch();
+  if (b.java === 'note_block') { var np = stateProps(b, s2); rsPlayNote(c[0], c[1], c[2], +np.note || 0); toast(b.name + ': nota ' + np.note + ' (' + rsInstrument(c[0], c[1], c[2]) + ')'); return; }
   toast(b.name + ': ' + prop + ' = ' + stateProps(b, s2)[prop]);
 }
 /* Contêiner: o nível de conteúdo de 0 a 15 que o comparador lê (o site não guarda os itens) */
@@ -2409,6 +2413,8 @@ function openFloor() {
     });
 }
 $('rsBtn').addEventListener('click', function () { setRedstone(!rsOn); toast(rsOn ? 'A redstone funciona: alavancas, botões, tochas, repetidores, comparadores, lâmpadas, portas e pistões reagem ao sinal.' : 'A redstone fica parada: Usar só muda o bloco clicado.', 5000); $('menu').open = false; });
+$('rsSndBtn').addEventListener('click', function () { setRsSound(!rsSnd.on); toast(rsSnd.on ? 'Sons da redstone ligados: o bloco musical e o sino tocam quando o sinal chega.' : 'Sons da redstone desligados.'); $('menu').open = false; });
+setRsSound(rsSnd.on);
 $('flowBtn').addEventListener('click', function () { setFlow(!flowOn); toast(flowOn ? 'A água e a lava escorrem ao colocar, como no jogo.' : 'A água e a lava ficam paradas onde você colocar.'); $('menu').open = false; });
 setFlow(flowOn);
 setRedstone(rsOn);

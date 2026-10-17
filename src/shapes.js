@@ -9,7 +9,9 @@ var DV = { up: [0, 1, 0], down: [0, -1, 0], north: [0, 0, -1], south: [0, 0, 1],
 var BED_COLORS = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'];
 var CW = { north: 'east', east: 'south', south: 'west', west: 'north' }, CCW = { north: 'west', west: 'south', south: 'east', east: 'north' };
 
-var SP_EXTRA = { redstone_wire: ['power'], piston: ['extended'], sticky_piston: ['extended'], powered_rail: ['powered'], activator_rail: ['powered'], detector_rail: ['powered'], repeater: ['locked'] };
+var SP_EXTRA = { redstone_wire: ['power'], piston: ['extended'], sticky_piston: ['extended'], powered_rail: ['powered'], activator_rail: ['powered'], detector_rail: ['powered'], repeater: ['locked'],
+  note_block: ['powered'], bell: ['powered'], hopper: ['enabled'] };
+['', 'exposed_', 'weathered_', 'oxidized_'].forEach(function (o) { ['', 'waxed_'].forEach(function (w) { SP_EXTRA[w + o + 'copper_bulb'] = ['powered']; }); });
 async function loadShapes() {
   var bin = Uint8Array.from(atob(SHAPES_GZ), function (c) { return c.charCodeAt(0); });
   var txt = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
@@ -32,6 +34,14 @@ async function loadShapes() {
       var p = d.p.filter(function (q) { return q[0] === k; })[0]; if (!p || b.sp.indexOf(p) >= 0) return;
       var def = b.defs[k]; b.sp.push([k, [def].concat(p[1].filter(function (v) { return v !== def; })), 's', 0]);
     });
+    // rep: o bloco era um cubo sem estado (alvo, bloco musical, lâmpada de cobre); a forma toma o lugar do cubo, que
+    // continua com o mesmo índice (projetos e histórico), e este índice fica como um bloco escondido
+    var ci = d.rep ? BY_JAVA[d.n] : null;
+    if (ci != null && !BLOCKS[ci].shape) {
+      b.cubeCat = BLOCKS[ci].cat; BLOCKS[ci] = b;
+      BLOCKS.push(Object.assign({}, b, { java: d.n + '#forma', hide: true, rep: true }));
+      return;
+    }
     BLOCKS.push(b); BY_JAVA[d.n] = base + i;
   });
   // Correções da tabela Java -> Bedrock conferidas no servidor oficial do Bedrock (1.26): na alavanca, open_bit é

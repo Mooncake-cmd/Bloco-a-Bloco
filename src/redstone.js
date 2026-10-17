@@ -23,6 +23,10 @@
      caldeirões, âncora de renascimento, colmeia, moldura do portal do End, atril, estante entalhada, e os contêineres
      (baú, barril, funil, fornalhas, ejetor, liberador, suporte de poções, caixa de shulker, toca-discos...) pelo
      "nível de conteúdo" de 0 a 15 que o usuário escolhe com Usar (o site não guarda itens).
+   - Alvo: Usar acerta o alvo como uma flecha: força de 1 a 15 conforme a distância do centro da face clicada, por
+     1 s (20 tiques). Lâmpada de cobre: troca acesa/apagada a cada vez que o sinal chega (não a cada vez que some);
+     o comparador lê 15 com ela acesa. Bloco musical e sino: tocam quando o sinal chega (som no navegador; o
+     instrumento do bloco musical vem do bloco embaixo, como no jogo). Funil: travado enquanto tem sinal.
    - Observador: um pulso de 1 tique de redstone pela parte de trás quando o bloco da frente muda.
    Cada mudança feita pela simulação entra no mesmo passo de desfazer da ação que a causou (como a água). A avaliação
    é local: parte das células mudadas e percorre só a rede de redstone ligada a elas. */
@@ -41,6 +45,7 @@ function rsKind(bi) {
     : j === 'redstone_lamp' ? 'lamp' : /_door$/.test(j) ? 'door' : /_trapdoor$/.test(j) ? 'trapdoor' : /_fence_gate$/.test(j) ? 'gate'
     : j === 'piston' || j === 'sticky_piston' ? 'piston' : j === 'piston_head' ? 'head'
     : j === 'powered_rail' || j === 'activator_rail' ? 'rail' : j === 'daylight_detector' ? 'day'
+    : j === 'target' ? 'target' : j === 'note_block' ? 'note' : /copper_bulb$/.test(j) ? 'bulb' : j === 'bell' ? 'bell' : j === 'hopper' ? 'hopper'
     : (!b.shape || b.shape.fc) && b.solid && !b.isAir && !NOT_STURDY.test(j) ? 'solid' : null;
   rsKinds[bi] = k; return k;
 }
@@ -52,7 +57,7 @@ function rsAt(x, y, z) {
 function rsP(c) { return c.p || (c.p = c.b.shape ? stateProps(c.b, cellOri(c.v)) : c.k === 'observer' ? { facing: c.b.ori.o[cellOri(c.v)][0] } : {}); }
 function rsN(x, y, z, d) { var v = DV[d]; return [x + v[0], y + v[1], z + v[2]]; }
 function rsIdx(c) { return idx(c.x, c.y, c.z); }
-function rsCond(x, y, z) { var c = rsAt(x, y, z); return !!c && c.k === 'solid'; }
+function rsCond(x, y, z) { var c = rsAt(x, y, z); return !!c && (c.k === 'solid' || c.k === 'note' || c.k === 'bulb'); } // bloco musical e lâmpada de cobre também conduzem
 function rsAttach(c) { var p = rsP(c); return p.face === 'floor' ? 'down' : p.face === 'ceiling' ? 'up' : OPP[p.facing]; }
 function rsTorchSup(c) { return c.b.java === 'redstone_torch' ? 'down' : OPP[rsP(c).facing]; }
 function rsWireLv(c) { var i = rsIdx(c); return rs.lv && rs.lv.has(i) ? rs.lv.get(i) : +rsP(c).power || 0; }
@@ -65,7 +70,7 @@ function rsWeak(x, y, z, d) {
   var p;
   switch (c.k) {
     case 'lever': case 'button': case 'plate': return rsP(c).powered === 'true' ? 15 : 0;
-    case 'wplate': case 'day': return +rsP(c).power || 0;
+    case 'wplate': case 'day': case 'target': return +rsP(c).power || 0;
     case 'torch': return rsP(c).lit === 'true' && d !== rsTorchSup(c) ? 15 : 0;
     case 'rblock': return 15;
     case 'repeater': p = rsP(c); return p.powered === 'true' && d === OPP[p.facing] ? 15 : 0;
@@ -164,6 +169,7 @@ function rsRead(x, y, z) {
     case 'cauldron': return 0;
     case 'water_cauldron': case 'powder_snow_cauldron': return +p.level || 0;
     case 'lava_cauldron': return 3;
+    case 'copper_bulb': case 'exposed_copper_bulb': case 'weathered_copper_bulb': case 'oxidized_copper_bulb': case 'waxed_copper_bulb': case 'waxed_exposed_copper_bulb': case 'waxed_weathered_copper_bulb': case 'waxed_oxidized_copper_bulb': return p.lit === 'true' ? 15 : 0;
     case 'respawn_anchor': return Math.floor((+p.charges || 0) * 15 / 4);
     case 'beehive': case 'bee_nest': return +p.honey_level || 0;
     case 'end_portal_frame': return p.eye === 'true' ? 15 : 0;
@@ -242,6 +248,7 @@ function rsRun(e) {
       }
       break;
     case 'release': if ((c.k === 'button' || c.k === 'plate') && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
+    case 'targetOff': if (c.k === 'target' && +p.power) rsProp(c, { power: '0' }); break;
     case 'piston': if (c.k === 'piston') rsPiston(c); break;
   }
 }
@@ -340,6 +347,16 @@ function rsEval(seeds) {
           break;
         }
         case 'rail': rails.push(c); break;
+        case 'bulb': case 'note': case 'bell': {
+          pw = rsInput(c.x, c.y, c.z) > 0;
+          if (pw && p.powered !== 'true') {
+            var o2 = { powered: 'true' }; if (c.k === 'bulb') o2.lit = p.lit === 'true' ? 'false' : 'true';
+            rsProp(c, o2);
+            if (c.k === 'note') rsPlayNote(c.x, c.y, c.z, +p.note || 0); else if (c.k === 'bell') rsPlayBell();
+          } else if (!pw && p.powered === 'true') rsProp(c, { powered: 'false' });
+          break;
+        }
+        case 'hopper': { var lk = rsInput(c.x, c.y, c.z) > 0; if ((p.enabled === 'false') !== lk) rsProp(c, { enabled: String(!lk) }); break; }
       }
     });
     if (rails.length) rsRails(rails);
@@ -479,4 +496,70 @@ function setRedstone(on) {
   rsOn = on; try { localStorage.setItem('bloco-a-bloco-redstone', on ? '1' : '0'); } catch (e) {}
   if (!on) rsStop();
   $('rsBtn').textContent = 'Redstone funcionando: ' + (on ? 'sim' : 'não');
+}
+
+/* ---------- Alvo, sons do bloco musical e do sino ---------- */
+/* Usar no alvo: força pela distância do ponto clicado ao centro da face (a conta do jogo), por 20 tiques */
+function rsHitTarget(c, t) {
+  var v = gget(c[0], c[1], c[2]), b = BLOCKS[cellBlock(v)], lv = 15;
+  if (t && t.pt && t.normal) {
+    var f = function (q) { return Math.abs(q - Math.floor(q) - 0.5); }, dx = f(t.pt[0]), dy = f(t.pt[1]), dz = f(t.pt[2]);
+    var d3 = t.normal[1] ? Math.max(dx, dz) : t.normal[2] ? Math.max(dx, dy) : Math.max(dy, dz);
+    lv = Math.max(1, Math.ceil(15 * Math.min(1, Math.max(0, (0.5 - d3) / 0.5))));
+  }
+  beginBatch('Usar: alvo'); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, { power: String(lv) }))); endBatch();
+  var cc = rsAt(c[0], c[1], c[2]); if (cc && rsOn) rsLater(20, 'targetOff', cc);
+  return lv;
+}
+var rsSnd = { on: true, ctx: null, n: 0, t0: 0 };
+try { rsSnd.on = localStorage.getItem('bloco-a-bloco-rssom') !== '0'; } catch (e) {}
+function rsAudio() {
+  if (!rsSnd.on) return null;
+  var now = performance.now(); if (now - rsSnd.t0 > 100) { rsSnd.t0 = now; rsSnd.n = 0; } if (++rsSnd.n > 16) return null; // no máximo 16 sons a cada 0,1 s
+  try { if (!rsSnd.ctx) rsSnd.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (rsSnd.ctx.state === 'suspended') rsSnd.ctx.resume(); return rsSnd.ctx; } catch (e) { return null; }
+}
+/* Instrumento pelo bloco embaixo (as regras do jogo, resumidas) */
+function rsInstrument(x, y, z) {
+  var v = y > 0 ? gget(x, y - 1, z) : 0, j = v ? BLOCKS[cellBlock(v)].java : '';
+  if (/^gold_block$/.test(j)) return 'bell'; if (/^clay$/.test(j)) return 'flute'; if (/^packed_ice$/.test(j)) return 'chime';
+  if (/_wool$/.test(j)) return 'guitar'; if (/^bone_block$/.test(j)) return 'xylophone'; if (/^iron_block$/.test(j)) return 'iron_xylophone';
+  if (/^soul_sand$/.test(j)) return 'cow_bell'; if (/^(carved_)?pumpkin$|^jack_o_lantern$/.test(j)) return 'didgeridoo'; if (/^emerald_block$/.test(j)) return 'bit';
+  if (/^hay_block$/.test(j)) return 'banjo'; if (/^glowstone$/.test(j)) return 'pling';
+  if (/(_planks|_log|_wood|_stem|_hyphae|bookshelf|chest|crafting_table|note_block|jukebox|barrel|loom|composter|lectern|_sign|_fence|_door|_trapdoor|_slab|_stairs|beehive|bee_nest|campfire|daylight_detector|banner)$/.test(j) && !/stone|brick|quartz|purpur|copper|deepslate|blackstone|tuff|prismarine|sandstone|nether/.test(j)) return 'bass';
+  if (/^(sand|red_sand|gravel|suspicious_sand|suspicious_gravel)$|_concrete_powder$/.test(j)) return 'snare';
+  if (/glass|^sea_lantern$|^beacon$|^conduit$/.test(j)) return 'hat';
+  if (v && BLOCKS[cellBlock(v)].solid && /stone|brick|ore|netherrack|obsidian|quartz|purpur|deepslate|blackstone|basalt|tuff|calcite|prismarine|end_stone|terracotta|concrete|andesite|diorite|granite|bedrock|coral_block|nylium|magma|cobble|copper|amethyst|dripstone|sandstone/.test(j)) return 'basedrum';
+  return 'harp';
+}
+var RS_INS = { harp: ['triangle', 0, 1.2], bass: ['triangle', -24, 0.8], bell: ['sine', 24, 2.2], flute: ['sine', 12, 0.7], chime: ['sine', 24, 1.6], guitar: ['sawtooth', -12, 0.7],
+  xylophone: ['sine', 24, 0.3], iron_xylophone: ['square', 0, 0.5], cow_bell: ['square', 12, 0.35], didgeridoo: ['sawtooth', -24, 1.2], bit: ['square', 0, 0.6], banjo: ['sawtooth', 0, 0.5], pling: ['sine', 0, 1.4] };
+function rsNoise(ctx, dur, type, freq) {
+  var n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); src.buffer = buf; f.type = type; f.frequency.value = freq; g.gain.value = 0.35;
+  src.connect(f); f.connect(g); g.connect(ctx.destination); src.start();
+}
+function rsPlayNote(x, y, z, note) {
+  var ctx = rsAudio(); if (!ctx) return;
+  var ins = rsInstrument(x, y, z);
+  if (ins === 'basedrum') return rsNoise(ctx, 0.18, 'lowpass', 160);
+  if (ins === 'snare') return rsNoise(ctx, 0.15, 'bandpass', 1800);
+  if (ins === 'hat') return rsNoise(ctx, 0.06, 'highpass', 7000);
+  var I = RS_INS[ins] || RS_INS.harp, f = 185 * Math.pow(2, (note + I[1]) / 12), t = ctx.currentTime;
+  var o = ctx.createOscillator(), g = ctx.createGain(); o.type = I[0]; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + I[2]);
+  o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + I[2] + 0.05);
+}
+function rsPlayBell() {
+  var ctx = rsAudio(); if (!ctx) return;
+  var t = ctx.currentTime;
+  [[1046, 0.22], [2093, 0.1], [2637, 0.06]].forEach(function (h) {
+    var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = h[0];
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(h[1], t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.5);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 2.6);
+  });
+}
+function setRsSound(on) {
+  rsSnd.on = on; try { localStorage.setItem('bloco-a-bloco-rssom', on ? '1' : '0'); } catch (e) {}
+  $('rsSndBtn').textContent = 'Sons da redstone: ' + (on ? 'sim' : 'não');
 }
