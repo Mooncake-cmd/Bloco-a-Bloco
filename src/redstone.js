@@ -16,6 +16,13 @@
      você abriu com Usar fica até o sinal mudar), trilhos energizados e ativadores (passam o sinal até 8 trilhos).
    - Pistão e pistão grudento: empurram até 12 blocos; obsidiana, rocha-mãe e afins não se movem; plantas, tochas, pó,
      portas e afins quebram. O grudento puxa o bloco da frente ao recolher. Sem quasi-conectividade (como no Bedrock).
+     Blocos de slime e de mel levam junto os blocos encostados neles (nos 6 lados), que levam os da frente: tudo conta
+     no limite de 12. Slime não gruda em mel (nem mel em slime) e terracota esmaltada não gruda em nenhum dos dois (e o
+     grudento não a puxa); o que quebra ou não se move só fica para trás.
+   - Comparador lendo blocos (atrás dele, ou atrás de um bloco sólido que está atrás dele): bolo, composteira,
+     caldeirões, âncora de renascimento, colmeia, moldura do portal do End, atril, estante entalhada, e os contêineres
+     (baú, barril, funil, fornalhas, ejetor, liberador, suporte de poções, caixa de shulker, toca-discos...) pelo
+     "nível de conteúdo" de 0 a 15 que o usuário escolhe com Usar (o site não guarda itens).
    - Observador: um pulso de 1 tique de redstone pela parte de trás quando o bloco da frente muda.
    Cada mudança feita pela simulação entra no mesmo passo de desfazer da ação que a causou (como a água). A avaliação
    é local: parte das células mudadas e percorre só a rede de redstone ligada a elas. */
@@ -103,6 +110,14 @@ function rsInput(x, y, z, skip) {
 /* Entrada de trás do repetidor e do comparador (o pó entra com a força dele; o bloco sólido, com a energia dele) */
 function rsBack(c) {
   var f = rsP(c).facing, n = rsN(c.x, c.y, c.z, f), nc = rsAt(n[0], n[1], n[2]);
+  if (c.k === 'comparator') { // como no jogo: lê o bloco de trás; atrás de um bloco sólido sem sinal 15, lê o seguinte
+    var r = rsRead(n[0], n[1], n[2]); if (r >= 0) return r;
+    if (nc && nc.k === 'solid') {
+      var sb = rsBlock(n[0], n[1], n[2], false);
+      if (sb < 15) { var n2 = rsN(n[0], n[1], n[2], f), r2 = rsRead(n2[0], n2[1], n2[2]); if (r2 >= 0) return r2; }
+      return sb;
+    }
+  }
   if (!nc) return 0;
   if (nc.k === 'solid') return rsBlock(n[0], n[1], n[2], false);
   if (nc.k === 'wire') return rsWireLv(nc);
@@ -120,6 +135,58 @@ function rsSide(c, lockOnly) {
   return m;
 }
 function rsCmpOut(c) { var b = rsBack(c), s = rsSide(c, false); return rsP(c).mode === 'subtract' ? Math.max(0, b - s) : b >= s ? b : 0; }
+
+/* ---------- Blocos que o comparador lê ---------- */
+var RS_CONT = /^(chest|trapped_chest|barrel|hopper|dropper|dispenser|furnace|blast_furnace|smoker|brewing_stand|crafter|jukebox|decorated_pot|(\w+_)?shulker_box|(waxed_)?((exposed|weathered|oxidized)_)?copper_chest)$/;
+/* Nível de conteúdo dos contêineres (o site não guarda itens): índice da célula -> 1..15. Entra no histórico com índice
+   -(RS_FILL_BASE + célula), salva no projeto (fill) e no navegador (w:fill). */
+var rsFill = new Map(), rsFillSave = false, RS_FILL_BASE = 1125899906842624; // 2^50
+function rsFillGet(x, y, z) { return rsFill.get(idx(x, y, z)) || 0; }
+function rsFillSet(i, lv, log) {
+  var old = rsFill.get(i) || 0; if (old === lv) return;
+  if (lv) rsFill.set(i, lv); else rsFill.delete(i);
+  rsFillSave = true;
+  if (log && batch) batch.add(-(RS_FILL_BASE + i), old, lv);
+}
+function rsFillApplyLog(i, val) { rsFillSet(-i - RS_FILL_BASE, val, false); }
+function rsFillRecord() { return Array.from(rsFill); }
+function rsFillFrom(a) { rsFill = new Map(a || []); rsFillSave = false; }
+/* Sinal que o comparador tira do bloco (-1 = o bloco não tem leitura) */
+function rsRead(x, y, z) {
+  if (!inB(x, y, z)) return -1;
+  var v = gget(x, y, z); if (!v) return -1;
+  var bi = cellBlock(v), b = BLOCKS[bi], j = b.java; if (bi === PRES_BI) return -1;
+  if (RS_CONT.test(j)) return rsFillGet(x, y, z);
+  var p = b.shape ? stateProps(b, cellOri(v)) : {};
+  switch (j) {
+    case 'cake': return (7 - (+p.bites || 0)) * 2;
+    case 'composter': return +p.level || 0;
+    case 'cauldron': return 0;
+    case 'water_cauldron': case 'powder_snow_cauldron': return +p.level || 0;
+    case 'lava_cauldron': return 3;
+    case 'respawn_anchor': return Math.floor((+p.charges || 0) * 15 / 4);
+    case 'beehive': case 'bee_nest': return +p.honey_level || 0;
+    case 'end_portal_frame': return p.eye === 'true' ? 15 : 0;
+    case 'lectern': return p.has_book === 'true' ? 1 : 0; // livro aberto na primeira página
+    case 'chiseled_bookshelf': return rsBookLast(x, y, z, p);
+    case 'frame': case 'glow_frame': return 0; // moldura sem item
+  }
+  return -1;
+}
+/* Estante entalhada: o comparador dá o número do último nicho mexido (1 a 6); sem essa memória, o do último livro */
+var rsBook = new Map();
+function rsBookLast(x, y, z, p) {
+  var m = rsBook.get(idx(x, y, z)); if (m) return m;
+  for (var i = 5; i >= 0; i--) if (p['slot_' + i + '_occupied'] === 'true') return i + 1;
+  return 0;
+}
+/* Slime e mel: grudam nos blocos encostados (menos um no outro e na terracota esmaltada) */
+function rsSticky(j) { return j === 'slime_block' || j === 'honey_block'; }
+function rsSticks(a, bj) {
+  if (/glazed_terracotta$/.test(bj)) return false;
+  if ((a === 'slime_block' && bj === 'honey_block') || (a === 'honey_block' && bj === 'slime_block')) return false;
+  return true;
+}
 
 /* ---------- Mudanças e agenda ---------- */
 function rsSet(x, y, z, v) {
@@ -145,7 +212,7 @@ function rsLater(dt, type, c) {
   if (!rs.timer) rs.timer = setInterval(rsTick, 50);
 }
 function rsStop() { rs.q = []; rs.pend.clear(); clearInterval(rs.timer); rs.timer = 0; rs.touched = []; }
-function rsReset() { rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); }
+function rsReset() { rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); }
 function rsTick() {
   rs.gt++;
   var due = rs.q.filter(function (e) { return e.t <= rs.gt; });
@@ -322,31 +389,58 @@ function rsBreak(x, y, z) {
   rsSet(x, y, z, 0);
   if (pa && inB(pa.x, pa.y, pa.z) && cellBlock(gget(pa.x, pa.y, pa.z)) === cellBlock(v)) rsSet(pa.x, pa.y, pa.z, 0);
 }
+/* Blocos que se movem juntos a partir de 'start' na direção dir: o bloco, a fila à frente dele e, nos blocos de slime e
+   de mel, os encostados nos outros 5 lados (que levam a fila deles). Devolve { move, brk } ou null (bloco fixo na
+   frente, mais de 12 blocos ou a borda do espaço). */
+function rsStruct(start, dir, piston, pulling) {
+  var v = DV[dir], K = function (p) { return p[0] + ',' + p[1] + ',' + p[2]; }, pk = K(piston);
+  var move = [], mset = new Set(), brk = [], bset = new Set(), q = [[start, 'push', null]];
+  if (pulling) { var sv = inB(start[0], start[1], start[2]) ? gget(start[0], start[1], start[2]) : 0; if (!sv || rsMove(sv) !== 'moves' || /glazed_terracotta$/.test(BLOCKS[cellBlock(sv)].java)) return { move: [], brk: [] }; }
+  while (q.length) {
+    var e = q.shift(), p = e[0], how = e[1], k = K(p);
+    if (mset.has(k) || k === pk) continue;
+    if (!inB(p[0], p[1], p[2])) { if (how === 'push') return null; continue; }
+    var cv = gget(p[0], p[1], p[2]), m = rsMove(cv), j = cv ? BLOCKS[cellBlock(cv)].java : '';
+    if (how === 'attach') { if (m !== 'moves' || !rsSticks(e[2], j)) continue; }
+    else {
+      if (m === 'empty') continue;
+      if (m === 'fixed') return null;
+      if (m === 'breaks') { if (!bset.has(k)) { bset.add(k); brk.push(p); } continue; }
+    }
+    mset.add(k); move.push(p); if (move.length > 12) return null;
+    q.push([[p[0] + v[0], p[1] + v[1], p[2] + v[2]], 'push', null]);
+    if (rsSticky(j)) for (var d = 0; d < 6; d++) { var dd = RS_D6[d]; if (dd === dir) continue; var w = DV[dd]; q.push([[p[0] + w[0], p[1] + w[1], p[2] + w[2]], 'attach', j]); }
+  }
+  // quebra o que estiver no caminho de um bloco que se move (e não o que ele deixa para trás)
+  brk = brk.filter(function (p) { return !mset.has(K(p)); });
+  return { move: move, brk: brk };
+}
+function rsMoveStruct(S, dir) {
+  var v = DV[dir], vals = S.move.map(function (p) { return gget(p[0], p[1], p[2]); }), fills = S.move.map(function (p) { return rsFill.get(idx(p[0], p[1], p[2])) || 0; });
+  S.brk.forEach(function (p) { rsBreak(p[0], p[1], p[2]); });
+  var top = histTop();
+  S.move.forEach(function (p, i) { rsSet(p[0], p[1], p[2], 0); if (fills[i]) { var fi = idx(p[0], p[1], p[2]); rsFill.delete(fi); if (top) top.add(-(RS_FILL_BASE + fi), fills[i], 0); } });
+  S.move.forEach(function (p, i) {
+    var n = [p[0] + v[0], p[1] + v[1], p[2] + v[2]]; rsSet(n[0], n[1], n[2], vals[i]);
+    if (fills[i]) { var ni = idx(n[0], n[1], n[2]), o = rsFill.get(ni) || 0; rsFill.set(ni, fills[i]); if (top) top.add(-(RS_FILL_BASE + ni), o, fills[i]); }
+  });
+  if (fills.some(Boolean)) rsFillSave = true;
+}
 function rsPiston(c) {
   var p = rsP(c), f = p.facing, ext = p.extended === 'true', want = rsInput(c.x, c.y, c.z, f) > 0, sticky = c.b.java === 'sticky_piston';
-  var v = DV[f], front = [c.x + v[0], c.y + v[1], c.z + v[2]];
+  var v = DV[f], front = [c.x + v[0], c.y + v[1], c.z + v[2]], me = [c.x, c.y, c.z];
   if (want && !ext) {
-    var list = [], q = front.slice(), brk = null;
-    for (;;) {
-      if (!inB(q[0], q[1], q[2])) return; // a fila bate na borda do espaço
-      var m = rsMove(gget(q[0], q[1], q[2]));
-      if (m === 'empty') break;
-      if (m === 'fixed') return;
-      if (m === 'breaks') { brk = q.slice(); break; }
-      list.push(q.slice()); if (list.length > 12) return;
-      q[0] += v[0]; q[1] += v[1]; q[2] += v[2];
-    }
-    if (brk) rsBreak(brk[0], brk[1], brk[2]);
-    for (var k = list.length - 1; k >= 0; k--) { var a = list[k]; rsSet(a[0] + v[0], a[1] + v[1], a[2] + v[2], gget(a[0], a[1], a[2])); }
+    if (!inB(front[0], front[1], front[2])) return;
+    var S = rsStruct(front, f, me, false); if (!S) return;
+    rsMoveStruct(S, f);
     var hb = BY_JAVA.piston_head, H = BLOCKS[hb];
     rsSet(front[0], front[1], front[2], mkCell(hb, stateIndex(H, { facing: f, type: sticky ? 'sticky' : 'normal' })));
     rsProp(c, { extended: 'true' });
   } else if (!want && ext) {
     var h = rsAt(front[0], front[1], front[2]);
     if (h && h.k === 'head') {
-      var pull = [front[0] + v[0], front[1] + v[1], front[2] + v[2]], pv = inB(pull[0], pull[1], pull[2]) ? gget(pull[0], pull[1], pull[2]) : 0;
-      if (sticky && pv && rsMove(pv) === 'moves') { rsSet(front[0], front[1], front[2], pv); rsSet(pull[0], pull[1], pull[2], 0); }
-      else rsSet(front[0], front[1], front[2], 0);
+      rsSet(front[0], front[1], front[2], 0);
+      if (sticky) { var S2 = rsStruct([front[0] + v[0], front[1] + v[1], front[2] + v[2]], OPP[f], me, true); if (S2 && S2.move.length) rsMoveStruct(S2, OPP[f]); }
     }
     rsProp(c, { extended: 'false' });
   }
@@ -365,7 +459,13 @@ function rsAfterBatch(b) {
   if (b.length > 20000 && !rsAny()) return; // edição enorme sem nenhuma redstone no mundo: nada a fazer
   rs.steps = 0;
   var seeds = [];
-  for (var k = 0; k < b.length && seeds.length < 200000; k++) { if (b.i[k] < 0) continue; var p = unidx(b.i[k]); seeds.push(p); rsSeen(p[0], p[1], p[2]); }
+  for (var k = 0; k < b.length && seeds.length < 200000; k++) {
+    var bi0 = b.i[k];
+    if (bi0 <= -RS_FILL_BASE) { seeds.push(unidx(-bi0 - RS_FILL_BASE)); continue; } // nível de conteúdo mudou
+    if (bi0 < 0) continue;
+    var p = unidx(bi0); seeds.push(p); rsSeen(p[0], p[1], p[2]);
+    var cv0 = gat(bi0); if (rsFill.has(bi0) && (!cv0 || !RS_CONT.test(BLOCKS[cellBlock(cv0)].java))) { rsFill.delete(bi0); rsFillSave = true; } // o contêiner saiu dali
+  }
   rs.touched = seeds.concat(rs.touched);
   rsSettle();
   if (rs.steps) { requestRender(); updateStatus(); }

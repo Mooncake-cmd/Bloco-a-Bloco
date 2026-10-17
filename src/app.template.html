@@ -443,6 +443,7 @@ function endBatch() {
 function applyBatch(b, undo) {
   for (var k = 0; k < b.length; k++) {
     var j = undo ? b.length - 1 - k : k;
+    if (b.i[j] <= -RS_FILL_BASE) { rsFillApplyLog(b.i[j], undo ? b.o[j] : b.v[j]); continue; } // nível de conteúdo (src/redstone.js)
     if (b.i[j] < 0) { bioApplyLog(b.i[j], undo ? b.o[j] : b.v[j]); continue; } // coluna de bioma (src/biome.js)
     var p = unidx(b.i[j]);
     setRaw(p[0], p[1], p[2], undo ? b.o[j] : b.v[j]);
@@ -1242,11 +1243,31 @@ function useAt(c, back, t) {
   if (growAt(c, back)) return;
   var b = BLOCKS[cellBlock(v)];
   if (b.java === 'chiseled_bookshelf') { useBookshelf(c, v, b, back, t); return; }
+  if (RS_CONT.test(b.java) && !(back && b.shape && b.shape.tog.length)) { openFill(c, b); return; }
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
   var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
   var s2 = cycleProp(b, cellOri(v), prop, back && !b.shape.tog[1]);
   beginBatch('Usar: ' + b.name); setShapeState(c, v, s2); endBatch();
   toast(b.name + ': ' + prop + ' = ' + stateProps(b, s2)[prop]);
+}
+/* Contêiner: o nível de conteúdo de 0 a 15 que o comparador lê (o site não guarda os itens) */
+function openFill(c, b) {
+  var i = idx(c[0], c[1], c[2]), cur = rsFill.get(i) || 0, tg = b.shape && b.shape.tog.length ? b.shape.tog[0] : null;
+  var lab = function (n) { return n === 0 ? 'vazio' : n === 15 ? 'cheio' : n + ' de 15'; };
+  openDialog('<h3>' + esc(b.name) + ': conteúdo</h3>' +
+    '<p>O site não guarda os itens dos contêineres. Escolha quanto o <b>comparador</b> lê deste bloco: 0 é vazio, 15 é cheio (no jogo, depende de quantos itens há dentro).' + (tg ? ' Para ' + ({ lit: 'acender ou apagar', open: 'abrir ou fechar', enabled: 'travar ou destravar' }[tg] || 'mudar ' + tg) + ', use <kbd>Shift</kbd> + Usar.' : '') + '</p>' +
+    '<label>Nível que o comparador lê: <b id="fillOut">' + lab(cur) + '</b><input type="range" id="fillR" min="0" max="15" value="' + cur + '"></label>' +
+    '<p class="pen">Fica salvo no projeto e no navegador, mas não vai para o mundo do jogo nem para o .mcstructure.</p>' +
+    '<div class="row"><button class="btn primary" id="fillOk">Usar este nível</button><button class="btn" id="fillNo">Cancelar</button></div>',
+    function () {
+      $('fillR').oninput = function () { $('fillOut').textContent = lab(+this.value); };
+      $('fillNo').onclick = closeDialog;
+      $('fillOk').onclick = function () {
+        var n = +$('fillR').value; closeDialog();
+        beginBatch('Conteúdo: ' + b.name); rsFillSet(i, n, true); endBatch(); updateStatus();
+        toast(b.name + ': o comparador lê ' + n + '.');
+      };
+    });
 }
 /* Estante entalhada: o clique na frente põe ou tira o livro do nicho apontado (3 em cima, 3 embaixo); com Shift, enche ou esvazia todos */
 function useBookshelf(c, v, b, back, t) {
@@ -1261,7 +1282,9 @@ function useBookshelf(c, v, b, back, t) {
     var u = f === 'north' ? 1 - fx : f === 'south' ? fx : f === 'east' ? 1 - fz : fz; // 0 = esquerda de quem olha a frente
     var col = u < 6 / 16 ? 0 : u < 11 / 16 ? 1 : 2, row = fy >= 0.5 ? 0 : 1;
     k = 'slot_' + (row * 3 + col) + '_occupied'; p[k] = p[k] === 'true' ? 'false' : 'true';
+    rsBook.set(idx(c[0], c[1], c[2]), row * 3 + col + 1); // o comparador lê o último nicho mexido
   }
+  if (back) rsBook.set(idx(c[0], c[1], c[2]), 6);
   var s2 = stateIndex(b, p);
   beginBatch('Estante: livros'); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), s2)); endBatch();
   full = 0; for (i = 0; i < 6; i++) if (p['slot_' + i + '_occupied'] === 'true') full++;
@@ -2022,6 +2045,7 @@ function loadProject(o) {
   if (o.hotbar) hotbar = o.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; });
   slot = o.slot | 0;
   if (o.biomes) bioFromRecord(o.biomes); // biomas pintados (src/biome.js)
+  if (o.fill) rsFillFrom(o.fill);
   verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
 }
@@ -2283,7 +2307,7 @@ function openHelp() {
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro na área. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
     '<span>Biblioteca</span><span>Com uma área selecionada, <b>Salvar na biblioteca</b> guarda a construção com nome neste navegador. Projeto → Biblioteca de construções lista tudo para colar em qualquer projeto ou mundo, baixar como arquivo e importar.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
-    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande.</span>' +
+    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
