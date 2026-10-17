@@ -420,7 +420,9 @@ const BE_SYN = {
     // tinta (tintindex): grama, folhagem, redstone...
     let tint = 0;
     if (n === 'redstone_wire') tint = 0x4C0000;
-    else if (n === 'water') tint = 0x3F76E4;
+    else if (/^(water|water_cauldron|bubble_column)$/.test(n)) tint = 0x3F76E4;
+    // o modelo Java marca a face como pintável, mas o jogo não pinta estes (a serra do cortador, o bambu, a lava e a neve do caldeirão)
+    else if (/^(stonecutter|bamboo|bamboo_sapling|lava_cauldron|powder_snow_cauldron)$/.test(n)) tint = 0xFFFFFF;
     else if (n === 'lily_pad') tint = 0x208030;
     else if (/^attached_(melon|pumpkin)_stem$/.test(n)) tint = 0xE0C71C;
     else if (/^(melon|pumpkin)_stem$/.test(n)) tint = 0x8DB127;
@@ -624,6 +626,20 @@ const BE_SYN = {
     const e = { n, d: title(n).replace('Frame', 'Item Frame') + ' (só Bedrock)', k: 2, ti: 0, p: [['facing', ['north', 'south', 'west', 'east', 'up', 'down'], 's', 0]], fam: null, tog: [], ori: ['facing'], multi: null, tint: 0,
       t: [key], pt: key, be: { '#name': [[], { '': n }], facing_direction: [['facing'], { down: '0', up: '1', north: '2', south: '3', west: '4', east: '5' }] }, ent: 0, bo: 1, nb: 1 };
     blocks.push(e); byN[n] = e; added.push(n);
+  }
+  // 3e. cortador de pedra antigo (o do Pocket Edition): um cubo, nome Bedrock 'stonecutter' (o novo é 'stonecutter_block')
+  {
+    const f = { up: beLocal('stonecutter_top'), down: beLocal('stonecutter_bottom'), north: beLocal('stonecutter_side'), south: beLocal('stonecutter_side'),
+      east: beLocal('stonecutter_other_side'), west: beLocal('stonecutter_other_side') };
+    const tx = {}, el = { from: [0, 0, 0], to: [16, 16, 16], faces: {} };
+    for (const k in f) { tx[k] = 'block/' + f[k]; el.faces[k] = { texture: '#' + k }; }
+    tx.particle = 'block/' + f.north;
+    models['bab:old_stonecutter'] = { textures: tx, elements: [el] };
+    states.old_stonecutter = { variants: { '': { model: 'bab:old_stonecutter' } } };
+    beDefault('stonecutter');
+    const e = { n: 'old_stonecutter', d: 'Old Stonecutter (só Bedrock)', k: 0, ti: 0, p: [], fam: null, tog: [], ori: [], multi: null, tint: 0,
+      t: [...new Set(Object.values(f))], pt: f.north, be: { '#name': [[], { '': 'stonecutter' }] }, ent: 0, bo: 1, nb: 1, fc: 1 };
+    blocks.push(e); byN.old_stonecutter = e; added.push('old_stonecutter');
   }
   // os blocos-fonte que eram cubos (tábuas, troncos, tufo) não precisam de forma própria
   for (const n of ['spruce_planks', 'spruce_log', 'spruce_wood', 'stripped_spruce_log', 'stripped_spruce_wood', 'spruce_leaves', 'tuff', 'polished_tuff', 'tuff_bricks', 'chiseled_tuff'])
