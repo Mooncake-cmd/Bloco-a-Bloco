@@ -2199,6 +2199,7 @@ function openExport() {
     '<div class="get"><b>Fantasma para o survival (.mcpack, Bedrock)</b><small>Pacote de recursos que mostra a construção semitransparente no mundo, no tamanho real, para construir por cima no survival: no jogo, dê a um suporte de armadura o nome abaixo (etiqueta renomeada na bigorna). Agachar + usar no suporte troca a camada. É só visual: as conquistas continuam ativas. ' + (texBlocks ? 'Sai com as texturas do pacote carregado.' : 'Sem pacote de texturas carregado, sai com as cores dos blocos.') + '</small>' +
     '<label>Nome do suporte<input type="text" id="exHoloName" maxlength="40"></label>' +
     '<label>Opacidade: <span id="exHoloOpV"></span><input type="range" id="exHoloOp" min="40" max="100" step="5"></label>' +
+    '<label>Canto noroeste da camada mais baixa no mundo (x y z, opcional: para o site dizer as coordenadas de cada suporte)<input type="text" id="exHoloAt" placeholder="ex.: 120 64 -35" maxlength="40"></label>' +
     '<div class="row"><button class="btn" id="exHolo">Baixar fantasma (.mcpack)</button></div></div>' +
     '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
     '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
@@ -2206,18 +2207,20 @@ function openExport() {
       if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
       $('exClose').onclick = closeDialog;
       var hp = {}; try { hp = JSON.parse(localStorage.getItem('bloco-a-bloco-fantasma') || '{}'); } catch (e) {}
-      $('exHoloName').value = hp.name || 'casa'; $('exHoloOp').value = hp.op || 85;
+      $('exHoloName').value = hp.name || 'casa'; $('exHoloOp').value = hp.op || 85; $('exHoloAt').value = hp.at || '';
       var hpShow = function () { $('exHoloOpV').textContent = $('exHoloOp').value + '%'; }; hpShow(); $('exHoloOp').oninput = hpShow;
       $('exHolo').onclick = async function () {
         var hn = holoName($('exHoloName').value); if (!hn) { toast('Escolha o nome do suporte.'); return; }
-        try { localStorage.setItem('bloco-a-bloco-fantasma', JSON.stringify({ name: hn, op: +$('exHoloOp').value })); } catch (e) {}
+        var at = $('exHoloAt').value.trim(), corner = null;
+        if (at) { var m = at.match(/^(-?\d+)[\s,;]+(-?\d+)[\s,;]+(-?\d+)$/); if (!m) { toast('Canto no mundo: escreva três números, x y z (ex.: 120 64 -35).'); return; } corner = [+m[1], +m[2], +m[3]]; }
+        try { localStorage.setItem('bloco-a-bloco-fantasma', JSON.stringify({ name: hn, op: +$('exHoloOp').value, at: at })); } catch (e) {}
         try {
           busy('Montando o fantasma…', null); await new Promise(function (r) { setTimeout(r, 30); });
           var res = await holoBuild(hn, +$('exHoloOp').value / 100);
           busyEnd();
           var fn = 'fantasma-' + cleanName(hn) + '.mcpack';
           reportSave(await saveBytes(fn, res.bytes, 'application/octet-stream'), fn);
-          holoHelp(res);
+          holoHelp(res, corner);
         } catch (e) { busyEnd(); reportErr(e); }
       };
       if ($('exWorld')) $('exWorld').onclick = function () { closeDialog(); wioExport(); };
