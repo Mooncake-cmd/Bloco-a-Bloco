@@ -2006,6 +2006,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%BIOME_JS%%*/
 /*%%REDSTONE_JS%%*/
 /*%%ICONS_JS%%*/
+/*%%HOLO_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /*%%JAVAWORLD_JS%%*/
@@ -2195,11 +2196,30 @@ function openExport() {
     '<div class="row">' + (big ? '<button class="btn primary" id="exPieces">Baixar em pedaços (.zip, Bedrock)</button><button class="btn" id="exBedrock">.mcstructure inteiro</button>' : '<button class="btn primary" id="exBedrock">Baixar .mcstructure (Bedrock)</button>') + '<button class="btn" id="exJava">Baixar .schem (Java)</button></div>' +
     (boN ? '<div class="info">Só existem no Bedrock e ficam de fora do .schem (Java): ' + boTxt + '. No .mcstructure vão normalmente.</div>' : '') +
     (wio && wio.area ? '' : '<div class="get"><b>Mundo novo (.mcworld)</b><small>Gera um mundo plano criativo do Bedrock com a construção em cima do chão (x e z 0 do editor = x e z 0 do mundo; y 0 do editor = y -60)' + (bioPaint.size ? ' e os biomas pintados' : '') + ', com o nome do arquivo acima. É o único jeito de levar os biomas: o .mcstructure e o .schem guardam só os blocos.</small><div class="row"><button class="btn" id="exNewWorld">Exportar mundo novo (.mcworld)</button></div></div>') +
+    '<div class="get"><b>Fantasma para o survival (.mcpack, Bedrock)</b><small>Pacote de recursos que mostra a construção semitransparente no mundo, no tamanho real, para construir por cima no survival: no jogo, dê a um suporte de armadura o nome abaixo (etiqueta renomeada na bigorna). Agachar + usar no suporte troca a camada. É só visual: as conquistas continuam ativas. ' + (texBlocks ? 'Sai com as texturas do pacote carregado.' : 'Sem pacote de texturas carregado, sai com as cores dos blocos.') + '</small>' +
+    '<label>Nome do suporte<input type="text" id="exHoloName" maxlength="40"></label>' +
+    '<label>Opacidade: <span id="exHoloOpV"></span><input type="range" id="exHoloOp" min="40" max="100" step="5"></label>' +
+    '<div class="row"><button class="btn" id="exHolo">Baixar fantasma (.mcpack)</button></div></div>' +
     '<p id="exNote">Bedrock: no jogo, use um bloco de estrutura, modo Carregar, botão Importar. Java: coloque o .schem na pasta de schematics do WorldEdit e use //schem load e //paste.</p>' +
     '<div class="row"><button class="btn" id="exClose">Fechar</button></div>',
     function () {
       if (inArtifact) $('exNote').textContent = 'Nesta página os arquivos saem dentro de um .zip, porque o navegador desta janela só aceita alguns tipos. Extraia o .zip e importe o arquivo de dentro. ' + $('exNote').textContent;
       $('exClose').onclick = closeDialog;
+      var hp = {}; try { hp = JSON.parse(localStorage.getItem('bloco-a-bloco-fantasma') || '{}'); } catch (e) {}
+      $('exHoloName').value = hp.name || 'casa'; $('exHoloOp').value = hp.op || 85;
+      var hpShow = function () { $('exHoloOpV').textContent = $('exHoloOp').value + '%'; }; hpShow(); $('exHoloOp').oninput = hpShow;
+      $('exHolo').onclick = async function () {
+        var hn = holoName($('exHoloName').value); if (!hn) { toast('Escolha o nome do suporte.'); return; }
+        try { localStorage.setItem('bloco-a-bloco-fantasma', JSON.stringify({ name: hn, op: +$('exHoloOp').value })); } catch (e) {}
+        try {
+          busy('Montando o fantasma…', null); await new Promise(function (r) { setTimeout(r, 30); });
+          var res = await holoBuild(hn, +$('exHoloOp').value / 100);
+          busyEnd();
+          var fn = 'fantasma-' + cleanName(hn) + '.mcpack';
+          reportSave(await saveBytes(fn, res.bytes, 'application/octet-stream'), fn);
+          holoHelp(res);
+        } catch (e) { busyEnd(); reportErr(e); }
+      };
       if ($('exWorld')) $('exWorld').onclick = function () { closeDialog(); wioExport(); };
       if ($('exNewWorld')) $('exNewWorld').onclick = function () { var nm = $('exName').value || 'construcao'; closeDialog(); nwExport(nm); };
       var tooBig = function () { if (bb && bb.w * bb.h * bb.l > 150e6) { toast('Construção grande demais para um arquivo só (' + Math.round(bb.w * bb.h * bb.l / 1e6) + ' milhões de espaços na caixa). Use Baixar em pedaços.', 8000); return true; } return false; };

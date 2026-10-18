@@ -815,7 +815,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <section id="exportar">
   <h2><span class="n">11</span>Exportar</h2>
   <div class="side">
-    <figure><img src="img/exportar.jpg" alt="Janela Exportar construção com tamanho, nome do arquivo, opção de terreno e aviso de blocos só do Bedrock, e o quadro Mundo novo (.mcworld)" width="536" height="701" loading="lazy"><figcaption>A janela mostra o tamanho e o total de blocos. Aqui, com um bloco <code>allow</code> na construção, aparece o aviso de que ele fica de fora do .schem. Embaixo, o quadro do mundo novo (.mcworld), que leva também os biomas.</figcaption></figure>
+    <figure><img src="img/exportar.jpg" alt="Janela Exportar construção com tamanho, nome do arquivo, opção de terreno e aviso de blocos só do Bedrock, e os quadros Mundo novo (.mcworld) e Fantasma para o survival" width="536" height="776" loading="lazy"><figcaption>A janela mostra o tamanho e o total de blocos. Aqui, com um bloco <code>allow</code> na construção, aparece o aviso de que ele fica de fora do .schem. Embaixo, o quadro do mundo novo (.mcworld), que leva também os biomas, e o do fantasma para o survival (veja abaixo).</figcaption></figure>
     <ul class="plain">
       <li><b>Nome do arquivo</b>: acentos e espaços são trocados por letras simples e hífens.</li>
       <li><b>Deixar o terreno intacto</b> (Bedrock, ligado por padrão): onde a construção tem ar, o arquivo usa vazio de estrutura, então o terreno do mundo continua lá. Desligado, tudo no retângulo vira ar.</li>
@@ -828,6 +828,25 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>Cada bloco sai com o estado completo: direção, aberto, conexões, metade… No Bedrock, a tradução usa a tabela oficial Java → Bedrock do minecraft-data, e a cor das camas vai junto.</li>
     </ul>
   </div>
+  <h3 id="fantasma">Fantasma para o survival (.mcpack)</h3>
+  <p>Para construir no survival “de verdade”, bloco a bloco, sem colar a estrutura: o site gera um <b>pacote de recursos</b> do Bedrock que mostra a construção <b>semitransparente</b> no mundo, no tamanho real, com as formas certas (escadas, lajes, cercas, portas). Você vai colocando os blocos de verdade por dentro do fantasma. É só visual: não precisa de trapaças nem de comandos, e <b>as conquistas continuam ativas</b>.</p>
+  <div class="grid2">
+    <figure><img src="img/fantasma-exportar.jpg" alt="Quadro Fantasma para o survival na janela Exportar, com o nome do suporte casa, a opacidade em 85% e o botão Baixar fantasma" width="494" height="333" loading="lazy"><figcaption>Na janela Exportar: o nome que o suporte de armadura vai receber e a opacidade.</figcaption></figure>
+    <figure><img src="img/fantasma-pronto.jpg" alt="Janela Fantasma pronto com o tamanho, o número de faces e os 5 passos para usar no jogo, incluindo qual pose mostra cada camada" width="536" height="483" loading="lazy"><figcaption>Depois de baixar, o passo a passo, com a camada que cada pose mostra.</figcaption></figure>
+  </div>
+  <ol>
+    <li>Exportar → <b>Baixar fantasma (.mcpack)</b>. Escolha o <b>nome do suporte</b> (por exemplo, <code>casa</code>) e a <b>opacidade</b> (85% por padrão; de 40% a 100%). Com um pacote de texturas carregado (cap. 10), o fantasma sai com as texturas dele; sem pacote, com as cores dos blocos.</li>
+    <li>Abra o .mcpack (no celular, toque nele): o Minecraft importa sozinho. Nas configurações do mundo, <b>Pacotes de recursos</b>, ative “Bloco a Bloco: fantasma”.</li>
+    <li>No jogo, renomeie uma <b>etiqueta de nome</b> na bigorna com o nome escolhido (igualzinho: maiúsculas e minúsculas contam) e use num <b>suporte de armadura</b>. O suporte some e a construção aparece.</li>
+    <li>O bloco do suporte é o <b>canto</b> da construção, na camada mais baixa. Colocando o suporte olhando para outro lado, a construção gira junto, de 90 em 90°.</li>
+    <li><b>Agache e use</b> o suporte com a mão vazia (ou mande um sinal de redstone) para trocar a pose: a pose 0 mostra tudo; as poses 1 a 12 mostram uma camada cada (em construções com mais de 12 camadas, uma faixa de camadas por pose). Vendo uma camada só, cada bloco continua inteiro, em 3D.</li>
+  </ol>
+  <ul class="plain">
+    <li>Um fantasma por vez: exportar de novo <b>substitui</b> o anterior (o pacote é sempre o mesmo, com versão nova). Dois pacotes que mudam o suporte de armadura brigariam entre si.</li>
+    <li>O fantasma é um pouco menor que o bloco, para não piscar quando você coloca o bloco de verdade no lugar.</li>
+    <li>Construções grandes pesam: a janela avisa acima de 60 mil faces. Um prédio de 96 × 60 × 96 com 111 mil blocos deu 292 mil faces e um pacote de 5,6 MB. Se pesar no celular, exporte por partes (apague o resto numa cópia do projeto).</li>
+    <li><b>Conferido no jogo</b> (celular, Bedrock): transparência, alinhamento, troca de camada pela pose, a construção não some ao virar a câmera, e as conquistas continuam ativas.</li>
+  </ul>
 </section>
 
 <section id="importar">
@@ -1005,6 +1024,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia do Ctrl+C fica só nesta aba (não vai para a área de transferência do sistema e some ao recarregar a página); para guardar, use a biblioteca. Girar é só de 90° na horizontal (com o espelhar, cobre as 8 posições no chão).</td></tr>
       <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
+      <tr><td>Fantasma para o survival</td><td>Um por vez (exportar de novo substitui). Não confere se você colocou o bloco certo: um bloco sólido colocado só esconde o fantasma daquele lugar. Baús, camas, placas e estandartes aparecem simplificados, como no editor. Biomas não mudam a cor do capim no fantasma (sai a cor padrão). Funciona em mundos e Realms onde você pode ativar pacotes de recursos; servidores que obrigam o próprio pacote podem bloquear.</td></tr>
       <tr><td>Redstone</td><td>Não funcionam: TNT, dispensador, liberador, fabricador, gancho de armadilha e sensor de sculk. O sino aparece sem o corpo (só a armação). Os contêineres não guardam itens: o comparador lê o nível de conteúdo escolhido com Usar, que não vai para o mundo do jogo; o atril dá sempre 1 com livro e a moldura sempre 0. Blocos empurrados pelo pistão não derrubam o que estava em cima deles (pó, tochas e plantas podem ficar flutuando), e o pistão não empurra a água. O sensor de luz não segue o dia: dá a força escolhida.</td></tr>
       <tr><td>Água e lava</td><td>Só escorrem para espaços vazios: não levam embora plantas e tochas nem enchem blocos (sem <i>waterlogging</i>). A superfície é plana em cada bloco (o jogo inclina entre níveis). A lava escorre como no mundo normal, não como no Nether.</td></tr>
       <tr><td>Histórico</td><td>Guarda até 20 milhões de mudanças de blocos (cerca de 1.000 ações). Passando disso, saem primeiro os ramos mais antigos fora do caminho atual (as versões marcadas ficam até o fim) e depois o começo do caminho. Mudar o tamanho do espaço começa um histórico novo.</td></tr>
