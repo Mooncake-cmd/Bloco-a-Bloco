@@ -266,6 +266,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="rsSndBtn">Sons da redstone: sim</button>
+          <button class="tbtn txt" id="rsTimeBtn">Hora do dia: 12:00…</button>
           <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
           <button class="tbtn txt" id="themeBtn">Tema: automático</button>
@@ -1247,6 +1248,20 @@ function useAt(c, back, t) {
   if (b.java === 'chiseled_bookshelf') { useBookshelf(c, v, b, back, t); return; }
   if (b.java === 'target') { var lv = rsHitTarget(c, t); toast('Alvo: força ' + lv + ' por 1 s (quanto mais perto do centro, mais forte).'); return; }
   if (b.java === 'bell') { rsPlayBell(); toast('Sino: dlem!'); return; }
+  if (b.java === 'trapped_chest' && !back) { var op = rsToggleChest(c); toast(op ? 'Baú com armadilha aberto: sinal 1 (como um jogador olhando dentro). Usar de novo fecha; Shift + Usar escolhe o conteúdo.' : 'Baú com armadilha fechado.'); return; }
+  if (b.java === 'lectern') {
+    var lp = stateProps(b, cellOri(v)), lc = rsAt(c[0], c[1], c[2]);
+    if (lp.has_book !== 'true' || back) { beginBatch('Usar: ' + b.name); lp.has_book = lp.has_book === 'true' ? 'false' : 'true'; lp.powered = 'false'; editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, lp))); endBatch(); toast(lp.has_book === 'true' ? 'Atril com livro (o comparador lê 1). Usar vira a página: pulso de sinal.' : 'Livro tirado do atril.'); return; }
+    rsPulse([lc], 'Usar: virar a página', 4, 'pageOff'); toast('Página virada: pulso de 15 por 2 tiques de redstone. Shift + Usar tira o livro.'); return;
+  }
+  if (b.java === 'lightning_rod') { rsPulse([rsAt(c[0], c[1], c[2])], 'Usar: raio', 8, 'rodOff'); toast('Raio no para-raios: sinal 15 por 8 tiques.'); return; }
+  if (b.java === 'detector_rail') { var dp = stateProps(b, cellOri(v)); dp.powered = dp.powered === 'true' ? 'false' : 'true'; beginBatch('Usar: ' + b.name); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, dp))); endBatch(); toast(dp.powered === 'true' ? 'Carrinho em cima do trilho detector: sinal 15. Usar de novo tira.' : 'Carrinho tirado do trilho detector.'); return; }
+  if (b.java === 'tripwire' || b.java === 'tripwire_hook') {
+    var ln = rsTripFind(c[0], c[1], c[2]);
+    if (!ln) { toast('A armadilha precisa de dois ganchos virados um para o outro, só com linha entre eles (até 40 blocos).', 5000); return; }
+    rsPulse(ln.hooks.concat(ln.wires), 'Usar: armadilha', 10, 'tripOff'); toast('Armadilha disparada: os ganchos dão sinal 15 por 10 tiques.'); return;
+  }
+  if (b.java === 'daylight_detector') { var sp = stateProps(b, cellOri(v)); sp.inverted = sp.inverted === 'true' ? 'false' : 'true'; beginBatch('Usar: ' + b.name); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, sp))); endBatch(); toast('Sensor de luz ' + (sp.inverted === 'true' ? 'invertido (modo noite)' : 'normal (modo dia)') + ': força ' + rsDayPow(sp.inverted === 'true') + ' às ' + rsTimeTxt(rsTime) + '. A hora fica no menu Projeto.'); return; }
   if (RS_CONT.test(b.java) && !(back && b.shape && b.shape.tog.length)) { openFill(c, b); return; }
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
   var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
@@ -1258,9 +1273,10 @@ function useAt(c, back, t) {
 /* Contêiner: o nível de conteúdo de 0 a 15 que o comparador lê (o site não guarda os itens) */
 function openFill(c, b) {
   var i = idx(c[0], c[1], c[2]), cur = rsFill.get(i) || 0, tg = b.shape && b.shape.tog.length ? b.shape.tog[0] : null;
-  var lab = function (n) { return n === 0 ? 'vazio' : n === 15 ? 'cheio' : n + ' de 15'; };
+  var juke = b.java === 'jukebox';
+  var lab = juke ? function (n) { return n === 0 ? 'sem disco' : 'disco ' + n; } : function (n) { return n === 0 ? 'vazio' : n === 15 ? 'cheio' : n + ' de 15'; };
   openDialog('<h3>' + esc(b.name) + ': conteúdo</h3>' +
-    '<p>O site não guarda os itens dos contêineres. Escolha quanto o <b>comparador</b> lê deste bloco: 0 é vazio, 15 é cheio (no jogo, depende de quantos itens há dentro).' + (tg ? ' Para ' + ({ lit: 'acender ou apagar', open: 'abrir ou fechar', enabled: 'travar ou destravar' }[tg] || 'mudar ' + tg) + ', use <kbd>Shift</kbd> + Usar.' : '') + '</p>' +
+    (juke ? '<p>Escolha o disco: o <b>comparador</b> lê o número dele (1 a 15, como no jogo), e com disco o toca-discos dá sinal 15 em volta.' : '<p>O site não guarda os itens dos contêineres. Escolha quanto o <b>comparador</b> lê deste bloco: 0 é vazio, 15 é cheio (no jogo, depende de quantos itens há dentro).') + (tg ? ' Para ' + ({ lit: 'acender ou apagar', open: 'abrir ou fechar', enabled: 'travar ou destravar' }[tg] || 'mudar ' + tg) + ', use <kbd>Shift</kbd> + Usar.' : '') + '</p>' +
     '<label>Nível que o comparador lê: <b id="fillOut">' + lab(cur) + '</b><input type="range" id="fillR" min="0" max="15" value="' + cur + '"></label>' +
     '<p class="pen">Fica salvo no projeto e no navegador, mas não vai para o mundo do jogo nem para o .mcstructure.</p>' +
     '<div class="row"><button class="btn primary" id="fillOk">Usar este nível</button><button class="btn" id="fillNo">Cancelar</button></div>',
@@ -2438,6 +2454,25 @@ function openFloor() {
     });
 }
 $('rsBtn').addEventListener('click', function () { setRedstone(!rsOn); toast(rsOn ? 'A redstone funciona: alavancas, botões, tochas, repetidores, comparadores, lâmpadas, portas e pistões reagem ao sinal.' : 'A redstone fica parada: Usar só muda o bloco clicado.', 5000); $('menu').open = false; });
+$('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
+/* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
+function openTime() {
+  var sps = [[0, 'parada'], [1, 'como no jogo (um dia em 20 min)'], [10, '10 vezes mais rápido'], [60, '60 vezes mais rápido (um dia em 20 s)']];
+  openDialog('<h3>Hora do dia</h3><p>Usada pelo <b>sensor de luz</b>: a força segue o sol, como no jogo, com o céu aberto. Usar num sensor inverte (modo noite).</p>' +
+    '<label>Hora: <b id="tmOut"></b><input type="range" id="tmR" min="0" max="23750" step="250"></label>' +
+    '<p id="tmPow" class="pen"></p>' +
+    '<label>O tempo<select id="tmSp">' + sps.map(function (s) { return '<option value="' + s[0] + '">' + s[1] + '</option>'; }).join('') + '</select></label>' +
+    '<div class="row"><button class="btn" id="tmNoon">Meio-dia</button><button class="btn" id="tmNight">Meia-noite</button><button class="btn primary" id="tmOk">Fechar</button></div>',
+    function () {
+      var show = function () { $('tmOut').textContent = rsTimeTxt(rsTime); $('tmR').value = rsTime; $('tmPow').textContent = 'Sensor de luz: força ' + rsDayPow(false) + ' (normal), ' + rsDayPow(true) + ' (invertido).'; };
+      $('tmSp').value = String(rsTimeSp); show();
+      $('tmR').oninput = function () { setRsTime(+this.value); show(); };
+      $('tmSp').onchange = function () { setRsTime(rsTime, +this.value); };
+      $('tmNoon').onclick = function () { setRsTime(6000); show(); };
+      $('tmNight').onclick = function () { setRsTime(18000); show(); };
+      $('tmOk').onclick = closeDialog;
+    });
+}
 $('rsSndBtn').addEventListener('click', function () { setRsSound(!rsSnd.on); toast(rsSnd.on ? 'Sons da redstone ligados: o bloco musical e o sino tocam quando o sinal chega.' : 'Sons da redstone desligados.'); $('menu').open = false; });
 setRsSound(rsSnd.on);
 $('flowBtn').addEventListener('click', function () { setFlow(!flowOn); toast(flowOn ? 'A água e a lava escorrem ao colocar, como no jogo.' : 'A água e a lava ficam paradas onde você colocar.'); $('menu').open = false; });
@@ -2568,6 +2603,7 @@ async function start() {
   if (ok) { try { await histLoad(); } catch (e) {} } // a linha do tempo volta junto com a construção
   if (!ok) { newWorld(SX, SY, SZ); buildSample(); dirtyAll(); }
   resetCamera(); changed(); updateStatus();
+  setRsTime(rsTime); rsDayUpdate(true); // sensores de luz na hora guardada
   if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   requestAnimationFrame(frame);
   window.__bab = { ev: function (src) { return eval(src); }, name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rulerVis: function () { return !!(rulerObj && rulerObj.visible); }, measVis: function () { return !!measureObj; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };

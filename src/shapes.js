@@ -10,7 +10,8 @@ var BED_COLORS = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 
 var CW = { north: 'east', east: 'south', south: 'west', west: 'north' }, CCW = { north: 'west', west: 'south', south: 'east', east: 'north' };
 
 var SP_EXTRA = { redstone_wire: ['power'], piston: ['extended'], sticky_piston: ['extended'], powered_rail: ['powered'], activator_rail: ['powered'], detector_rail: ['powered'], repeater: ['locked'],
-  note_block: ['powered'], bell: ['powered'], hopper: ['enabled'] };
+  note_block: ['powered'], bell: ['powered'], hopper: ['enabled'],
+  lectern: ['has_book', 'powered'], tripwire_hook: ['powered'], tripwire: ['powered'], daylight_detector: ['inverted'] };
 ['', 'exposed_', 'weathered_', 'oxidized_'].forEach(function (o) { ['', 'waxed_'].forEach(function (w) { SP_EXTRA[w + o + 'copper_bulb'] = ['powered']; }); });
 async function loadShapes() {
   var bin = Uint8Array.from(atob(SHAPES_GZ), function (c) { return c.charCodeAt(0); });

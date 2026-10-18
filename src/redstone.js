@@ -2,7 +2,7 @@
 /* Simulação no tempo do jogo: 20 tiques por segundo (um tique de redstone = 2 tiques). Segue as regras do Java/Bedrock
    para o que não depende de criaturas nem de itens:
    - Fontes: alavanca, botão (solta sozinho: 1 s o de pedra, 1,5 s o de madeira), placa de pressão (Usar aperta por 1 s;
-     as de peso guardam a força escolhida), tocha, bloco de redstone, sensor de luz (a força escolhida), observador.
+     as de peso guardam a força escolhida), tocha, bloco de redstone, sensor de luz (pela hora do dia), observador.
    - Pó: força 15 na fonte, perde 1 por bloco; sobe e desce degraus (um bloco sólido em cima do degrau corta).
    - Blocos sólidos: "fortemente" energizados por alavanca/botão presos neles, tocha embaixo, repetidor ou comparador
      apontando para eles, placa em cima; isso energiza o pó em volta. O pó apontando para um bloco (ou em cima dele) o
@@ -28,11 +28,18 @@
      o comparador lê 15 com ela acesa. Bloco musical e sino: tocam quando o sinal chega (som no navegador; o
      instrumento do bloco musical vem do bloco embaixo, como no jogo). Funil: travado enquanto tem sinal.
    - Observador: um pulso de 1 tique de redstone pela parte de trás quando o bloco da frente muda.
+   - Baú com armadilha: Usar abre e fecha (aberto = um jogador olhando: força 1, e forte no bloco de baixo). Atril:
+     Usar com livro vira a página (pulso de 15 por 2 tiques de redstone). Toca-discos: com disco (nível de conteúdo
+     acima de 0), força 15. Para-raios: Usar é um raio (15 por 8 tiques). Trilho detector: Usar põe ou tira um
+     carrinho (com carrinho, 15, e forte no bloco de baixo). Gancho de armadilha: Usar na linha ou num gancho dispara a
+     armadilha (dois ganchos virados um para o outro, só linha entre eles, até 40 blocos): os ganchos dão 15 por 10
+     tiques, e forte no bloco em que estão presos. Sensor de luz: força pela hora do dia (a conta do jogo, com o céu
+     aberto); Usar inverte (modo noite).
    Cada mudança feita pela simulação entra no mesmo passo de desfazer da ação que a causou (como a água). A avaliação
    é local: parte das células mudadas e percorre só a rede de redstone ligada a elas. */
 var rsOn = true;
 try { rsOn = localStorage.getItem('bloco-a-bloco-redstone') !== '0'; } catch (e) {}
-var rs = { gt: 0, q: [], pend: new Map(), timer: 0, lv: null, cmp: new Map(), obs: new Map(), door: new Map(), burn: new Map(), touched: [], steps: 0 };
+var rs = { gt: 0, q: [], pend: new Map(), timer: 0, lv: null, cmp: new Map(), obs: new Map(), door: new Map(), burn: new Map(), touched: [], steps: 0, open: new Set() };
 var RS_H = ['north', 'east', 'south', 'west'], RS_D6 = ['up', 'down', 'north', 'south', 'east', 'west'];
 var rsKinds = [];
 function rsKind(bi) {
@@ -46,6 +53,8 @@ function rsKind(bi) {
     : j === 'piston' || j === 'sticky_piston' ? 'piston' : j === 'piston_head' ? 'head'
     : j === 'powered_rail' || j === 'activator_rail' ? 'rail' : j === 'daylight_detector' ? 'day'
     : j === 'target' ? 'target' : j === 'note_block' ? 'note' : /copper_bulb$/.test(j) ? 'bulb' : j === 'bell' ? 'bell' : j === 'hopper' ? 'hopper'
+    : j === 'trapped_chest' ? 'tchest' : j === 'lectern' ? 'lectern' : j === 'jukebox' ? 'juke' : j === 'lightning_rod' ? 'rod'
+    : j === 'detector_rail' ? 'drail' : j === 'tripwire_hook' ? 'hook' : j === 'tripwire' ? 'trip'
     : (!b.shape || b.shape.fc) && b.solid && !b.isAir && !NOT_STURDY.test(j) ? 'solid' : null;
   rsKinds[bi] = k; return k;
 }
@@ -71,6 +80,9 @@ function rsWeak(x, y, z, d) {
   switch (c.k) {
     case 'lever': case 'button': case 'plate': return rsP(c).powered === 'true' ? 15 : 0;
     case 'wplate': case 'day': case 'target': return +rsP(c).power || 0;
+    case 'lectern': case 'rod': case 'drail': case 'hook': return rsP(c).powered === 'true' ? 15 : 0;
+    case 'tchest': return rs.open.has(rsIdx(c)) ? 1 : 0;
+    case 'juke': return rsFillGet(c.x, c.y, c.z) > 0 ? 15 : 0;
     case 'torch': return rsP(c).lit === 'true' && d !== rsTorchSup(c) ? 15 : 0;
     case 'rblock': return 15;
     case 'repeater': p = rsP(c); return p.powered === 'true' && d === OPP[p.facing] ? 15 : 0;
@@ -88,6 +100,9 @@ function rsStrong(x, y, z, d, forWire) {
     case 'lever': case 'button': return rsP(c).powered === 'true' && d === rsAttach(c) ? 15 : 0;
     case 'plate': return d === 'down' && rsP(c).powered === 'true' ? 15 : 0;
     case 'wplate': return d === 'down' ? +rsP(c).power || 0 : 0;
+    case 'lectern': case 'drail': return d === 'down' && rsP(c).powered === 'true' ? 15 : 0;
+    case 'rod': case 'hook': return d === OPP[rsP(c).facing] && rsP(c).powered === 'true' ? 15 : 0;
+    case 'tchest': return d === 'down' && rs.open.has(rsIdx(c)) ? 1 : 0;
     case 'torch': return d === 'up' && rsP(c).lit === 'true' ? 15 : 0;
     case 'repeater': p = rsP(c); return d === OPP[p.facing] && p.powered === 'true' ? 15 : 0;
     case 'comparator': return d === OPP[rsP(c).facing] ? rsCmpLv(c) : 0;
@@ -218,7 +233,7 @@ function rsLater(dt, type, c) {
   if (!rs.timer) rs.timer = setInterval(rsTick, 50);
 }
 function rsStop() { rs.q = []; rs.pend.clear(); clearInterval(rs.timer); rs.timer = 0; rs.touched = []; }
-function rsReset() { rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); }
+function rsReset() { rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); }
 function rsTick() {
   rs.gt++;
   var due = rs.q.filter(function (e) { return e.t <= rs.gt; });
@@ -249,6 +264,9 @@ function rsRun(e) {
       break;
     case 'release': if ((c.k === 'button' || c.k === 'plate') && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
     case 'targetOff': if (c.k === 'target' && +p.power) rsProp(c, { power: '0' }); break;
+    case 'pageOff': if (c.k === 'lectern' && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
+    case 'rodOff': if (c.k === 'rod' && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
+    case 'tripOff': if (c.k === 'hook') { var ln = rsTripLine(c); (ln ? ln.all : [c]).forEach(function (t) { if (rsP(t).powered === 'true') rsProp(t, { powered: 'false' }); }); } break;
     case 'piston': if (c.k === 'piston') rsPiston(c); break;
   }
 }
@@ -357,6 +375,7 @@ function rsEval(seeds) {
           break;
         }
         case 'hopper': { var lk = rsInput(c.x, c.y, c.z) > 0; if ((p.enabled === 'false') !== lk) rsProp(c, { enabled: String(!lk) }); break; }
+        case 'day': { var dp = rsDayPow(p.inverted === 'true'); if ((+p.power || 0) !== dp) rsProp(c, { power: String(dp) }); break; }
       }
     });
     if (rails.length) rsRails(rails);
@@ -496,6 +515,91 @@ function setRedstone(on) {
   rsOn = on; try { localStorage.setItem('bloco-a-bloco-redstone', on ? '1' : '0'); } catch (e) {}
   if (!on) rsStop();
   $('rsBtn').textContent = 'Redstone funcionando: ' + (on ? 'sim' : 'não');
+}
+
+/* ---------- Baú com armadilha, atril, para-raios, trilho detector, armadilha de linha ---------- */
+/* Mudança que não é de bloco (baú aberto): reavalia a rede em volta */
+function rsPoke(x, y, z) {
+  if (!rsOn) return;
+  rs.steps = 0; rs.touched.push([x, y, z]); rsSettle();
+  if (rs.steps) { requestRender(); updateStatus(); }
+}
+function rsToggleChest(c) {
+  var i = idx(c[0], c[1], c[2]), op = !rs.open.has(i);
+  if (op) rs.open.add(i); else rs.open.delete(i);
+  rsPoke(c[0], c[1], c[2]);
+  return op;
+}
+/* Linha de armadilha a partir de um gancho: só linha até outro gancho virado para ele (até 40 blocos no meio) */
+function rsTripLine(h) {
+  var f = rsP(h).facing, wires = [];
+  for (var n = 1; n <= 41; n++) {
+    var v = DV[f], c = rsAt(h.x + v[0] * n, h.y, h.z + v[2] * n);
+    if (c && c.k === 'trip') { wires.push(c); continue; }
+    if (c && c.k === 'hook' && rsP(c).facing === OPP[f] && wires.length) return { hooks: [h, c], wires: wires, all: [h, c].concat(wires) };
+    return null;
+  }
+  return null;
+}
+/* Usar numa linha ou num gancho: acha a linha inteira */
+function rsTripFind(x, y, z) {
+  var c = rsAt(x, y, z); if (!c) return null;
+  if (c.k === 'hook') return rsTripLine(c);
+  if (c.k !== 'trip') return null;
+  for (var h = 0; h < 4; h++) {
+    var d = RS_H[h], v = DV[d], n = 1, e;
+    while ((e = rsAt(x + v[0] * n, y, z + v[2] * n)) && e.k === 'trip' && n < 42) n++;
+    if (e && e.k === 'hook' && rsP(e).facing === OPP[d]) { var ln = rsTripLine(e); if (ln && ln.wires.some(function (w) { return w.x === x && w.z === z; })) return ln; }
+  }
+  return null;
+}
+/* Pulso pelo Usar (atril, para-raios, armadilha): liga no passo de desfazer e marca o desligar */
+function rsPulse(cells, label, dt, ev) {
+  beginBatch(label);
+  cells.forEach(function (c) { var v = gget(c.x, c.y, c.z), b = BLOCKS[cellBlock(v)], p = stateProps(b, cellOri(v)); p.powered = 'true'; editSet(c.x, c.y, c.z, mkCell(cellBlock(v), stateIndex(b, p))); });
+  endBatch();
+  var c0 = rsAt(cells[0].x, cells[0].y, cells[0].z); if (c0 && rsOn) rsLater(dt, ev, c0);
+}
+
+/* ---------- Hora do dia: sensor de luz ---------- */
+/* A conta do jogo (Java), com o céu aberto e sem chuva: ângulo do sol pela hora, escurecimento do céu e o cosseno */
+var rsTime = 6000, rsTimeSp = 0, rsTimeTimer = 0;
+try { var rt0 = JSON.parse(localStorage.getItem('bloco-a-bloco-hora') || 'null'); if (rt0) { rsTime = +rt0.t || 0; rsTimeSp = +rt0.sp || 0; } } catch (e) {}
+function rsCelestial(t) { var d = (t / 24000 - 0.25) % 1; if (d < 0) d += 1; var d1 = 0.5 - Math.cos(d * Math.PI) / 2; return (d * 2 + d1) / 3; }
+function rsDayPow(inv) {
+  var ang = rsCelestial(rsTime), f = 1 - (Math.cos(ang * 2 * Math.PI) * 2 + 0.5); f = Math.max(0, Math.min(1, f));
+  var i = 15 - Math.floor(f * 11), sun = ang * 2 * Math.PI;
+  if (inv) i = 15 - i;
+  else if (i > 0) { var f1 = sun < Math.PI ? 0 : Math.PI * 2; sun += (f1 - sun) * 0.2; i = Math.round(i * Math.cos(sun)); }
+  return Math.max(0, Math.min(15, i));
+}
+function rsTimeTxt(t) { var h = (Math.floor(t / 1000) + 6) % 24, m = Math.floor((t % 1000) * 60 / 1000); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+/* Hora mudou: os sensores de luz que mudam de força são reavaliados (só os pedaços que têm sensor) */
+var rsDayLast = null;
+function rsDayUpdate(force) {
+  var key = rsDayPow(false) + ',' + rsDayPow(true); if (!force && key === rsDayLast) return; rsDayLast = key;
+  if (!rsOn) return;
+  var seeds = [];
+  W.forEach(function (ch) {
+    var pal = ch.d ? ch.pal : [ch.u];
+    if (!pal.some(function (v) { return v && rsKind(cellBlock(v)) === 'day'; })) return;
+    var x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
+    for (var o = 0; o < 4096; o++) { var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (v && rsKind(cellBlock(v)) === 'day') seeds.push([x0 + (o & 15), y0 + (o >> 8), z0 + ((o >> 4) & 15)]); }
+  });
+  if (!seeds.length) return;
+  rs.steps = 0; rs.touched = seeds.concat(rs.touched); rsSettle();
+  if (rs.steps) { requestRender(); updateStatus(); if (!rs.save) rs.save = setTimeout(function () { rs.save = 0; autosave(); }, 1500); }
+}
+function setRsTime(t, sp) {
+  rsTime = ((Math.round(t) % 24000) + 24000) % 24000; if (sp != null) rsTimeSp = sp;
+  try { localStorage.setItem('bloco-a-bloco-hora', JSON.stringify({ t: rsTime, sp: rsTimeSp })); } catch (e) {}
+  clearInterval(rsTimeTimer); rsTimeTimer = 0;
+  if (rsTimeSp) rsTimeTimer = setInterval(function () { // o tempo passa: 20 tiques por segundo vezes a velocidade
+    rsTime = (rsTime + 20 * rsTimeSp) % 24000; rsDayUpdate(false);
+    var bt = $('rsTimeBtn'); if (bt) bt.textContent = 'Hora do dia: ' + rsTimeTxt(rsTime) + '…';
+  }, 1000);
+  var b2 = $('rsTimeBtn'); if (b2) b2.textContent = 'Hora do dia: ' + rsTimeTxt(rsTime) + '…';
+  rsDayUpdate(false);
 }
 
 /* ---------- Alvo, sons do bloco musical e do sino ---------- */
