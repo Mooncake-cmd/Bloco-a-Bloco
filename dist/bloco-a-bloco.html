@@ -6530,6 +6530,7 @@ function holoQuads(x, y, z, v, out) {
 function holoAtlas(keys, alpha) {
   var img = atlasTex.image, AW = img.width, AH = img.height, src = img.data;
   var tiles = keys.map(function (k) {
+    if (k.img) return { k: k, S: k.img.width };
     var r = tileUV[k.tile] || tileUV[0], x0 = Math.round(r[0] * AW - 0.5), y0 = Math.round(r[1] * AH - 0.5);
     return { k: k, x0: x0, y0: y0, S: Math.max(1, Math.round((r[2] - r[0]) * AW + 1)) };
   });
@@ -6543,6 +6544,8 @@ function holoAtlas(keys, alpha) {
   var g = c.getContext('2d'), id = g.createImageData(W, H), d = id.data, rect = {};
   tiles.forEach(function (t) {
     var tn = t.k.tint || [1, 1, 1];
+    if (t.k.img) { for (var r0 = 0; r0 < t.S; r0++) d.set(t.k.img.data.subarray(r0 * t.S * 4, (r0 + 1) * t.S * 4), ((t.y + r0) * W + t.x) * 4); }
+    else
     // atlas do editor: linha 0 = baixo (WebGL); a imagem nova: linha 0 = topo
     for (var r = 0; r < t.S; r++) for (var cc = 0; cc < t.S; cc++) {
       var si = ((t.y0 + t.S - 1 - r) * AW + t.x0 + cc) * 4, di = ((t.y + r) * W + t.x + cc) * 4;
@@ -6555,35 +6558,79 @@ function holoAtlas(keys, alpha) {
   return { W: W, H: H, rect: rect, canvas: c };
 }
 
+/* Marcador do suporte de um vizinho no bloco x, y, z: cubo de 0,8 bloco com o número nas faces, logo acima do bloco
+   do suporte, e um feixe fino de 6 blocos para cima. Faces no formato de holoQuads (cantos como FACES: frente para fora, sem inverter). */
+function holoMarker(x, y, z, key, pc, out) {
+  var box = function (x0, y0, z0, x1, y1, z1, k, sides) {
+    for (var f = 0; f < 6; f++) {
+      if (sides && f >= 2 && f <= 3) continue; // feixe: sem tampa
+      var F = FACES[f], P = [];
+      for (var i = 0; i < 4; i++) P.push([F.v[i][0] ? x1 : x0, F.v[i][1] ? y1 : y0, F.v[i][2] ? z1 : z0]);
+      out.push({ p: P, uv: UVS.map(function (u) { return u.slice(); }), key: k, rev: false, c: [x + 0.5, y + 1.5, z + 0.5], pc: pc, mark: true });
+    }
+  };
+  // o cubo flutua um bloco acima do lugar do suporte (na camada mais baixa ele ficaria enterrado no fantasma)
+  box(x + 0.1, y + 1.1, z + 0.1, x + 0.9, y + 1.9, z + 0.9, key, false);
+  box(x + 0.42, y + 1.9, z + 0.42, x + 0.58, y + 8, z + 0.58, 'beam', true);
+}
+/* Ladrilho do marcador: roxo translúcido com o número em branco (contorno escuro); sem número, o roxo do feixe */
+function holoMarkTile(txt) {
+  var S = 64, c = document.createElement('canvas'); c.width = c.height = S;
+  var g = c.getContext('2d');
+  g.fillStyle = 'rgba(150,60,220,0.8)'; g.fillRect(0, 0, S, S);
+  if (txt) {
+    g.strokeStyle = 'rgba(60,10,100,0.95)'; g.lineWidth = 4; g.strokeRect(2, 2, S - 4, S - 4);
+    g.font = 'bold ' + (txt.length > 2 ? 26 : txt.length > 1 ? 34 : 44) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 6; g.strokeStyle = 'rgba(30,0,50,1)'; g.strokeText(txt, S / 2, S / 2 + 2);
+    g.fillStyle = '#fff'; g.fillText(txt, S / 2, S / 2 + 2);
+  }
+  return g.getImageData(0, 0, S, S);
+}
+
 /* Monta o pacote: { bytes, faces, layers, band, bb } */
 async function holoBuild(name, opacity) {
   var bb = bbox(); if (!bb) throw new Error('A construção está vazia.');
   var quads = [];
   forEachBlock(function (x, y, z, v) { holoQuads(x, y, z, v, quads); });
   if (!quads.length) throw new Error('Nada para mostrar.');
-  // ladrilho + cor -> um lugar no atlas novo
+  // pedaços de HOLO_PIECE x HOLO_PIECE, cada um com o suporte no centro (o jogo só desenha o suporte até ~64 blocos do
+  // jogador: em construção grande, você está sempre perto do suporte do pedaço onde está)
+  var NL = bb.maxY - bb.minY + 1, band = Math.ceil(NL / 12), r4 = function (v) { return Math.round(v * 1e4) / 1e4; };
+  var pieces = {};
+  quads.forEach(function (q) {
+    var ix = Math.floor((Math.floor(q.c[0]) - bb.minX) / HOLO_PIECE), iz = Math.floor((Math.floor(q.c[2]) - bb.minZ) / HOLO_PIECE), pk = ix + ',' + iz;
+    if (!pieces[pk]) {
+      var x0 = bb.minX + ix * HOLO_PIECE, x1 = Math.min(x0 + HOLO_PIECE, bb.maxX + 1), z0 = bb.minZ + iz * HOLO_PIECE, z1 = Math.min(z0 + HOLO_PIECE, bb.maxZ + 1);
+      pieces[pk] = { ix: ix, iz: iz, sx: x0 + Math.floor((x1 - x0) / 2), sz: z0 + Math.floor((z1 - z0) / 2), bones: {}, faces: 0 };
+    }
+    q.pc = pieces[pk]; q.pc.faces++;
+  });
+  var list = Object.keys(pieces).map(function (k) { return pieces[k]; }).sort(function (a, b) { return a.iz - b.iz || a.ix - b.ix; });
+  list.forEach(function (PC, i) { PC.num = i + 1; });
+  var nm = holoName(name), many = list.length > 1, conds = [];
+  // marcadores: cada pedaço mostra, no lugar do suporte de cada vizinho (também na diagonal), um bloco roxo com o
+  // número dele e um feixe fino para cima, para achar de longe
+  var marks = [];
+  if (many) list.forEach(function (PC) {
+    list.forEach(function (NB) {
+      if (NB === PC || Math.abs(NB.ix - PC.ix) > 1 || Math.abs(NB.iz - PC.iz) > 1) return;
+      holoMarker(NB.sx, bb.minY, NB.sz, 'n' + NB.num, PC, marks);
+    });
+  });
+  // ladrilho + cor -> um lugar no atlas novo (os números e o feixe são desenhados aqui)
   var keyOf = {}, keys = [];
   quads.forEach(function (q) {
     var k = q.tile + (q.tint ? ':' + q.tint.map(function (c) { return Math.round(c * 255); }).join(',') : '');
     if (!(k in keyOf)) { keyOf[k] = 1; keys.push({ key: k, tile: q.tile, tint: q.tint }); }
     q.key = k;
   });
+  marks.forEach(function (q) { if (!(q.key in keyOf)) { keyOf[q.key] = 1; keys.push({ key: q.key, img: holoMarkTile(q.key === 'beam' ? '' : q.key.slice(1)) }); } });
   var at = holoAtlas(keys, opacity);
-  // pedaços de HOLO_PIECE x HOLO_PIECE, cada um com o suporte no centro (o jogo só desenha o suporte até ~64 blocos do
-  // jogador: em construção grande, você está sempre perto do suporte do pedaço onde está); um osso por camada
-  var NL = bb.maxY - bb.minY + 1, band = Math.ceil(NL / 12), r4 = function (v) { return Math.round(v * 1e4) / 1e4; };
-  var nx = Math.ceil(bb.w / HOLO_PIECE), nz = Math.ceil(bb.l / HOLO_PIECE), pieces = {};
-  quads.forEach(function (q) {
-    var ix = Math.floor((Math.floor(q.c[0]) - bb.minX) / HOLO_PIECE), iz = Math.floor((Math.floor(q.c[2]) - bb.minZ) / HOLO_PIECE), pk = ix + ',' + iz;
-    var PC = pieces[pk];
-    if (!PC) {
-      var x0 = bb.minX + ix * HOLO_PIECE, x1 = Math.min(x0 + HOLO_PIECE, bb.maxX + 1), z0 = bb.minZ + iz * HOLO_PIECE, z1 = Math.min(z0 + HOLO_PIECE, bb.maxZ + 1);
-      PC = pieces[pk] = { ix: ix, iz: iz, sx: x0 + Math.floor((x1 - x0) / 2), sz: z0 + Math.floor((z1 - z0) / 2), bones: {}, faces: 0 };
-    }
-    PC.faces++;
-    var ly = Math.floor(q.c[1]) - bb.minY;
-    var B = PC.bones[ly] || (PC.bones[ly] = { pos: [], nor: [], uvs: [], polys: [], mp: {}, mn: {}, mu: {} });
-    var cx = q.c[0], cy = q.c[1], cz = q.c[2];
+  // faces -> ossos do pedaço: um por camada (a pose escolhe) e um com os marcadores (sempre à vista)
+  quads.concat(marks).forEach(function (q) {
+    var PC = q.pc, bk = q.mark ? 'm' : Math.floor(q.c[1]) - bb.minY;
+    var B = PC.bones[bk] || (PC.bones[bk] = { pos: [], nor: [], uvs: [], polys: [], mp: {}, mn: {}, mu: {} });
+    var cx = q.c[0], cy = q.c[1], cz = q.c[2], shr = q.mark ? 1 : HOLO_SHRINK;
     var a = [q.p[1][0] - q.p[0][0], q.p[1][1] - q.p[0][1], q.p[1][2] - q.p[0][2]], b = [q.p[3][0] - q.p[0][0], q.p[3][1] - q.p[0][1], q.p[3][2] - q.p[0][2]];
     var n = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
     if (q.rev) n = [-n[0], -n[1], -n[2]];
@@ -6591,7 +6638,7 @@ async function holoBuild(name, opacity) {
     var nk = n.join(','), ni = B.mn[nk]; if (ni == null) { ni = B.mn[nk] = B.nor.length; B.nor.push(n); }
     var R = at.rect[q.key], poly = [], order = q.rev ? [0, 3, 2, 1] : [0, 1, 2, 3];
     order.forEach(function (k) {
-      var p = q.p[k], px = cx + (p[0] - cx) * HOLO_SHRINK, py = cy + (p[1] - cy) * HOLO_SHRINK, pz = cz + (p[2] - cz) * HOLO_SHRINK;
+      var p = q.p[k], px = cx + (p[0] - cx) * shr, py = cy + (p[1] - cy) * shr, pz = cz + (p[2] - cz) * shr;
       var P = [r4(-((px - PC.sx) * 16 - 8)), r4((py - bb.minY) * 16), r4((pz - PC.sz) * 16 - 8)], pk2 = P.join(',');
       var pi = B.mp[pk2]; if (pi == null) { pi = B.mp[pk2] = B.pos.length; B.pos.push(P); }
       var u = q.uv[k], U = [r4(R[0] + (R[2] - R[0]) * u[0]), r4(R[1] + (R[3] - R[1]) * u[1])], uk = U.join(',');
@@ -6600,17 +6647,16 @@ async function holoBuild(name, opacity) {
     });
     B.polys.push(poly);
   });
-  var list = Object.keys(pieces).map(function (k) { return pieces[k]; }).sort(function (a, b) { return a.iz - b.iz || a.ix - b.ix; });
-  var nm = holoName(name), many = list.length > 1, conds = [];
   // área de desenho grande (512 blocos, conferida no jogo): sem ela, a construção some quando o suporte sai da tela
   var BIG = 512, files = [], geos = {}, rcs = {}, rcl = [];
   list.forEach(function (PC, i) {
-    PC.name = many ? nm + ' ' + (i + 1) : nm;
+    PC.name = many ? nm + ' ' + PC.num : nm;
     var cond = "query.get_name == '" + PC.name + "'"; conds.push(cond);
     var boneList = [{ name: 'raiz', pivot: [0, 0, 0] }], vis2 = [{ '*': true }];
     Object.keys(PC.bones).forEach(function (ly) {
-      var B = PC.bones[ly];
-      boneList.push({ name: 'l' + ly, parent: 'raiz', pivot: [0, 0, 0], poly_mesh: { normalized_uvs: true, positions: B.pos, normals: B.nor, uvs: B.uvs, polys: B.polys } });
+      var B = PC.bones[ly], mark = ly === 'm';
+      boneList.push({ name: mark ? 'marcas' : 'l' + ly, parent: 'raiz', pivot: [0, 0, 0], poly_mesh: { normalized_uvs: true, positions: B.pos, normals: B.nor, uvs: B.uvs, polys: B.polys } });
+      if (mark) return;
       var ps = Math.floor(ly / band) + 1, e = {}; e['l' + ly] = 'v.armor_stand.pose_index == 0 || v.armor_stand.pose_index == ' + ps; vis2.push(e);
     });
     var id = 'bab_fantasma_' + (i + 1);
@@ -6700,6 +6746,7 @@ function holoHelp(r, corner) {
     '<li>Abra o <b>.mcpack</b> (no celular, toque nele): o Minecraft importa sozinho. Exportar de novo substitui o fantasma anterior.</li>' +
     '<li>Nas configurações do mundo, <b>Pacotes de recursos</b>: ative "Bloco a Bloco: fantasma". É só visual: as conquistas continuam ativas.</li>' +
     '<li>Renomeie ' + (many ? 'etiquetas' : 'uma etiqueta') + ' na bigorna (igualzinho: maiúsculas e minúsculas contam) e ponha ' + (many ? 'cada uma num suporte de armadura, no lugar abaixo' : 'num suporte de armadura, no lugar abaixo') + '. O suporte some e a construção aparece. Tanto faz para onde o suporte olha: o norte do editor (o N da bússola) é sempre o norte do jogo.</li>' +
+    (many ? '<li>Comece por qualquer pedaço. Cada um mostra, no lugar do suporte de cada vizinho, um <b>cubo roxo com o número</b> dele, flutuando, com um feixe para cima: ponha o suporte com esse número no bloco <b>logo abaixo do cubo</b>. Assim você vai de um pedaço para o outro sem precisar de coordenadas.</li>' : '') +
     '<li><b>Agache e use</b> o suporte (mão vazia) para trocar a camada: pose 0 mostra tudo; ' + poses.join('; ') + '.' + (many ? ' Cada suporte troca a camada do seu pedaço.' : '') + '</li>' +
     '<li>No fim, quebre ' + (many ? 'os suportes' : 'o suporte') + ' e ponha os blocos que faltam no lugar ' + (many ? 'deles' : 'dele') + '.</li></ol>' +
     '<p>' + (corner ? 'Coordenadas de cada suporte no mundo (x y z):' : 'Onde fica cada suporte, contando a partir do canto noroeste da camada mais baixa da construção (todos na altura dela). Informe esse canto na janela Exportar para ver as coordenadas prontas:') + '</p>' +
