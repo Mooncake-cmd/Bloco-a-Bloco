@@ -124,7 +124,7 @@ function holoMarkTile(txt) {
 async function holoBuild(name, opacity) {
   var bb = bbox(); if (!bb) throw new Error('A construção está vazia.');
   var quads = [];
-  forEachBlock(function (x, y, z, v) { holoQuads(x, y, z, v, quads); });
+  forEachBlock(function (x, y, z, v) { if (!isApoio(x, y, z, v)) holoQuads(x, y, z, v, quads); }); // sem os blocos de apoio
   if (!quads.length) throw new Error('Nada para mostrar.');
   // pedaços de HOLO_PIECE x HOLO_PIECE, cada um com o suporte no centro (o jogo só desenha o suporte até ~64 blocos do
   // jogador: em construção grande, você está sempre perto do suporte do pedaço onde está)

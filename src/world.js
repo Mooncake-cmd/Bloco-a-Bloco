@@ -138,6 +138,7 @@ function serialize() {
   var o = projectMeta(); o.v = 2; o.chunks = [];
   if (bioPaint.size) o.biomes = bioRecord();
   if (rsFill.size) o.fill = rsFillRecord(); // nível de conteúdo dos contêineres (src/redstone.js)
+  if (apoio.size) o.apoio = Array.from(apoio); // blocos de apoio (vidro temporário)
   W.forEach(function (ch) {
     var r = chunkRecord(ch);
     if (r.d) { r.w = r.d instanceof Uint16Array ? 2 : 1; r.d = b64(new Uint8Array(r.d.buffer)); }
@@ -166,6 +167,7 @@ function autosave() {
     st.put(meta, 'w:meta');
     if (bioSaveFlag || clear) { bioSaveFlag = false; st.put(bioRecord(), 'w:bio'); } // biomas pintados
     if (rsFillSave || clear) { rsFillSave = false; st.put(rsFillRecord(), 'w:fill'); } // conteúdo dos contêineres
+    if (apoioSave || clear) { apoioSave = false; st.put(Array.from(apoio), 'w:apoio'); } // blocos de apoio
     histSaveInto(st, clear); // a linha do tempo vai na mesma gravação: construção e histórico sempre combinam
   }).then(function () {
     autosaveBusy = false;
@@ -189,7 +191,8 @@ function loadAutosave() {
       worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; }); // já está salvo assim
       verCounter++; dirtyAll(); renderHotbar(); renderList();
       return idbDo('readonly', function (st) { return st.get('w:bio'); }).then(function (b) { if (b) bioFromRecord(b); bioSaveFlag = false; return idbDo('readonly', function (st) { return st.get('w:fill'); }); })
-        .then(function (f) { if (f) rsFillFrom(f); return true; }, function () { return true; });
+        .then(function (f) { if (f) rsFillFrom(f); return idbDo('readonly', function (st) { return st.get('w:apoio'); }); })
+        .then(function (a) { apoio = new Set(a || []); apoioSave = false; return true; }, function () { return true; });
     });
   }, function () { return false; });
 }

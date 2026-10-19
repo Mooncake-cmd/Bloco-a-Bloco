@@ -260,6 +260,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
           <button class="tbtn txt" id="terrainBtn">Gerar terreno…</button>
+          <button class="tbtn txt" id="apoioBtn">Remover blocos de apoio</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
@@ -853,6 +854,7 @@ function serialize() {
   var o = projectMeta(); o.v = 2; o.chunks = [];
   if (bioPaint.size) o.biomes = bioRecord();
   if (rsFill.size) o.fill = rsFillRecord(); // nível de conteúdo dos contêineres (src/redstone.js)
+  if (apoio.size) o.apoio = Array.from(apoio); // blocos de apoio (vidro temporário)
   W.forEach(function (ch) {
     var r = chunkRecord(ch);
     if (r.d) { r.w = r.d instanceof Uint16Array ? 2 : 1; r.d = b64(new Uint8Array(r.d.buffer)); }
@@ -881,6 +883,7 @@ function autosave() {
     st.put(meta, 'w:meta');
     if (bioSaveFlag || clear) { bioSaveFlag = false; st.put(bioRecord(), 'w:bio'); } // biomas pintados
     if (rsFillSave || clear) { rsFillSave = false; st.put(rsFillRecord(), 'w:fill'); } // conteúdo dos contêineres
+    if (apoioSave || clear) { apoioSave = false; st.put(Array.from(apoio), 'w:apoio'); } // blocos de apoio
     histSaveInto(st, clear); // a linha do tempo vai na mesma gravação: construção e histórico sempre combinam
   }).then(function () {
     autosaveBusy = false;
@@ -904,7 +907,8 @@ function loadAutosave() {
       worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; }); // já está salvo assim
       verCounter++; dirtyAll(); renderHotbar(); renderList();
       return idbDo('readonly', function (st) { return st.get('w:bio'); }).then(function (b) { if (b) bioFromRecord(b); bioSaveFlag = false; return idbDo('readonly', function (st) { return st.get('w:fill'); }); })
-        .then(function (f) { if (f) rsFillFrom(f); return true; }, function () { return true; });
+        .then(function (f) { if (f) rsFillFrom(f); return idbDo('readonly', function (st) { return st.get('w:apoio'); }); })
+        .then(function (a) { apoio = new Set(a || []); apoioSave = false; return true; }, function () { return true; });
     });
   }, function () { return false; });
 }
@@ -962,6 +966,7 @@ function editSet1(x, y, z, v) {
   if (!inB(x, y, z)) return;
   var i = idx(x, y, z), old = gget(x, y, z);
   if (old === v) return;
+  if (!old && v && apoio.size && apoio.delete(i)) apoioSave = true; // bloco novo onde havia um apoio apagado: não herda a marca
   setRaw(x, y, z, v);
   if (batch) batch.add(i, old, v);
   if (stroke) stroke.cells.add(i);
@@ -4720,6 +4725,7 @@ function walkClick(btn) {
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.code === 'KeyF' && !e.repeat) { walk.fly = !walk.fly; walk.v[1] = 0; walkHud(); }
       walk.keys[e.code] = true; if (e.code === 'Space' && !e.repeat) walk.jump = performance.now() + 300;
+    } else if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) apoioPut(); // bloco de apoio sob os pés
     } else if (!/^Digit[1-9]$/.test(e.code)) { e.stopImmediatePropagation(); } // outras teclas (ferramentas) ficam paradas
   }, true);
   window.addEventListener('keyup', function (e) { if (walk) walk.keys[e.code] = false; }, true);
@@ -6717,7 +6723,7 @@ function holoMarkTile(txt) {
 async function holoBuild(name, opacity) {
   var bb = bbox(); if (!bb) throw new Error('A construção está vazia.');
   var quads = [];
-  forEachBlock(function (x, y, z, v) { holoQuads(x, y, z, v, quads); });
+  forEachBlock(function (x, y, z, v) { if (!isApoio(x, y, z, v)) holoQuads(x, y, z, v, quads); }); // sem os blocos de apoio
   if (!quads.length) throw new Error('Nada para mostrar.');
   // pedaços de HOLO_PIECE x HOLO_PIECE, cada um com o suporte no centro (o jogo só desenha o suporte até ~64 blocos do
   // jogador: em construção grande, você está sempre perto do suporte do pedaço onde está)
@@ -9014,6 +9020,7 @@ function loadProject(o) {
   slot = o.slot | 0;
   if (o.biomes) bioFromRecord(o.biomes); // biomas pintados (src/biome.js)
   if (o.fill) rsFillFrom(o.fill);
+  apoio = new Set(o.apoio || []); apoioSave = true;
   verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
 }
@@ -9021,7 +9028,7 @@ function newWorld(sx, sy, sz) {
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
-  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset(); bioReset();
+  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset(); bioReset(); apoio = new Set(); apoioSave = true;
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -9104,8 +9111,8 @@ function voxelOf(x, y, z, v) {
   return BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]; }
 function collectVoxels(box) {
   var out = [];
-  if (box) blocksInBox(box[0], box[1], box[2], box[3], box[4], box[5], function (x, y, z, v) { out.push(voxelOf(x, y, z, v)); });
-  else forEachBlock(function (x, y, z, v) { out.push(voxelOf(x, y, z, v)); });
+  if (box) blocksInBox(box[0], box[1], box[2], box[3], box[4], box[5], function (x, y, z, v) { if (!isApoio(x, y, z, v)) out.push(voxelOf(x, y, z, v)); });
+  else forEachBlock(function (x, y, z, v) { if (!isApoio(x, y, z, v)) out.push(voxelOf(x, y, z, v)); }); // os blocos de apoio ficam de fora
   return out;
 }
 function cleanName(s) { return (s || 'construcao').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'construcao'; }
@@ -9237,13 +9244,13 @@ $('exportBtn').addEventListener('click', openExport);
 
 function openMaterials() {
   var counts = {};
-  forEachBlock(function (x, y, z, v) { var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1; });
+  forEachBlock(function (x, y, z, v) { if (isApoio(x, y, z, v)) return; var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1; });
   var rows = Object.keys(counts).map(function (k) { return [+k, counts[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
   var text = rows.map(function (r) { return BLOCKS[r[0]].name + ': ' + r[1] + ' (' + Math.floor(r[1] / 64) + ' pilhas + ' + (r[1] % 64) + ')'; }).join('\n');
   var body = rows.length ? '<div class="mat"><table>' + rows.map(function (r) {
     return '<tr><td><span class="sw" style="' + swatch(BLOCKS[r[0]]) + '"></span>' + esc(BLOCKS[r[0]].name) + '</td><td class="num">' + r[1] + '</td><td class="num">' + Math.floor(r[1] / 64) + ' × 64 + ' + (r[1] % 64) + '</td></tr>';
   }).join('') + '</table></div>' : '<p>A construção está vazia.</p>';
-  openDialog('<h3>Lista de materiais</h3><p>' + blockCount + ' blocos de ' + rows.length + ' tipos.</p>' + body +
+  openDialog('<h3>Lista de materiais</h3><p>' + rows.reduce(function (a, r) { return a + r[1]; }, 0) + ' blocos de ' + rows.length + ' tipos.</p>' + body +
     '<div class="row"><button class="btn primary" id="mCopy">Copiar lista</button><button class="btn" id="mClose">Fechar</button></div>',
     function () {
       $('mClose').onclick = closeDialog;
@@ -9311,6 +9318,7 @@ function openHelp() {
     '<span><kbd>Home</kbd></span><span>Recentralizar a câmera</span>' +
     '<span>Teleporte (<kbd>J</kbd>)</span><span>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo. <kbd>Shift</kbd> + clique (ou o botão Primeira pessoa do aviso): anda dentro da construção.</span>' +
     '<span>Primeira pessoa</span><span>Mouse olha; <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> anda; <kbd>Espaço</kbd> pula; <kbd>F</kbd> liga o voo (<kbd>Espaço</kbd> sobe, <kbd>Shift</kbd> desce); clique esquerdo quebra, direito coloca, roda e 1 a 9 trocam o bloco; <kbd>Esc</kbd> sai.</span>' +
+    '<span>Bloco de apoio (<kbd>Z</kbd>)</span><span>Põe um vidro no centro da câmera (em primeira pessoa, embaixo dos pés), para começar a construir no alto sem subir um pilar. <kbd>Page Up</kbd>/<kbd>Page Down</kbd> sobem e descem o centro da câmera. Não vai para a exportação; Projeto → Remover blocos de apoio tira todos.</span>' +
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span></div>' +
@@ -9399,6 +9407,31 @@ function openFloor() {
     });
 }
 $('rsBtn').addEventListener('click', function () { setRedstone(!rsOn); toast(rsOn ? 'A redstone funciona: alavancas, botões, tochas, repetidores, comparadores, lâmpadas, portas e pistões reagem ao sinal.' : 'A redstone fica parada: Usar só muda o bloco clicado.', 5000); $('menu').open = false; });
+$('apoioBtn').addEventListener('click', function () { $('menu').open = false; apoioClear(); });
+/* Bloco de apoio (Z): um vidro temporário no centro da câmera (em primeira pessoa, embaixo dos pés), para começar a
+   construir no alto sem subir um pilar. Fica marcado: Projeto → Remover blocos de apoio tira todos de uma vez, e eles
+   não vão para as exportações, o fantasma nem a lista de materiais. Se o vidro for trocado por outro bloco, deixa de
+   ser apoio. */
+var apoio = new Set(), apoioSave = false;
+function isApoio(x, y, z, v) { return apoio.size > 0 && apoio.has(idx(x, y, z)) && BLOCKS[cellBlock(v)].java === 'glass'; }
+function apoioPut() {
+  var x, y, z;
+  if (walk) { x = Math.floor(walk.p[0]); y = Math.floor(walk.p[1] + 1e-6) - 1; z = Math.floor(walk.p[2]); }
+  else { x = Math.floor(cam.tx); y = Math.floor(cam.ty); z = Math.floor(cam.tz); }
+  if (!inB(x, y, z)) { toast('O ' + (walk ? 'bloco embaixo dos pés' : 'centro da câmera') + ' (' + x + ', ' + y + ', ' + z + ') está fora do espaço.'); return; }
+  if (gget(x, y, z)) { toast('Já existe um bloco em ' + x + ', ' + y + ', ' + z + '.'); return; }
+  beginBatch('Bloco de apoio'); editSet1(x, y, z, cellFromName('glass')); endBatch();
+  apoio.add(idx(x, y, z)); apoioSave = true; autosave();
+  toast('Bloco de apoio (vidro) em ' + x + ', ' + y + ', ' + z + '. Construa a partir dele; Projeto → Remover blocos de apoio tira todos. Ele não vai para a exportação.', 5000);
+}
+function apoioClear() {
+  var l = [];
+  apoio.forEach(function (i) { var p = unidx(i), v = gget(p[0], p[1], p[2]); if (v && isApoio(p[0], p[1], p[2], v)) l.push(p); });
+  if (!l.length) { apoio.clear(); apoioSave = true; toast('Não há blocos de apoio.'); return; }
+  beginBatch('Remover blocos de apoio'); l.forEach(function (p) { editSet(p[0], p[1], p[2], 0); }); endBatch();
+  autosave(); // a marca fica: Ctrl+Z traz os vidros de volta já como apoio
+  toast(l.length + (l.length > 1 ? ' blocos de apoio removidos.' : ' bloco de apoio removido.') + ' Ctrl+Z traz de volta.');
+}
 $('terrainBtn').addEventListener('click', function () { $('menu').open = false; openTerrain(); });
 $('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
 /* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
@@ -9465,6 +9498,8 @@ window.addEventListener('keydown', function (e) {
   if (k === '[') { setLayer(true, (layerOn ? layerY : topY()) - 1); return; }
   if (k === ']') { setLayer(true, (layerOn ? layerY : topY()) + 1); return; }
   if (k === 'g') { showGrid = !showGrid; positionGrid(); requestRender(); return; }
+  if (k === 'z') { apoioPut(); return; }
+  if ((k === 'pageup' || k === 'pagedown') && !walk) { e.preventDefault(); cam.ty = Math.max(0, Math.min(SY, cam.ty + (k === 'pageup' ? 1 : -1))); updateCamera(); requestRender(); toast('Centro da câmera na altura ' + Math.floor(cam.ty) + ' (Z põe um bloco de apoio ali).', 2500); return; }
   if (k === 'home') { resetCamera(); return; }
   if (k === '?') { openHelp(); return; }
   var m = camera.matrix.elements, st = cam.dist * 0.05;
