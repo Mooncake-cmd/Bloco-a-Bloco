@@ -6885,7 +6885,9 @@ function holoHelp(r, corner) {
 /* ---------- Gerar terreno ---------- */
 /* Projeto → Gerar terreno: relevo por ruído (ou por uma imagem em tons de cinza) em volta da construção, numa seleção
    ou no espaço inteiro. Oito tipos: planície ondulada, colinas, montanhas, ilha, arquipélago, vale com rio, planalto
-   (mesa) e imagem de relevo. O chão é pedra, terra e grama; abaixo do nível da água, água parada. Depois cada coluna
+   (mesa) e imagem de relevo. Só a superfície: uma casca de TR_SHELL blocos (grama, terra e pedra), que desce até
+   cobrir o lado exposto nas encostas (abaixo do topo da coluna vizinha mais baixa); o resto embaixo fica vazio. Abaixo
+   do nível da água, água parada. Depois cada coluna
    recebe um bioma (o escolhido, ou automático, ou misto pelo clima) e a receita dele (src/biome.js, bioTerra) troca as
    camadas de cima e põe árvores, plantas, cactos e neve. Praia na beira da água, fundo de oceano ou de rio debaixo
    d'água, neve e pedra no alto das montanhas.
@@ -6903,6 +6905,7 @@ var TR_TYPES = {
   planalto: { n: 'Planalto / mesa', A: 30, S: 50, sea: null, bio: 'mesa' },
   imagem: { n: 'Imagem de relevo', A: 32, S: 50, sea: -2, bio: 'plains' }
 };
+var TR_SHELL = 6; // profundidade da casca do terreno (grama, 3 de terra, 2 de pedra)
 var TR_BIOMES = ['plains', 'forest', 'birch_forest', 'flower_forest', 'meadow', 'taiga', 'mega_taiga', 'cherry_grove', 'savanna', 'desert', 'jungle', 'swampland', 'mesa', 'ice_plains', 'grove', 'extreme_hills'];
 var tr = { type: 'colinas', A: 24, S: 45, sea: -6, seaOn: true, rough: 50, seed: 1234, bio: 'auto', deco: true, margin: 32, where: 'build' };
 try { Object.assign(tr, JSON.parse(localStorage.getItem('bloco-a-bloco-terreno') || '{}')); } catch (e) {}
@@ -7017,7 +7020,7 @@ function trPlan(P, step) {
   var sea = P.seaOn && T.sea !== null ? P.sea : null;
   if (sea !== null && sea - 1 < minH) minH = Math.min(minH, sea - 1);
   // altura: o chão da construção fica logo abaixo do bloco mais baixo dela; sem construção, o fundo mais baixo fica em y 4
-  var G = any && bb ? bb.minY - 1 : 4 - minH, needBelow = 4 - minH; // pelo menos 4 blocos abaixo do ponto mais fundo
+  var G = any && bb ? bb.minY - 1 : TR_SHELL - minH, needBelow = TR_SHELL - minH; // a casca do ponto mais fundo cabe no espaço
   var dy = Math.max(0, needBelow - G), dx = Math.max(0, -x0), dz = Math.max(0, -z0);
   var top = G + dy + Math.max(maxH, sea === null ? 0 : sea) + 14; // árvores em cima
   var nsx = Math.max(SX + dx, x1 + dx + 1), nsy = Math.min(MAX_Y, Math.max(SY + dy, top + 1)), nsz = Math.max(SZ + dz, z1 + dz + 1);
@@ -7087,7 +7090,10 @@ async function trGenerate(P) {
         var j = k * w + i, hgt = pl.hm[j], top = Math.min(SY - 1, G + hgt), y;
         var slope = 0; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var h2 = hAt(i + d[0], k + d[1]); if (h2 !== null) slope = Math.max(slope, Math.abs(h2 - hgt)); });
         var under = sea !== null && hgt < sea, shore = sea !== null && !under && hgt <= sea + 1 && nearWater(i, k);
-        for (y = 0; y <= top; y++) {
+        // casca: TR_SHELL blocos, ou mais nas encostas, até um abaixo do topo da vizinha mais baixa (o lado não fica oco)
+        var low = top - TR_SHELL + 1;
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var h2 = hAt(i + d[0], k + d[1]); if (h2 !== null && G + h2 < low) low = G + h2; });
+        for (y = Math.max(0, low); y <= top; y++) {
           if (gget(x, y, z)) continue;
           var c = y === top ? cGrass : y >= top - 3 ? cDirt : cStone;
           if (mesaCol && y > G - 8 && y < top - 1) c = cellFromName(MESA_BANDS[((y % 16) + 16) % 16]);
