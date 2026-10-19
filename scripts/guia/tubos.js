@@ -20,7 +20,7 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   console.log('pinos', await p.evaluate(() => [...document.querySelectorAll('#tools [data-tool]'), ...['#undo', '#histBtn', '#redo', '#measTbtn', '#layerBtn', '#layerRange', '#matBtn'].map(s => document.querySelector(s))].map(e => { const r = e.getBoundingClientRect(); return ((r.left + r.width / 2) / 972 * 100).toFixed(1); }).join(' ')));
   // linhas desenhadas: um caminho com curva subindo no ar, uma linha flutuante e a prévia (oco)
   await ev(`(function(){ setTool('tube'); chooseBlock(BY_JAVA['copper_block'] != null ? BY_JAVA['copper_block'] : BY_JAVA['stone_bricks']); tube.d = 5; tube.hollow = true;
-    tube.paths = [[[10, 3, 44], [28, 3, 44], [40, 14, 32]], [[30, 18, 8], [50, 22, 22]]]; tubeChanged();
+    tube.paths = [[[10, 3, 44], [28, 3, 44], [40, 14, 32]], [[30, 18, 8], [42, 27, 13], [50, 22, 22]]]; tube.sel = [1, 1]; tubeChanged();
     Object.assign(cam, { yaw: 0.75, pitch: 0.5, dist: 62, tx: 27, ty: 8, tz: 27 }); updateCamera(); requestRender(); })()`);
   const o = await p.evaluate(() => { const r = document.querySelector('#viewport canvas').getBoundingClientRect(); return [r.left, r.top]; });
   const find = w => p.evaluate(([w, o]) => { for (let y = 0; y < 760; y += 3) for (let x = 0; x < 960; x += 3) { const t = window.__bab.target(o[0] + x, o[1] + y); if (t && t.place && t.place[0] === w[0] && t.place[1] === w[1] && t.place[2] === w[2]) return [o[0] + x, o[1] + y]; } return null; }, [w, o]);
