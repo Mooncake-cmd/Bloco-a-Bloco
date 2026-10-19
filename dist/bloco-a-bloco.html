@@ -65,6 +65,14 @@ details.menu .pop{position:absolute;right:0;top:40px;z-index:30;min-width:240px;
 details.menu .pop button,details.menu .pop a{flex:none;justify-content:flex-start;height:36px;width:100%;text-decoration:none;text-align:left;white-space:nowrap}
 #viewport{position:relative;flex:1 1 auto;min-height:0;background:var(--scene-bg);overflow:hidden}
 #viewport canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+#rsPanel{position:absolute;left:12px;bottom:74px;width:min(700px,calc(100% - 24px));padding:8px 10px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px);font:500 12px var(--font-mono);display:flex;flex-direction:column;gap:6px}
+#rsPanel[hidden]{display:none}
+#rsPanel button{border:0;border-radius:5px;padding:2px 8px;font-size:12px;background:var(--line);color:var(--fg)}
+#rsPanel .mbtns{display:inline-flex;align-items:center;gap:4px}
+#rsPanel button[aria-pressed=true],#rsPanel button#rsPause{background:var(--accent);color:var(--accent-fg)}
+#rsPanel .rsbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#rsPanel .rsscroll{max-height:230px;overflow-y:auto}
+#rsChart{display:block;width:100%;cursor:pointer}
 #hotbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px;padding:5px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
 .slot{position:relative;width:44px;height:44px;border:2px solid transparent;border-radius:6px;background:var(--panel-2);padding:0;overflow:hidden}
 .slot[aria-pressed="true"]{border-color:var(--accent)}
@@ -272,6 +280,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="rsSndBtn">Sons da redstone: sim</button>
+          <button class="tbtn txt" id="rsStepBtn">Redstone passo a passo…</button>
           <button class="tbtn txt" id="rsTimeBtn">Hora do dia: 12:00…</button>
           <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
@@ -290,6 +299,7 @@ body.clean #cleanChip{display:flex}
       <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
+      <div id="rsPanel" hidden><div class="rsbar"><b>Redstone passo a passo</b><span class="mbtns"><button id="rsPause" title="Pausar e continuar a simulação (P)">⏸ Pausar</button><button data-rstep="1" title="Avança 1 tique do jogo (Shift + .)">+1 tique</button><button data-rstep="2" title="Avança 1 tique de redstone, 2 tiques do jogo (.)">+1 de redstone</button><button data-rstep="20" title="Avança 1 segundo (20 tiques)">+1 s</button></span><span class="mbtns"><button id="rsLogClr" title="Apaga o gráfico e recomeça a partir de agora">Limpar</button><button id="rsStepClose" title="Fecha o painel (a simulação continua)">Fechar</button></span></div><div id="rsClock" class="rsclock"></div><div class="rsscroll"><canvas id="rsChart"></canvas></div><div id="rsMore" class="mixl"></div></div>
     </div>
     <div id="status">
       <span>Alvo <b id="stPos">–</b></span>
@@ -6324,6 +6334,7 @@ function rsSticks(a, bj) {
 function rsSet(x, y, z, v) {
   var old = gget(x, y, z); if (old === v) return;
   setRaw(x, y, z, v);
+  rsLogCell(x, y, z, old, v); // gráfico do passo a passo (src/rsstep.js)
   // entra no passo de desfazer da ação que causou; um relógio ligado para sempre não enche o histórico: depois de
   // 5.000 mudanças na mesma ação, as próximas não são guardadas para desfazer
   var top = histTop(); if (top && (top.rsN = (top.rsN || 0) + 1) <= 5000) top.add(idx(x, y, z), old, v);
@@ -6341,10 +6352,10 @@ function rsSeen(x, y, z) {
 function rsLater(dt, type, c) {
   var key = type + rsIdx(c); if (rs.pend.has(key)) return;
   rs.pend.set(key, 1); rs.q.push({ t: rs.gt + dt, type: type, p: [c.x, c.y, c.z], key: key });
-  if (!rs.timer) rs.timer = setInterval(rsTick, 50);
+  if (!rs.timer && !rs.paused) rs.timer = setInterval(rsTick, 50); // pausada (passo a passo): só avança nos cliques
 }
 function rsStop() { rs.q = []; rs.pend.clear(); clearInterval(rs.timer); rs.timer = 0; rs.touched = []; }
-function rsReset() { rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); }
+function rsReset() { if (rsLog.on) rsLogClear(); rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); }
 function rsTick() {
   rs.gt++;
   var due = rs.q.filter(function (e) { return e.t <= rs.gt; });
@@ -6354,12 +6365,13 @@ function rsTick() {
   if (rs.touched.length) rsSettle();
   if (rs.steps) { requestRender(); updateStatus(); if (!rs.save) rs.save = setTimeout(function () { rs.save = 0; autosave(); }, 1500); }
   if (!rs.q.length) { clearInterval(rs.timer); rs.timer = 0; }
+  if (rsLog.on) { rsPanelUI(); rsLogDraw(); }
 }
 function rsRun(e) {
   var c = rsAt(e.p[0], e.p[1], e.p[2]), i = idx(e.p[0], e.p[1], e.p[2]);
   // o pulso do observador também é uma mudança de estado: outro observador olhando para ele vê (relógio de observadores)
-  if (e.type === 'obsOn') { if (c && c.k === 'observer') { rs.obs.set(i, true); rs.touched.push(e.p); rsLater(2, 'obsOff', c); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
-  if (e.type === 'obsOff') { if (rs.obs.delete(i)) { rs.touched.push(e.p); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
+  if (e.type === 'obsOn') { if (c && c.k === 'observer') { rs.obs.set(i, true); rsLogObs(c, true); rs.touched.push(e.p); rsLater(2, 'obsOff', c); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
+  if (e.type === 'obsOff') { if (rs.obs.delete(i)) { if (c && c.k === 'observer') rsLogObs(c, false); rs.touched.push(e.p); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
   if (!c) return;
   var p = rsP(c);
   switch (e.type) {
@@ -6371,6 +6383,7 @@ function rsRun(e) {
         var out = rsCmpOut(c), was = rsCmpLv(c); rs.cmp.set(i, out);
         if ((p.powered === 'true') !== out > 0) rsProp(c, { powered: String(out > 0) });
         else if (out !== was) rs.touched.push(e.p);
+        if (out !== was) rsLogCmp(c, out, was);
       }
       break;
     case 'release': if ((c.k === 'button' || c.k === 'plate') && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
@@ -6611,6 +6624,7 @@ function rsAfterBatch(b) {
     if (bi0 <= -RS_FILL_BASE) { seeds.push(unidx(-bi0 - RS_FILL_BASE)); continue; } // nível de conteúdo mudou
     if (bi0 < 0) continue;
     var p = unidx(bi0); seeds.push(p); rsSeen(p[0], p[1], p[2]);
+    if (rsLog.on) rsLogCell(p[0], p[1], p[2], b.o[k], b.v[k]); // gráfico do passo a passo: a mudança do usuário
     var cv0 = gat(bi0); if (rsFill.has(bi0) && (!cv0 || !RS_CONT.test(BLOCKS[cellBlock(cv0)].java))) { rsFill.delete(bi0); rsFillSave = true; } // o contêiner saiu dali
   }
   rs.touched = seeds.concat(rs.touched);
@@ -6777,6 +6791,179 @@ function rsPlayBell() {
 function setRsSound(on) {
   rsSnd.on = on; try { localStorage.setItem('bloco-a-bloco-rssom', on ? '1' : '0'); } catch (e) {}
   $('rsSndBtn').textContent = 'Sons da redstone: ' + (on ? 'sim' : 'não');
+}
+
+/* ---------- Redstone passo a passo ---------- */
+/* Pausar a simulação, avançar um tique por vez e ver num gráfico quando cada componente ligou e desligou.
+   - Pausada, a agenda da redstone (rs.q) continua guardando o que vai acontecer, mas o relógio (rsTick a cada 50 ms)
+     não corre: cada clique em "+1 tique" chama rsTick uma vez. As edições do usuário (alavanca com Usar, pó
+     colocado) continuam reagindo na hora, como no jogo (a mudança imediata acontece dentro do tique atual).
+   - Gráfico: com o painel aberto, cada mudança de um componente (pela simulação em rsSet, pelo usuário em
+     rsAfterBatch, o pulso do observador e a força do comparador) entra no registro com o tique do jogo (rs.gt). Uma
+     linha por componente, na ordem em que mudou pela primeira vez; a cor mais forte é força 15, e o pó mostra a força
+     de 0 a 15 em tons. O tempo só anda quando há algo na agenda (ou nos cliques de avançar): pausas sem nada
+     agendado não aparecem no gráfico.
+   - Passar o mouse numa linha destaca o bloco na cena; clicar leva a câmera até ele. */
+var RS_LOG_ROWS = 48, RS_LOG_SPAN = 120; // linhas guardadas; tiques visíveis no gráfico
+var rsLog = { on: false, t0: 0, rows: new Map(), order: [], extra: 0, hover: -1, raf: 0 };
+rs.paused = false;
+/* Valor de um componente para o gráfico: 0 a 15, ou null se a célula não é um componente que liga e desliga */
+function rsLogVal(v) {
+  if (!v) return null;
+  var bi = cellBlock(v), k = rsKind(bi);
+  if (!k || k === 'solid' || k === 'head' || k === 'rblock') return null;
+  var b = BLOCKS[bi]; if (!b.shape) return null;
+  var p = stateProps(b, cellOri(v));
+  if (p.power != null) return +p.power || 0;
+  var on = p.extended != null ? p.extended : p.lit != null ? p.lit : p.open != null ? p.open : p.powered != null ? p.powered : p.triggered;
+  return on == null ? null : on === 'true' ? 15 : 0;
+}
+function rsLogWhat(v) {
+  var b = BLOCKS[cellBlock(v)], p = b.shape ? stateProps(b, cellOri(v)) : {};
+  return p.power != null ? 'força' : p.extended != null ? 'estendido' : p.lit != null ? 'aceso' : p.open != null ? 'aberto' : 'ligado';
+}
+/* Registra o valor val (0 a 15, null = o bloco saiu) do componente em i; before é o valor de antes (para a linha
+   nova começar certa) */
+function rsLogPut(i, val, before, name, what) {
+  if (!rsLog.on) return;
+  var r = rsLog.rows.get(i);
+  if (!r) {
+    if (val == null) return;
+    if (rsLog.order.length >= RS_LOG_ROWS) { rsLog.extra++; return; }
+    var p = unidx(i); r = { i: i, x: p[0], y: p[1], z: p[2], name: name, what: what, ev: [[rsLog.t0, before == null ? 0 : before]] };
+    rsLog.rows.set(i, r); rsLog.order.push(r);
+  }
+  var last = r.ev[r.ev.length - 1];
+  if (last[0] === rs.gt) { last[1] = val; if (r.ev.length > 1 && r.ev[r.ev.length - 2][1] === val) r.ev.pop(); }
+  else if (last[1] !== val) r.ev.push([rs.gt, val]);
+  if (r.ev.length > 4000) r.ev.splice(1, 1000);
+  rsLogDraw();
+}
+/* Chamado por rsSet e pelas edições do usuário: célula mudou de old para v */
+function rsLogCell(x, y, z, old, v) {
+  if (!rsLog.on || (!v && !old)) return;
+  if (rsKind(cellBlock(v || old)) === 'comparator') return; // o comparador entra pela força (rsLogCmp)
+  var a = rsLogVal(v), b = rsLogVal(old);
+  if (a == null && b == null) return;
+  if (a != null && b != null && cellBlock(v) !== cellBlock(old)) b = null;
+  var src = a != null ? v : old;
+  rsLogPut(idx(x, y, z), a, b, BLOCKS[cellBlock(src)].name, rsLogWhat(src));
+}
+function rsLogObs(c, on) { if (rsLog.on) rsLogPut(rsIdx(c), on ? 15 : 0, on ? 0 : 15, c.b.name, 'pulso'); }
+function rsLogCmp(c, lv, was) { if (rsLog.on) rsLogPut(rsIdx(c), lv, was, c.b.name, 'força'); }
+/* O gráfico começa um pouco antes de agora: a primeira mudança mostra como estava antes */
+function rsLogClear() { rsLog.t0 = rs.gt - 4; rsLog.rows = new Map(); rsLog.order = []; rsLog.extra = 0; rsLog.hover = -1; rsHi(null); rsLogDraw(); }
+
+/* ---------- Pausar e avançar ---------- */
+function rsSetPaused(on) {
+  rs.paused = on;
+  if (on) { clearInterval(rs.timer); rs.timer = 0; }
+  else if (rs.q.length && !rs.timer) rs.timer = setInterval(rsTick, 50);
+  rsPanelUI();
+}
+function rsStep(n) {
+  if (!rsOn) { toast('Ligue a redstone primeiro (Projeto → Redstone funcionando).'); return; }
+  if (!rs.paused) rsSetPaused(true);
+  for (var k = 0; k < n; k++) rsTick();
+  rsPanelUI();
+}
+
+/* ---------- Painel ---------- */
+function openRsStep() {
+  if (!rsOn) setRedstone(true);
+  if (!rsLog.on) { rsLog.on = true; rsLogClear(); }
+  $('rsPanel').hidden = false; rsPanelUI(); rsLogDraw();
+}
+function closeRsStep() { rsLog.on = false; $('rsPanel').hidden = true; rsHi(null); if (rs.paused) rsSetPaused(false); }
+function rsPanelUI() {
+  if (!$('rsPanel') || $('rsPanel').hidden) return;
+  var q = rs.q, next = q.length ? Math.min.apply(null, q.map(function (e) { return e.t; })) - rs.gt : 0;
+  $('rsPause').textContent = rs.paused ? '▶ Continuar' : '⏸ Pausar';
+  $('rsPause').setAttribute('aria-pressed', rs.paused);
+  $('rsClock').innerHTML = 'Tique <b>' + rs.gt.toLocaleString('pt-BR') + '</b> <span class="mixl">(' + (rs.gt / 2).toLocaleString('pt-BR') + ' de redstone)</span> · ' +
+    (q.length ? q.length + (q.length > 1 ? ' na fila' : ' na fila') + ', o próximo daqui a ' + next + (next > 1 ? ' tiques' : ' tique') : 'nada na fila') + (rs.paused ? ' · <b>pausada</b>' : '');
+}
+/* Gráfico: uma linha por componente, o tempo na horizontal (os últimos RS_LOG_SPAN tiques) */
+function rsLogDraw() {
+  if (rsLog.raf || !rsLog.on) return;
+  rsLog.raf = requestAnimationFrame(function () { rsLog.raf = 0; rsLogPaint(); });
+}
+function rsLogGeom() {
+  var cv = $('rsChart'), W = cv.clientWidth, LW = Math.min(190, W * 0.38), RH = 16, t1 = rs.gt + 1, t0 = Math.max(rsLog.t0, t1 - RS_LOG_SPAN);
+  return { cv: cv, W: W, LW: LW, RH: RH, H: 18 + Math.max(1, rsLog.order.length) * RH + 4, t0: t0, t1: t1, tw: (W - LW - 8) / Math.max(1, t1 - t0) };
+}
+function rsLogPaint() {
+  if (!$('rsPanel') || $('rsPanel').hidden) return;
+  rsPanelUI();
+  var G = rsLogGeom(), cv = G.cv, dpr = window.devicePixelRatio || 1;
+  cv.style.height = G.H + 'px'; cv.width = Math.round(G.W * dpr); cv.height = Math.round(G.H * dpr);
+  var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var fg = cssColor('--fg'), mut = cssColor('--muted'), line = cssColor('--line'), acc = cssColor('--accent') || '#c55a11';
+  g.clearRect(0, 0, G.W, G.H); g.font = '11px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+  var X = function (t) { return G.LW + 4 + (t - G.t0) * G.tw; };
+  // grade: um traço por tique de redstone, mais forte a cada segundo (20 tiques)
+  for (var t = Math.ceil(G.t0 / 2) * 2; t <= G.t1; t += 2) {
+    var sec = t % 20 === 0; if (!sec && G.tw < 3) continue;
+    g.fillStyle = line; g.globalAlpha = sec ? 1 : 0.45; g.fillRect(Math.round(X(t)), 14, 1, G.H - 14);
+    if (sec) { g.globalAlpha = 1; g.fillStyle = mut; g.fillText(String(t), X(t) + 2, 10); }
+  }
+  g.globalAlpha = 1;
+  if (!rsLog.order.length) { g.fillStyle = mut; g.fillText('Mexa num circuito (alavanca, botão...) para as linhas aparecerem.', 6, 30); }
+  rsLog.order.forEach(function (r, n) {
+    var y = 18 + n * G.RH;
+    if (n === rsLog.hover) { g.fillStyle = line; g.fillRect(0, y - 1, G.W, G.RH); }
+    g.fillStyle = fg; var lbl = r.name + ' ' + r.x + ',' + r.y + ',' + r.z;
+    while (g.measureText(lbl).width > G.LW - 6 && lbl.length > 4) lbl = lbl.slice(0, -2);
+    g.fillText(lbl, 4, y + 11);
+    for (var k = 0; k < r.ev.length; k++) {
+      var a = Math.max(r.ev[k][0], G.t0), b = k + 1 < r.ev.length ? r.ev[k + 1][0] : G.t1, v = r.ev[k][1];
+      if (b <= G.t0 || v == null || !v) continue;
+      g.fillStyle = acc; g.globalAlpha = 0.25 + 0.75 * v / 15;
+      g.fillRect(X(a), y + 2, Math.max(1, X(b) - X(a)), G.RH - 5);
+    }
+    g.globalAlpha = 1; g.fillStyle = line; g.fillRect(G.LW + 4, y + G.RH - 2, G.W - G.LW - 8, 1);
+  });
+  // agora
+  g.fillStyle = fg; g.fillRect(Math.round(X(rs.gt)), 12, 2, G.H - 12);
+  $('rsMore').textContent = rsLog.extra ? '+' + rsLog.extra + ' mudanças de outros componentes não cabem (limite de ' + RS_LOG_ROWS + ' linhas): Limpar recomeça.' : '';
+}
+/* Linha e tique debaixo do ponteiro */
+function rsLogAt(e) {
+  var G = rsLogGeom(), r = G.cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  var n = Math.floor((y - 18) / G.RH); if (n < 0 || n >= rsLog.order.length) n = -1;
+  var t = Math.floor(G.t0 + (x - G.LW - 4) / G.tw); if (x < G.LW + 4) t = null;
+  return { n: n, t: t };
+}
+function rsValAt(r, t) { var v = 0; for (var k = 0; k < r.ev.length && r.ev[k][0] <= t; k++) v = r.ev[k][1]; return v; }
+var rsHiObj = null;
+function rsHi(r) {
+  if (rsHiObj) { scene.remove(rsHiObj); rsHiObj.geometry.dispose(); rsHiObj = null; }
+  if (r) {
+    rsHiObj = new THREE.Mesh(new THREE.BoxGeometry(1.08, 1.08, 1.08), new THREE.MeshBasicMaterial({ color: new THREE.Color(cssColor('--accent')), transparent: true, opacity: 0.45, depthTest: false }));
+    rsHiObj.position.set(r.x + 0.5, r.y + 0.5, r.z + 0.5); rsHiObj.renderOrder = 11; scene.add(rsHiObj);
+  }
+  requestRender();
+}
+$('rsChart').addEventListener('mousemove', function (e) {
+  var a = rsLogAt(e), r = a.n >= 0 ? rsLog.order[a.n] : null;
+  if (a.n !== rsLog.hover) { rsLog.hover = a.n; rsHi(r); rsLogDraw(); }
+  $('rsChart').title = r ? r.name + ' em ' + r.x + ', ' + r.y + ', ' + r.z + (a.t != null ? ' · tique ' + a.t + ': ' + r.what + ' ' + rsValAt(r, a.t) : '') + ' (clique: a câmera vai até ele)' : '';
+});
+$('rsChart').addEventListener('mouseleave', function () { rsLog.hover = -1; rsHi(null); rsLogDraw(); });
+$('rsChart').addEventListener('click', function (e) { var a = rsLogAt(e); if (a.n >= 0) { var r = rsLog.order[a.n]; teleportTo({ hit: [r.x, r.y, r.z] }); } });
+$('rsPanel').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'rsPause') rsSetPaused(!rs.paused);
+  else if (b.hasAttribute('data-rstep')) rsStep(+b.getAttribute('data-rstep'));
+  else if (b.id === 'rsLogClr') rsLogClear();
+  else if (b.id === 'rsStepClose') closeRsStep();
+});
+/* Teclas com o painel aberto: ponto (.) avança 1 tique de redstone, Shift + ponto 1 tique do jogo, P pausa e continua */
+function rsStepKey(e, k) {
+  if (!rsLog.on || e.ctrlKey || e.metaKey || e.altKey) return false;
+  if (k === '.' || k === '>') { e.preventDefault(); rsStep(e.shiftKey || k === '>' ? 1 : 2); return true; }
+  if (k === 'p' && $('symChip').hidden) { rsSetPaused(!rs.paused); return true; }
+  return false;
 }
 
 /* Ícones dos blocos em 3D, como no inventário do jogo: cada bloco é desenhado de cima, de lado (face sul à esquerda,
@@ -9646,6 +9833,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
+    '<span>Redstone passo a passo</span><span>Projeto → Redstone passo a passo: <kbd>P</kbd> pausa e continua, <kbd>.</kbd> avança 1 tique de redstone (<kbd>Shift</kbd>+<kbd>.</kbd>: 1 tique do jogo); o gráfico mostra quando cada componente ligou e desligou (passe o mouse numa linha para achar o bloco).</span>' +
     '<span>Redstone</span><span>Os circuitos funcionam como no jogo: Usar (<kbd>U</kbd>) puxa a alavanca e aperta botões; o pó leva o sinal, tochas invertem, repetidores e comparadores atrasam, lâmpadas acendem, portas abrem e pistões empurram. Projeto → Redstone funcionando liga e desliga.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
@@ -9784,6 +9972,7 @@ function apoioClear() {
   toast(l.length + (l.length > 1 ? ' blocos de apoio removidos.' : ' bloco de apoio removido.') + ' Ctrl+Z traz de volta.');
 }
 $('terrainBtn').addEventListener('click', function () { $('menu').open = false; openTerrain(); });
+$('rsStepBtn').addEventListener('click', function () { $('menu').open = false; openRsStep(); });
 $('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
 /* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
 function openTime() {
@@ -9833,6 +10022,7 @@ window.addEventListener('keydown', function (e) {
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
   var k = e.key.toLowerCase();
   if (tubeKey(e, k)) return;
+  if (rsStepKey(e, k)) return;
   if (selectionKey(e, k)) return;
   if (tool === 'place' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setBrushR(brushR + (k === '-' ? -1 : 1)); toast('Pincel: ' + (brushR ? (brushShape === 'cube' ? 'cubo' : 'esfera') + ' de ' + (2 * brushR + 1) : '1 bloco') + '.', 1500); return; }
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }

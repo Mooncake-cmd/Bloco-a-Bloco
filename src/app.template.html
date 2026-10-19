@@ -63,6 +63,14 @@ details.menu .pop{position:absolute;right:0;top:40px;z-index:30;min-width:240px;
 details.menu .pop button,details.menu .pop a{flex:none;justify-content:flex-start;height:36px;width:100%;text-decoration:none;text-align:left;white-space:nowrap}
 #viewport{position:relative;flex:1 1 auto;min-height:0;background:var(--scene-bg);overflow:hidden}
 #viewport canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+#rsPanel{position:absolute;left:12px;bottom:74px;width:min(700px,calc(100% - 24px));padding:8px 10px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px);font:500 12px var(--font-mono);display:flex;flex-direction:column;gap:6px}
+#rsPanel[hidden]{display:none}
+#rsPanel button{border:0;border-radius:5px;padding:2px 8px;font-size:12px;background:var(--line);color:var(--fg)}
+#rsPanel .mbtns{display:inline-flex;align-items:center;gap:4px}
+#rsPanel button[aria-pressed=true],#rsPanel button#rsPause{background:var(--accent);color:var(--accent-fg)}
+#rsPanel .rsbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#rsPanel .rsscroll{max-height:230px;overflow-y:auto}
+#rsChart{display:block;width:100%;cursor:pointer}
 #hotbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px;padding:5px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
 .slot{position:relative;width:44px;height:44px;border:2px solid transparent;border-radius:6px;background:var(--panel-2);padding:0;overflow:hidden}
 .slot[aria-pressed="true"]{border-color:var(--accent)}
@@ -270,6 +278,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="rsSndBtn">Sons da redstone: sim</button>
+          <button class="tbtn txt" id="rsStepBtn">Redstone passo a passo…</button>
           <button class="tbtn txt" id="rsTimeBtn">Hora do dia: 12:00…</button>
           <button class="tbtn txt" id="bioShow" aria-pressed="false">Mostrar biomas</button>
           <button class="tbtn txt" id="texBtn">Texturas…</button>
@@ -288,6 +297,7 @@ body.clean #cleanChip{display:flex}
       <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
+      <div id="rsPanel" hidden><div class="rsbar"><b>Redstone passo a passo</b><span class="mbtns"><button id="rsPause" title="Pausar e continuar a simulação (P)">⏸ Pausar</button><button data-rstep="1" title="Avança 1 tique do jogo (Shift + .)">+1 tique</button><button data-rstep="2" title="Avança 1 tique de redstone, 2 tiques do jogo (.)">+1 de redstone</button><button data-rstep="20" title="Avança 1 segundo (20 tiques)">+1 s</button></span><span class="mbtns"><button id="rsLogClr" title="Apaga o gráfico e recomeça a partir de agora">Limpar</button><button id="rsStepClose" title="Fecha o painel (a simulação continua)">Fechar</button></span></div><div id="rsClock" class="rsclock"></div><div class="rsscroll"><canvas id="rsChart"></canvas></div><div id="rsMore" class="mixl"></div></div>
     </div>
     <div id="status">
       <span>Alvo <b id="stPos">–</b></span>
@@ -2077,6 +2087,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%MIX_JS%%*/
 /*%%BIOME_JS%%*/
 /*%%REDSTONE_JS%%*/
+/*%%RSSTEP_JS%%*/
 /*%%ICONS_JS%%*/
 /*%%HOLO_JS%%*/
 /*%%TERRAIN_JS%%*/
@@ -2420,6 +2431,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
+    '<span>Redstone passo a passo</span><span>Projeto → Redstone passo a passo: <kbd>P</kbd> pausa e continua, <kbd>.</kbd> avança 1 tique de redstone (<kbd>Shift</kbd>+<kbd>.</kbd>: 1 tique do jogo); o gráfico mostra quando cada componente ligou e desligou (passe o mouse numa linha para achar o bloco).</span>' +
     '<span>Redstone</span><span>Os circuitos funcionam como no jogo: Usar (<kbd>U</kbd>) puxa a alavanca e aperta botões; o pó leva o sinal, tochas invertem, repetidores e comparadores atrasam, lâmpadas acendem, portas abrem e pistões empurram. Projeto → Redstone funcionando liga e desliga.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
     '<span><kbd>Setas</kbd></span><span>Mover a câmera (com uma área selecionada e a ferramenta Selecionar: mover os blocos)</span>' +
@@ -2558,6 +2570,7 @@ function apoioClear() {
   toast(l.length + (l.length > 1 ? ' blocos de apoio removidos.' : ' bloco de apoio removido.') + ' Ctrl+Z traz de volta.');
 }
 $('terrainBtn').addEventListener('click', function () { $('menu').open = false; openTerrain(); });
+$('rsStepBtn').addEventListener('click', function () { $('menu').open = false; openRsStep(); });
 $('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
 /* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
 function openTime() {
@@ -2607,6 +2620,7 @@ window.addEventListener('keydown', function (e) {
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
   var k = e.key.toLowerCase();
   if (tubeKey(e, k)) return;
+  if (rsStepKey(e, k)) return;
   if (selectionKey(e, k)) return;
   if (tool === 'place' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setBrushR(brushR + (k === '-' ? -1 : 1)); toast('Pincel: ' + (brushR ? (brushShape === 'cube' ? 'cubo' : 'esfera') + ' de ' + (2 * brushR + 1) : '1 bloco') + '.', 1500); return; }
   if (tool === 'mask' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMaskR(maskR + (k === '-' ? -1 : 1)); return; }

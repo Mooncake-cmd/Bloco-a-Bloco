@@ -213,6 +213,7 @@ function rsSticks(a, bj) {
 function rsSet(x, y, z, v) {
   var old = gget(x, y, z); if (old === v) return;
   setRaw(x, y, z, v);
+  rsLogCell(x, y, z, old, v); // gráfico do passo a passo (src/rsstep.js)
   // entra no passo de desfazer da ação que causou; um relógio ligado para sempre não enche o histórico: depois de
   // 5.000 mudanças na mesma ação, as próximas não são guardadas para desfazer
   var top = histTop(); if (top && (top.rsN = (top.rsN || 0) + 1) <= 5000) top.add(idx(x, y, z), old, v);
@@ -230,10 +231,10 @@ function rsSeen(x, y, z) {
 function rsLater(dt, type, c) {
   var key = type + rsIdx(c); if (rs.pend.has(key)) return;
   rs.pend.set(key, 1); rs.q.push({ t: rs.gt + dt, type: type, p: [c.x, c.y, c.z], key: key });
-  if (!rs.timer) rs.timer = setInterval(rsTick, 50);
+  if (!rs.timer && !rs.paused) rs.timer = setInterval(rsTick, 50); // pausada (passo a passo): só avança nos cliques
 }
 function rsStop() { rs.q = []; rs.pend.clear(); clearInterval(rs.timer); rs.timer = 0; rs.touched = []; }
-function rsReset() { rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); }
+function rsReset() { if (rsLog.on) rsLogClear(); rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); }
 function rsTick() {
   rs.gt++;
   var due = rs.q.filter(function (e) { return e.t <= rs.gt; });
@@ -243,12 +244,13 @@ function rsTick() {
   if (rs.touched.length) rsSettle();
   if (rs.steps) { requestRender(); updateStatus(); if (!rs.save) rs.save = setTimeout(function () { rs.save = 0; autosave(); }, 1500); }
   if (!rs.q.length) { clearInterval(rs.timer); rs.timer = 0; }
+  if (rsLog.on) { rsPanelUI(); rsLogDraw(); }
 }
 function rsRun(e) {
   var c = rsAt(e.p[0], e.p[1], e.p[2]), i = idx(e.p[0], e.p[1], e.p[2]);
   // o pulso do observador também é uma mudança de estado: outro observador olhando para ele vê (relógio de observadores)
-  if (e.type === 'obsOn') { if (c && c.k === 'observer') { rs.obs.set(i, true); rs.touched.push(e.p); rsLater(2, 'obsOff', c); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
-  if (e.type === 'obsOff') { if (rs.obs.delete(i)) { rs.touched.push(e.p); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
+  if (e.type === 'obsOn') { if (c && c.k === 'observer') { rs.obs.set(i, true); rsLogObs(c, true); rs.touched.push(e.p); rsLater(2, 'obsOff', c); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
+  if (e.type === 'obsOff') { if (rs.obs.delete(i)) { if (c && c.k === 'observer') rsLogObs(c, false); rs.touched.push(e.p); rsSeen(e.p[0], e.p[1], e.p[2]); } return; }
   if (!c) return;
   var p = rsP(c);
   switch (e.type) {
@@ -260,6 +262,7 @@ function rsRun(e) {
         var out = rsCmpOut(c), was = rsCmpLv(c); rs.cmp.set(i, out);
         if ((p.powered === 'true') !== out > 0) rsProp(c, { powered: String(out > 0) });
         else if (out !== was) rs.touched.push(e.p);
+        if (out !== was) rsLogCmp(c, out, was);
       }
       break;
     case 'release': if ((c.k === 'button' || c.k === 'plate') && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
@@ -500,6 +503,7 @@ function rsAfterBatch(b) {
     if (bi0 <= -RS_FILL_BASE) { seeds.push(unidx(-bi0 - RS_FILL_BASE)); continue; } // nível de conteúdo mudou
     if (bi0 < 0) continue;
     var p = unidx(bi0); seeds.push(p); rsSeen(p[0], p[1], p[2]);
+    if (rsLog.on) rsLogCell(p[0], p[1], p[2], b.o[k], b.v[k]); // gráfico do passo a passo: a mudança do usuário
     var cv0 = gat(bi0); if (rsFill.has(bi0) && (!cv0 || !RS_CONT.test(BLOCKS[cellBlock(cv0)].java))) { rsFill.delete(bi0); rsFillSave = true; } // o contêiner saiu dali
   }
   rs.touched = seeds.concat(rs.touched);
