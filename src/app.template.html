@@ -93,6 +93,7 @@ body.walking #viewport canvas{cursor:none}
 #selBtns{display:inline-flex;flex-wrap:wrap;gap:4px}
 #selBtns button+button{background:var(--line);color:var(--fg)}
 .dialog .err{color:var(--danger)}
+.trg{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}.trg canvas{flex:none;width:240px;height:240px;border-radius:6px;background:var(--scene-bg);image-rendering:pixelated}.trg>div{flex:1;min-width:180px}
 #status{display:flex;flex-wrap:wrap;gap:4px 18px;padding:6px 16px;background:var(--panel);border-top:1px solid var(--line);font:12px var(--font-mono);color:var(--muted)}
 #status span b{color:var(--fg);font-weight:500}
 #sidebar{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--panel);border-left:1px solid var(--line)}
@@ -258,6 +259,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
           <button class="tbtn txt" id="floorBtn">Preencher o chão…</button>
+          <button class="tbtn txt" id="terrainBtn">Gerar terreno…</button>
           <button class="tbtn txt" id="symBtn">Simetria (espelho)</button>
           <button class="tbtn txt" id="measureBtn">Mostrar medidas: sim</button>
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
@@ -2023,6 +2025,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%REDSTONE_JS%%*/
 /*%%ICONS_JS%%*/
 /*%%HOLO_JS%%*/
+/*%%TERRAIN_JS%%*/
 /*%%MEASURE_JS%%*/
 /*%%WORLDIO_JS%%*/
 /*%%JAVAWORLD_JS%%*/
@@ -2454,6 +2457,7 @@ function openFloor() {
     });
 }
 $('rsBtn').addEventListener('click', function () { setRedstone(!rsOn); toast(rsOn ? 'A redstone funciona: alavancas, botões, tochas, repetidores, comparadores, lâmpadas, portas e pistões reagem ao sinal.' : 'A redstone fica parada: Usar só muda o bloco clicado.', 5000); $('menu').open = false; });
+$('terrainBtn').addEventListener('click', function () { $('menu').open = false; openTerrain(); });
 $('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
 /* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
 function openTime() {

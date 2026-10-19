@@ -147,7 +147,8 @@ var bioRecipeCache = {};
 function bioCell(nm, y) { return cellFromName(nm === 'mesa' ? MESA_BANDS[((y % 16) + 16) % 16] : nm === 'flowers' ? BIO_FLOWERS[Math.floor(Math.random() * BIO_FLOWERS.length)] : nm); }
 function bioJ(v) { return v ? BLOCKS[cellBlock(v)].java : ''; }
 function bioFreeAt(x, y, z) { if (x < 0 || z < 0 || x >= SX || z >= SZ || y >= SY) return false; var v = gget(x, y, z); return !v || BIO_PLANT.test(bioJ(v)); }
-/* cols = [x0, z0, x1, z1, ...]; st recebe as contagens (st.terra) */
+/* cols = [x0, z0, x1, z1, ...]; st recebe as contagens (st.terra); st.bare: só o chão (sem árvores, plantas, neve);
+   st.noTree(x, z): sem árvore nesta coluna (o gerador de terreno, perto da construção) */
 function bioTerra(cols, id, st) {
   var b = BIO_BY_ID[id]; if (!b) return;
   var R = bioRecipeCache[id] || (bioRecipeCache[id] = bioRecipe(b) || 0); if (!R) return;
@@ -177,9 +178,9 @@ function bioTerra(cols, id, st) {
         var L = R.layers[k], nv = bioCell(typeof L === 'function' ? L() : L, y - k);
         if (nv && nv !== cv) { editSet(x, y - k, z, nv); T.chao++; }
       }
-      if (leaves || y + 1 > top0 || !bioFreeAt(x, y + 1, z)) continue;
-      var r = Math.random(), acc = 0, done = false;
-      (R.trees || []).forEach(function (t) { if (done) return; acc += t[1]; if (r < acc) { grow.push([x, y + 1, z, t[0], t[2]]); done = true; } });
+      if (st.bare || leaves || y + 1 > top0 || !bioFreeAt(x, y + 1, z)) continue;
+      var r = Math.random(), acc = 0, done = false, noT = st.noTree && st.noTree(x, z);
+      (R.trees || []).forEach(function (t) { if (noT) return; if (done) return; acc += t[1]; if (r < acc) { grow.push([x, y + 1, z, t[0], t[2]]); done = true; } });
       if (done) continue;
       if (R.cactus) { acc += R.cactus; if (r < acc) { if (bioFreeAt(x + 1, y + 1, z) && bioFreeAt(x - 1, y + 1, z) && bioFreeAt(x, y + 1, z + 1) && bioFreeAt(x, y + 1, z - 1)) { var hc = 1 + Math.floor(Math.random() * 3); for (k = 1; k <= hc && y + k <= top0; k++) editSet(x, y + k, z, cellFromName('cactus')); T.cactos++; } continue; } }
       if (R.bamboo) { acc += R.bamboo; if (r < acc) { var hb = 4 + Math.floor(Math.random() * 8); for (k = 1; k <= hb && y + k <= top0 && bioFreeAt(x, y + k, z); k++) editSet(x, y + k, z, cellFromName('bamboo')); T.plantas++; continue; } }

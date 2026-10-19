@@ -146,7 +146,7 @@ function fluidWave(t) {
 }
 /* Depois de cada edição do usuário: agenda o que mudou */
 function fluidAfterBatch(b) {
-  if (!flowOn || !b) return;
+  if (!flowOn || !b || b.noFlow) return; // terreno gerado: a água fica como foi posta (src/terrain.js)
   fluidChanges = 0;
   for (var k = 0; k < b.length; k++) {
     if (b.i[k] < 0) continue; // bioma
