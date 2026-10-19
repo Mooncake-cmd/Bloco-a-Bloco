@@ -204,7 +204,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="tbl"><table>
     <thead><tr><th>#</th><th>Ferramenta</th><th>Tecla</th><th>Clique</th><th>Com Shift</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários.</td><td>Vira borracha enquanto segura.</td></tr>
+      <tr><td>1</td><td><b>Pincel</b></td><td><kbd>B</kbd></td><td>Coloca o bloco da hotbar na face apontada; arrastar pinta vários. <kbd>-</kbd> e <kbd>+</kbd> engrossam: cubo ou esfera de até 21 blocos.</td><td>Vira borracha enquanto segura (grosso: apaga o mesmo volume).</td></tr>
       <tr><td>2</td><td><b>Borracha</b></td><td><kbd>E</kbd></td><td>Apaga o bloco apontado; arrastar apaga vários. Tamanho 1×1, 2×2 ou 3×3 no aviso do canto (veja abaixo). Porta, cama e plantas altas saem inteiras.</td><td>—</td></tr>
       <tr><td>3</td><td><b>Conta-gotas</b></td><td><kbd>I</kbd></td><td>Copia o bloco apontado para o espaço ativo da hotbar (a tocha de parede vira tocha).</td><td>—</td></tr>
       <tr><td>4</td><td><b>Usar</b></td><td><kbd>U</kbd></td><td>Abre e fecha porta, alçapão e portão; liga alavanca; acende fornalha, lâmpada e velas; muda idade de plantação, atraso do repetidor (1 a 4), modo do comparador, carga da âncora, nível da água e da luz. Numa muda, faz a árvore crescer. Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Num baú, barril, funil ou outro contêiner, escolhe o nível de conteúdo que o comparador lê (cap. 07). Alavanca, botão e placa de pressão disparam o circuito de redstone (cap. 07). No alvo, acerta o ponto clicado como uma flecha; no sino, toca; no bloco musical, sobe a nota e toca; no baú com armadilha, abre e fecha; no atril, põe o livro e vira a página; no para-raios, é um raio; no trilho detector, põe ou tira um carrinho; na linha ou no gancho de armadilha, dispara a armadilha; no sensor de luz, inverte (cap. 07).</td><td>Muda a segunda opção do bloco, quando existe (no repetidor e no comparador, liga e desliga). Numa muda, faz a versão grande da árvore. Na estante entalhada, enche ou esvazia todos os nichos.</td></tr>
@@ -241,6 +241,18 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <li>Porta, cama, girassol e outras plantas altas ocupam dois blocos; se não couber, aparece um aviso.</li>
     </ul>
   </div>
+
+  <h3 id="grosso">Pincel grosso: cubos e esferas</h3>
+  <figure><img src="img/pincel-grosso.jpg" alt="Pincel com tamanho 5 em forma de cubo: a prévia na cor de destaque mostra o cubo de 5 × 5 × 5 encostado no chão, ao lado de cubos e de uma esfera já colocados; no canto, o aviso Pincel com Tamanho e os botões Cubo e Esfera" width="972" height="772" loading="lazy"><figcaption>Pincel de tamanho 5 (cubo): a prévia mostra os blocos que vão entrar.</figcaption></figure>
+  <p>Com o <b>Pincel</b> (<kbd>B</kbd>) escolhido, o aviso do canto mostra o <b>Tamanho</b>. <kbd>-</kbd> e <kbd>+</kbd> (ou os botões − e +) mudam o tamanho: 1 é o pincel normal, de um bloco; depois vêm 3, 5, 7… até 21 blocos de lado. Os botões <b>Cubo</b> e <b>Esfera</b> escolhem a forma.</p>
+  <ul class="plain">
+    <li>O cubo ou a esfera fica <b>encostado na face clicada</b>: clicando no chão, fica em cima dele; clicando numa parede, fica ao lado dela. A prévia mostra os blocos que vão entrar.</li>
+    <li>Só enche os <b>espaços vazios</b>: o que já existe dentro do volume fica como está (para trocar blocos, use o pincel de troca ou o de mistura).</li>
+    <li><b>Arrastar</b> vai pondo um atrás do outro, seguindo a superfície onde o traço começou (não sobe em cima do que o próprio traço pôs). Cada traço é um <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+    <li><kbd>Shift</kbd> (ou o bloco Ar) apaga o mesmo volume em volta do bloco apontado, como uma borracha grande.</li>
+    <li>Escadas, troncos e lajes saem todos na mesma direção, a que o primeiro bloco teria. Porta, cama e plantas altas (dois blocos) continuam um por vez.</li>
+    <li>A simetria, a Camada e o tamanho do espaço valem como no pincel normal. O tamanho e a forma ficam guardados no navegador. Em primeira pessoa, o clique direito continua pondo um bloco só.</li>
+  </ul>
 
   <h3>Borracha de 1×1, 2×2 e 3×3</h3>
   <div class="side">
@@ -1025,6 +1037,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <thead><tr><th>Tecla</th><th>Ação</th></tr></thead>
       <tbody>
         <tr><td><kbd>B</kbd> <kbd>E</kbd> <kbd>I</kbd> <kbd>U</kbd> <kbd>T</kbd></td><td>Pincel, borracha, conta-gotas, usar, girar</td></tr>
+        <tr><td><kbd>-</kbd> <kbd>+</kbd> (Pincel)</td><td>Tamanho do pincel: 1 bloco ou cubo/esfera de 3 a 21</td></tr>
         <tr><td><kbd>L</kbd> <kbd>R</kbd> <kbd>H</kbd> <kbd>S</kbd> <kbd>O</kbd></td><td>Linha, caixa, caixa oca, esfera, esfera oca</td></tr>
         <tr><td><kbd>V</kbd></td><td>Selecionar área</td></tr>
         <tr><td><kbd>K</kbd></td><td>Esculpir terreno (<kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> inverte)</td></tr>
