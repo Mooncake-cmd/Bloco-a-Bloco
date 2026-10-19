@@ -36,6 +36,7 @@ src/history.js          Histórico em árvore: cada ação é um nó, ramos ao m
 src/redstone.js         Redstone funcionando: pó, tochas, repetidores, comparadores, observadores, lâmpadas, portas, pistões, trilhos (tiques do jogo)
 src/biome.js            Pincel de bioma: biomas por coluna (pintados e lidos do mundo), cor da grama/folhas/água pelo bioma, Transformar o terreno (receitas por bioma), placas coloridas, chave 0x2B (Data3D)
 src/terrain.js          Gerar terreno: relevo por ruído ou imagem (8 tipos), em volta da construção, na seleção ou no espaço; biomas por coluna com as receitas do pincel de bioma
+src/tubes.js            Tubos: cilindros maciços ou ocos ao longo de linhas desenhadas no espaço (rasterização em tubeCells, gravação em tubeGenerate)
 src/holo.js             Fantasma para o survival (.mcpack): pacote de recursos que troca o suporte de armadura pelo modelo da construção (poly_mesh por camada, poses trocam a camada)
 src/icons.js            Ícones 3D dos blocos (lista, hotbar): cada bloco desenhado como no inventário numa folha só, com o motor e as texturas da cena
 src/mixbrush.js         Pincel de mistura: 2 a 10 blocos com porcentagens (soma 100%), amostragem ponderada por voxel
