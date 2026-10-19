@@ -369,7 +369,13 @@ function bioFromWorld(d3, ecx, ecz) {
   bioOrig.set(bioKey(ecx, ecz), a);
   for (var cy = 0; cy * 16 < SY; cy++) if (W.has(ckey(ecx, cy, ecz))) dirty.add(ecx + ',' + cy + ',' + ecz);
 }
-/* Grava as colunas pintadas na chave 0x2B dos chunks da área (todas as alturas da coluna) */
+/* Só a superfície: o bioma pintado vai do topo da coluna até BIO_DEEP blocos abaixo dele (e para cima, até o céu);
+   mais fundo, fica o bioma do mundo. E nunca troca um bioma de caverna (cavernas exuberantes, de espeleotemas, de
+   enxofre, escuridão profunda), mesmo perto da superfície. O topo é o bloco mais alto da coluna no site. */
+var BIO_DEEP = 16, BIO_CAVE = new Set([187, 188, 190, 194]);
+var BIO_CAVE_JAVA = /^minecraft:(lush_caves|dripstone_caves|deep_dark)$/;
+function bioSurf(x, z) { for (var y = SY - 1; y >= 0; y--) if (gget(x, y, z)) return y; return -1; }
+/* Grava as colunas pintadas na chave 0x2B dos chunks da área (da superfície para cima; as cavernas ficam) */
 async function bioCommit() {
   if (wio && wio.java) return jwBioCommit();
   if (!wio || !wio.area || !wio.bioEdited.size) return 0;
@@ -385,8 +391,12 @@ async function bioCommit() {
     var a = bioPaint.get(k), orig = bioOrig.get(k); if (!a) continue;
     for (var o = 0; o < 256; o++) {
       if (a[o] === 255) continue;
-      var x = o & 15, z = o >> 4;
-      for (var s = 0; s < r.subs.length; s++) for (var y = 0; y < 16; y++) r.subs[s][(x << 8) | (z << 4) | y] = a[o];
+      var x = o & 15, z = o >> 4, top = bioSurf(ecx * 16 + x, ecz * 16 + z), low = top < 0 ? 0 : top - BIO_DEEP;
+      for (var s = 0; s < r.subs.length; s++) for (var y = 0; y < 16; y++) {
+        if (s * 16 + y < low) continue;
+        var q = (x << 8) | (z << 4) | y; if (BIO_CAVE.has(r.subs[s][q])) continue;
+        r.subs[s][q] = a[o];
+      }
       if (orig) orig[o] = a[o];
       n++;
     }
