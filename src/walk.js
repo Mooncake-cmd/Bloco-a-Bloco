@@ -122,6 +122,7 @@ function walkClick(btn) {
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.code === 'KeyF' && !e.repeat) { walk.fly = !walk.fly; walk.v[1] = 0; walkHud(); }
       walk.keys[e.code] = true; if (e.code === 'Space' && !e.repeat) walk.jump = performance.now() + 300;
+    } else if (e.code === 'KeyQ' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) projWalkThrow(); // lança o projétil escolhido na ferramenta Lançar
     } else if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) apoioPut(); // bloco de apoio sob os pés
     } else if (!/^Digit[1-9]$/.test(e.code)) { e.stopImmediatePropagation(); } // outras teclas (ferramentas) ficam paradas
   }, true);

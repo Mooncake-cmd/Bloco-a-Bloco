@@ -265,7 +265,12 @@ function rsRun(e) {
         if (out !== was) rsLogCmp(c, out, was);
       }
       break;
-    case 'release': if ((c.k === 'button' || c.k === 'plate') && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
+    case 'release':
+      if ((c.k === 'button' || c.k === 'plate') && p.powered === 'true') {
+        if (projHolding(c.x, c.y, c.z)) rsLater(c.k === 'button' ? 30 : 20, 'release', c); // flecha cravada nele (src/projectiles.js): continua
+        else rsProp(c, { powered: 'false' });
+      }
+      break;
     case 'targetOff': if (c.k === 'target' && +p.power) rsProp(c, { power: '0' }); break;
     case 'pageOff': if (c.k === 'lectern' && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
     case 'rodOff': if (c.k === 'rod' && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
@@ -608,15 +613,15 @@ function setRsTime(t, sp) {
 
 /* ---------- Alvo, sons do bloco musical e do sino ---------- */
 /* Usar no alvo: força pela distância do ponto clicado ao centro da face (a conta do jogo), por 20 tiques */
-function rsHitTarget(c, t) {
+function rsHitTarget(c, t, dur, label) {
   var v = gget(c[0], c[1], c[2]), b = BLOCKS[cellBlock(v)], lv = 15;
   if (t && t.pt && t.normal) {
     var f = function (q) { return Math.abs(q - Math.floor(q) - 0.5); }, dx = f(t.pt[0]), dy = f(t.pt[1]), dz = f(t.pt[2]);
     var d3 = t.normal[1] ? Math.max(dx, dz) : t.normal[2] ? Math.max(dx, dy) : Math.max(dy, dz);
     lv = Math.max(1, Math.ceil(15 * Math.min(1, Math.max(0, (0.5 - d3) / 0.5))));
   }
-  beginBatch('Usar: alvo'); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, { power: String(lv) }))); endBatch();
-  var cc = rsAt(c[0], c[1], c[2]); if (cc && rsOn) rsLater(20, 'targetOff', cc);
+  beginBatch(label || 'Usar: alvo'); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, { power: String(lv) }))); endBatch();
+  var cc = rsAt(c[0], c[1], c[2]); if (cc && rsOn) { rs.pend.delete('targetOff' + rsIdx(cc)); rs.q = rs.q.filter(function (e) { return e.key !== 'targetOff' + rsIdx(cc); }); rsLater(dur || 20, 'targetOff', cc); } // um acerto novo recomeça a contagem
   return lv;
 }
 var rsSnd = { on: true, ctx: null, n: 0, t0: 0 };
