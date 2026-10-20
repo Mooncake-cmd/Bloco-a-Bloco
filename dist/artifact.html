@@ -4874,22 +4874,54 @@ function libToClip(it) {
   for (var i = 0; i < d.length; i++) { var v = vals[d[i]]; if (v > 0) { cells[i] = v; n++; } else if (v === -2) other++; else if (v < 0) lost++; }
   return { clip: { w: it.w, h: it.h, l: it.l, cells: cells, n: n }, lost: lost, other: other, from: fmts.java ? 'Java' : 'Bedrock' };
 }
-function libSaveSel() {
-  if (!sel) { toast('Selecione a construção primeiro (ferramenta Selecionar, V).'); return; }
-  var d = selSize(sel);
-  openDialog('<h3>Salvar na biblioteca</h3><p>Área de ' + d[0] + ' × ' + d[1] + ' × ' + d[2] + '. Fica guardada neste navegador para colar em qualquer projeto ou mundo, mesmo depois de fechar a página.</p>' +
+/* Cópia de uma caixa (cantos a e b) para guardar; noApoio tira os vidros de apoio (Z) */
+function libClipBox(a, b, noApoio) {
+  var d = [b[0] - a[0] + 1, b[1] - a[1] + 1, b[2] - a[2] + 1], vol = d[0] * d[1] * d[2], n = 0;
+  if (vol > 64e6) throw new Error('Área grande demais para a biblioteca (' + Math.round(vol / 1e6) + ' milhões de espaços; o máximo é 64 milhões). Salve em partes, com a seleção.');
+  var cells = new Uint32Array(vol);
+  blocksInBox(a[0], a[1], a[2], b[0], b[1], b[2], function (x, y, z, v) {
+    if (noApoio && isApoio(x, y, z, v)) return;
+    cells[((y - a[1]) * d[2] + (z - a[2])) * d[0] + (x - a[0])] = v; n++;
+  });
+  return { w: d[0], h: d[1], l: d[2], cells: cells, n: n };
+}
+/* Caixa da construção inteira: os blocos do espaço todo (sem os de apoio), apertada em volta deles */
+function libWholeBox() {
+  var bb = bbox(); if (!bb) return null;
+  if (!apoio.size) return { a: [bb.minX, bb.minY, bb.minZ], b: [bb.maxX, bb.maxY, bb.maxZ] };
+  var lo = [1e9, 1e9, 1e9], hi = [-1, -1, -1];
+  forEachBlock(function (x, y, z, v) {
+    if (isApoio(x, y, z, v)) return;
+    if (x < lo[0]) lo[0] = x; if (y < lo[1]) lo[1] = y; if (z < lo[2]) lo[2] = z;
+    if (x > hi[0]) hi[0] = x; if (y > hi[1]) hi[1] = y; if (z > hi[2]) hi[2] = z;
+  });
+  return hi[0] < 0 ? null : { a: lo, b: hi };
+}
+/* Salvar na biblioteca: a seleção ou a construção inteira (mode 'sel' ou 'all'; com as duas possíveis, a janela deixa
+   escolher) */
+function libSaveSel(mode) {
+  var whole = libWholeBox(), sz = function (q) { return (q.b[0] - q.a[0] + 1) + ' × ' + (q.b[1] - q.a[1] + 1) + ' × ' + (q.b[2] - q.a[2] + 1); };
+  if (!sel && !whole) { toast('Não há blocos para guardar.'); return; }
+  mode = mode === 'all' || !sel ? 'all' : 'sel';
+  if (mode === 'all' && !whole) mode = 'sel';
+  var pick = sel && whole ? '<div class="row"><label class="check"><input type="radio" name="lbWhat" value="sel"' + (mode === 'sel' ? ' checked' : '') + '> A seleção (' + sz(sel) + ')</label>' +
+    '<label class="check"><input type="radio" name="lbWhat" value="all"' + (mode === 'all' ? ' checked' : '') + '> A construção inteira (' + sz(whole) + ')</label></div>'
+    : '<p>' + (mode === 'all' ? 'A construção inteira: ' + sz(whole) + '.' : 'A seleção: ' + sz(sel) + '.') + '</p>';
+  openDialog('<h3>Salvar na biblioteca</h3>' + pick + '<p>Fica guardada neste navegador para colar em qualquer projeto ou mundo, mesmo depois de fechar a página.' + (apoio.size ? ' Os blocos de apoio (Z) ficam de fora da construção inteira.' : '') + '</p>' +
     '<label>Nome<input type="text" id="lbName" maxlength="60" placeholder="ex.: torre de vigia"></label><p id="lbErr" class="err" hidden></p>' +
     '<div class="row"><button class="btn primary" id="lbOk">Salvar</button><button class="btn" id="lbNo">Cancelar</button></div>', function () {
     $('lbNo').onclick = closeDialog;
     var go = function () {
       var nm = $('lbName').value.trim(); if (!nm) { $('lbErr').hidden = false; $('lbErr').textContent = 'Dê um nome para a construção.'; return; }
-      var prev = clip; copySel(false); var c = clip; clip = prev || c; updateSelChip(); // a área copiada do usuário continua a mesma
-      if (!c || !c.n) { closeDialog(); toast('A seleção está vazia: não há blocos para guardar.'); return; }
-      var it; try { it = libFromClip(c, nm); } catch (e) { $('lbErr').hidden = false; $('lbErr').textContent = e.message; return; }
-      libPut(it).then(function () { closeDialog(); toast('“' + nm + '” salva na biblioteca (' + c.n + ' blocos). Projeto → Biblioteca para colar.', 6000); },
+      var r = overlayRoot.querySelector('input[name=lbWhat]:checked'), m = r ? r.value : mode, q = m === 'all' ? whole : sel, c, it;
+      try { c = libClipBox(q.a, q.b, m === 'all'); } catch (e) { $('lbErr').hidden = false; $('lbErr').textContent = e.message; return; }
+      if (!c.n) { closeDialog(); toast(m === 'all' ? 'O espaço está vazio: não há blocos para guardar.' : 'A seleção está vazia: não há blocos para guardar.'); return; }
+      try { it = libFromClip(c, nm); } catch (e) { $('lbErr').hidden = false; $('lbErr').textContent = e.message; return; }
+      libPut(it).then(function () { closeDialog(); toast('“' + nm + '” salva na biblioteca (' + c.n.toLocaleString('pt-BR') + ' blocos). Projeto → Biblioteca para colar.', 6000); },
         function () { $('lbErr').hidden = false; $('lbErr').textContent = 'O navegador não deixou guardar (espaço cheio?).'; });
     };
     $('lbOk').onclick = go; $('lbName').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+    $('lbName').focus();
   });
 }
 function libPaste(it) {
@@ -4918,13 +4950,14 @@ function openLibrary() {
         '<div class="row"><button class="btn primary" data-lb="paste">Colar</button><button class="btn" data-lb="ren">Renomear</button><button class="btn" data-lb="dl">Baixar</button><button class="btn" data-lb="del">Apagar</button></div></div>';
     }).join('');
     openDialog('<h3>Biblioteca de construções</h3>' +
-      '<p>Construções guardadas neste navegador. Para pôr uma aqui: selecione com <b>Selecionar</b> (V) e use <b>Salvar na biblioteca</b> no aviso da seleção. <b>Colar</b> funciona em qualquer projeto ou mundo aberto.</p>' +
+      '<p>Construções guardadas neste navegador. Para pôr uma aqui: <b>Salvar a construção inteira</b> (tudo o que está no espaço), ou selecione uma parte com <b>Selecionar</b> (V) e use <b>Salvar na biblioteca</b> no aviso da seleção. <b>Colar</b> funciona em qualquer projeto ou mundo aberto.</p>' +
       (rows ? '<div class="lib">' + rows + '</div>' : '<div class="info">A biblioteca está vazia.</div>') +
-      '<div class="row"><button class="btn" id="lbImp">Importar arquivo…</button>' + (sel ? '<button class="btn" id="lbSave">Salvar a seleção atual</button>' : '') + '<button class="btn" id="lbClose">Fechar</button></div>' +
+      '<div class="row"><button class="btn" id="lbImp">Importar arquivo…</button>' + (blockCount ? '<button class="btn" id="lbAll">Salvar a construção inteira</button>' : '') + (sel ? '<button class="btn" id="lbSave">Salvar a seleção atual</button>' : '') + '<button class="btn" id="lbClose">Fechar</button></div>' +
       '<input type="file" id="lbIn" accept=".json,application/json" hidden>', function () {
       overlayRoot.querySelector('.dialog').classList.add('wide');
       $('lbClose').onclick = closeDialog;
-      if ($('lbSave')) $('lbSave').onclick = function () { closeDialog(); libSaveSel(); };
+      if ($('lbSave')) $('lbSave').onclick = function () { closeDialog(); libSaveSel('sel'); };
+      if ($('lbAll')) $('lbAll').onclick = function () { closeDialog(); libSaveSel('all'); };
       $('lbImp').onclick = function () { $('lbIn').click(); };
       $('lbIn').onchange = function (e) {
         var f = e.target.files && e.target.files[0]; if (!f) return;
