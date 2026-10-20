@@ -4806,8 +4806,11 @@ function tubeKey(e, k) {
 /* ---------- Biblioteca de construções ---------- */
 /* Guarda construções com nome no navegador (IndexedDB, chaves 'lib:<id>'), separadas do projeto: valem para qualquer
    projeto, estrutura importada ou mundo do jogo aberto depois, e continuam depois de recarregar a página.
-   Cada item: { id, name, w, h, l, n (blocos), t (data), pal: [nome da célula], d: índices (y, z, x), pres: [NBT em
-   base64 dos blocos do jogo que o editor não conhece], thumb (miniatura vista de cima, PNG em base64) }.
+   Cada item: { id, name, w, h, l, n (blocos), t (data), pal: [nome da célula], d: índices (y, z, x), pres: [base64
+   dos blocos do jogo que o editor não conhece], presFmt: ['java' ou 'bedrock' de cada um], thumb (miniatura vista de
+   cima, PNG em base64) }. Os blocos do jogo guardam o original de cada jogo: no Bedrock, a entrada de paleta em NBT;
+   no Java, o texto do estado ("minecraft:nome[prop=valor]"). Só voltam num mundo do mesmo jogo; no outro (ou sem
+   mundo aberto) ficam de fora, com aviso. Itens antigos, sem presFmt: o NBT começa com o byte 10, o texto não.
    Os blocos ficam por nome (como no projeto .json), então sobrevivem a mudanças na lista de blocos. */
 function libKeyRange() { return IDBKeyRange.bound('lib:', 'lib:￿'); }
 function libAll() { return idbDo('readonly', function (st) { return st.getAll(libKeyRange()); }).then(function (l) { return (l || []).sort(function (a, b) { return b.t - a.t; }); }, function () { return []; }); }
@@ -4832,7 +4835,7 @@ function libThumb(c) {
 }
 /* Cópia (clip) -> item da biblioteca */
 function libFromClip(c, name) {
-  var pal = [''], map = new Map([[0, 0]]), pres = [], presMap = new Map(), vol = c.cells.length, big = false;
+  var pal = [''], map = new Map([[0, 0]]), pres = [], presFmt = [], presMap = new Map(), vol = c.cells.length, big = false;
   var d = new Uint16Array(vol);
   for (var i = 0; i < vol; i++) {
     var v = c.cells[i]; if (!v) continue;
@@ -4841,7 +4844,7 @@ function libFromClip(c, name) {
       var nm = cellName(v);
       if (cellBlock(v) === PRES_BI) { // bloco do jogo: leva os bytes junto, para colar em outro mundo
         var e = wio && wio.pres[cellOri(v)], pk = e ? b64(e.raw) : null;
-        if (pk != null) { if (!presMap.has(pk)) { presMap.set(pk, pres.length); pres.push(pk); } nm = 'bab_preserved#' + presMap.get(pk); }
+        if (pk != null) { if (!presMap.has(pk)) { presMap.set(pk, pres.length); pres.push(pk); presFmt.push(e.key != null ? 'java' : 'bedrock'); } nm = 'bab_preserved#' + presMap.get(pk); }
       }
       pi = pal.length; pal.push(nm); map.set(v, pi);
       if (pal.length > 65535) { big = true; break; }
@@ -4849,25 +4852,35 @@ function libFromClip(c, name) {
     d[i] = pi;
   }
   if (big) throw new Error('Blocos diferentes demais nessa seleção para a biblioteca.');
-  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, w: c.w, h: c.h, l: c.l, n: c.n, t: Date.now(), pal: pal, d: d, pres: pres, thumb: libThumb(c) };
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, w: c.w, h: c.h, l: c.l, n: c.n, t: Date.now(), pal: pal, d: d, pres: pres, presFmt: presFmt, thumb: libThumb(c) };
 }
 /* Item -> cópia pronta para colar; blocos do jogo voltam para a lista do mundo aberto (sem mundo, ficam de fora) */
 function libToClip(it) {
-  var lost = 0, vals = it.pal.map(function (nm) {
+  var lost = 0, other = 0, fmts = {}, vals = it.pal.map(function (nm) {
     if (!nm) return 0;
     var m = /^bab_preserved#(\d+)$/.exec(nm);
     if (m) {
       var raw = it.pres && it.pres[+m[1]] ? unb64(it.pres[+m[1]]) : null;
-      if (!raw || !wio) return -1;
-      var k = wioStr(raw), j = wio.presMap.get(k);
-      if (j === undefined) { j = wio.pres.length; wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); wio.presMap.set(k, j); }
+      if (!raw) return -1;
+      var fmt = (it.presFmt && it.presFmt[+m[1]]) || (raw[0] === 10 ? 'bedrock' : 'java'), j;
+      if (fmt === 'java') {
+        var key = new TextDecoder().decode(raw), cj = cellFromJava(key);
+        if (cj) return cj; // o editor passou a conhecer o bloco: vale em qualquer lugar
+        if (!wio || !wio.java) { fmts.java = 1; return wio ? -2 : -1; }
+        j = wio.presMap.get(key);
+        if (j === undefined) { j = wio.pres.length; wio.pres.push({ raw: raw, name: key.replace(/\[.*$/, ''), key: key }); wio.presMap.set(key, j); wio.presDirty = true; }
+      } else {
+        if (!wio || wio.java) { fmts.bedrock = 1; return wio ? -2 : -1; }
+        var k = wioStr(raw); j = wio.presMap.get(k);
+        if (j === undefined) { j = wio.pres.length; wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); wio.presMap.set(k, j); wio.presDirty = true; }
+      }
       return (PRES_BI + 1) + j * 4096;
     }
     return cellFromName(nm) || -1;
   });
   var d = it.d instanceof Uint16Array ? it.d : new Uint16Array(it.d.buffer || it.d), cells = new Uint32Array(d.length), n = 0;
-  for (var i = 0; i < d.length; i++) { var v = vals[d[i]]; if (v > 0) { cells[i] = v; n++; } else if (v < 0) lost++; }
-  return { clip: { w: it.w, h: it.h, l: it.l, cells: cells, n: n }, lost: lost };
+  for (var i = 0; i < d.length; i++) { var v = vals[d[i]]; if (v > 0) { cells[i] = v; n++; } else if (v === -2) other++; else if (v < 0) lost++; }
+  return { clip: { w: it.w, h: it.h, l: it.l, cells: cells, n: n }, lost: lost, other: other, from: fmts.java ? 'Java' : 'Bedrock' };
 }
 function libSaveSel() {
   if (!sel) { toast('Selecione a construção primeiro (ferramenta Selecionar, V).'); return; }
@@ -4889,9 +4902,10 @@ function libSaveSel() {
 }
 function libPaste(it) {
   var r = libToClip(it);
-  if (!r.clip.n) { toast(r.lost ? 'Esta construção só tem blocos do jogo que o editor não conhece: eles só colam com um mundo do jogo aberto (Projeto → Abrir mundo do jogo).' : 'Nada para colar: os blocos desta construção não existem aqui.', 7000); return; }
+  var why = (r.lost ? ' ' + r.lost + ' blocos do jogo ficaram de fora (só colam com um mundo do jogo aberto).' : '') + (r.other ? ' ' + r.other + ' blocos do jogo vieram de um mundo do ' + r.from + ' e não existem neste mundo: ficaram de fora.' : '');
+  if (!r.clip.n) { toast(r.other && !r.lost ? 'Esta construção só tem blocos do jogo de um mundo do ' + r.from + ', que não existem neste mundo.' : r.lost ? 'Esta construção só tem blocos do jogo que o editor não conhece: eles só colam com um mundo do jogo aberto (Projeto → Abrir mundo do jogo).' : 'Nada para colar: os blocos desta construção não existem aqui.', 7000); return; }
   clip = r.clip; closeDialog(); startPaste();
-  toast('Colando “' + it.name + '”: clique onde quer pôr. R gira, F espelha, Esc termina.' + (r.lost ? ' ' + r.lost + ' blocos do jogo ficaram de fora (só colam com um mundo do jogo aberto).' : ''), 7000);
+  toast('Colando “' + it.name + '”: clique onde quer pôr. R gira, F espelha, Esc termina.' + why, 8000);
 }
 /* Arquivo para levar a outro navegador ou aparelho */
 function libFile(it) {
