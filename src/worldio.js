@@ -696,6 +696,7 @@ function wioArea() {
   if (!wio) return;
   var A = wio.area, mob = matchMedia('(pointer: coarse)').matches;
   var st = { dim: A ? A.dim : (wio.player ? wio.player.dim : 0), size: A ? Math.max(A.w, A.d) : mob ? 256 : WIO_MAX, cx: 0, cz: 0, view: null };
+  var at = wioArea.at; wioArea.at = null; if (at) st.dim = at.dim; // Carregar área aqui (mapa do mundo, src/worldmap.js)
   if (!wio.dims[st.dim].size) st.dim = wio.dims.findIndex(function (m) { return m.size; });
   function home(d) {
     if (A && A.dim === d) return [A.x0 + A.w / 2, A.z0 + A.d / 2];
@@ -703,7 +704,7 @@ function wioArea() {
     if (d === 0 && wio.spawn) return wio.spawn;
     var c = Array.from(wio.dims[d].values()).filter(function (q) { return q.ok; })[0]; return c ? [c.x * 16 + 8, c.z * 16 + 8] : [0, 0];
   }
-  var h0 = home(st.dim); st.cx = h0[0]; st.cz = h0[1];
+  var h0 = at ? [at.x, at.z] : home(st.dim); st.cx = h0[0]; st.cz = h0[1];
   var tabs = WIO_DIMS.map(function (D) { return '<button data-wd="' + D.id + '"' + (wio.dims[D.id].size ? '' : ' disabled') + '>' + D.name + '</button>'; }).join('');
   var sizes = [64, 128, 192, 256, 320, 384, 448, 512].map(function (s) { return '<option value="' + s + '">' + s + ' × ' + s + '</option>'; }).join('');
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
@@ -713,7 +714,7 @@ function wioArea() {
     '<div class="wmbio" id="wmBio" hidden></div>' +
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
-    '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button></div>' +
+    '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button><button class="btn" id="wmBig" title="O mundo inteiro em tela cheia, com zoom de verdade, biomas, grade dos chunks e as coordenadas do Nether">Mapa em tela cheia</button></div>' +
     '<div class="info" id="wmInfo"></div>' +
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
@@ -732,6 +733,7 @@ function wioArea() {
       $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
       $('wmS').value = String(st.size);
       $('wmNo').onclick = closeDialog;
+      $('wmBig').onclick = function () { closeDialog(); openWorldMap(); };
       function area() {
         var s = st.size, x0 = Math.round((st.cx - s / 2) / 16) * 16, z0 = Math.round((st.cz - s / 2) / 16) * 16;
         return [x0, z0, s, s];

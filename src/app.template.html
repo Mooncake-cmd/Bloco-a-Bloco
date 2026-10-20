@@ -152,6 +152,17 @@ body.walking #viewport canvas{cursor:none}
 .item .star{border:0;background:transparent;color:var(--muted);font-size:16px;padding:2px 4px;line-height:1}
 .item .star.on{color:var(--accent)}
 .empty{padding:20px 12px;color:var(--muted);font-size:13px}
+#wmView{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;background:#1b1d1c;color:var(--fg)}
+#wmView .wmvbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:13px}
+#wmView .wmvbar .mbtns{display:inline-flex;align-items:center;gap:4px}
+#wmView button:not(.tbtn){border:0;border-radius:5px;padding:3px 9px;font-size:12px;background:var(--line);color:var(--fg)}
+#wmView button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
+#wmView button:disabled{opacity:.4}
+#wmvX{margin-left:auto}
+#wmvCv{flex:1 1 auto;min-height:0;width:100%;display:block;touch-action:none;cursor:crosshair}
+#wmvTip{position:absolute;pointer-events:none;max-width:260px;padding:6px 9px;border-radius:7px;background:rgba(20,22,21,.92);color:#fff;font:12px/1.45 var(--font-mono);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+#wmView .wmvinfo{padding:8px 12px;background:var(--panel);border-top:1px solid var(--line);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#wmvZoom{min-width:110px;text-align:center;font:12px var(--font-mono)}
 .overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
 .dialog{width:min(520px,100%);max-height:calc(100% - 8px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
 .dialog.wide{width:min(900px,100%)}
@@ -264,6 +275,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="saveBtn">Salvar projeto (.json)</button>
           <button class="tbtn txt" id="openBtn" title=".json, .mcstructure, .schem ou .litematic">Abrir projeto ou estrutura…</button>
           <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (Bedrock ou Java)…</button>
+          <button class="tbtn txt" id="wmapBtn">Mapa do mundo…</button>
           <button class="tbtn txt" id="libBtn">Biblioteca de construções…</button>
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
@@ -1636,7 +1648,7 @@ var PACK_V = 6; // sobe quando a lista de blocos passa a usar texturas novas (pa
 var packs = [];
 var texOn = true;
 try { texOn = localStorage.getItem('bloco-a-bloco-tex') !== '0'; } catch (e) {}
-var tileUV = [], texBlocks = 0;
+var tileUV = [], texBlocks = 0, atlasPx = null;
 
 function stripJson(txt) { return JSON.parse(txt.replace(/^﻿/, '').replace(/^\s*\/\/.*$/mg, '')); }
 
@@ -1918,6 +1930,7 @@ function buildAtlas(tiles) {
     return [(cx + e) / W, (cy + e) / H, (cx + S - e) / W, (cy + S - e) / H];
   });
   if (atlasTex) atlasTex.dispose();
+  atlasPx = { data: data, W: W, H: H, ver: (atlasPx ? atlasPx.ver : 0) + 1 }; // o mapa do mundo desenha as texturas daqui (src/worldmap.js)
   atlasTex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
   atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestMipmapLinearFilter;
   atlasTex.generateMipmaps = true;
@@ -2108,6 +2121,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SCULPT_JS%%*/
 /*%%SHAPES2_JS%%*/
 /*%%TUBES_JS%%*/
+/*%%WMAP_JS%%*/
 /*%%LIBRARY_JS%%*/
 /*%%WALK_JS%%*/
 /*%%GHOST_JS%%*/
@@ -2457,6 +2471,7 @@ function openHelp() {
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
+    '<span>Mapa do mundo</span><span>Projeto → Mapa do mundo (com um mundo aberto): o mundo visto de cima em tela cheia; o zoom traz mais detalhe (bem perto, as texturas). Terreno ou Biomas, grade dos chunks, o bioma debaixo do ponteiro e, no clique, X e Z do jogo e do Nether.</span>' +
     '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
@@ -2506,6 +2521,7 @@ $('tpWalk').addEventListener('click', function () {
 });
 $('libBtn').addEventListener('click', function () { $('menu').open = false; openLibrary(); });
 $('worldBtn').addEventListener('click', function () { $('menu').open = false; $('worldIn').click(); });
+$('wmapBtn').addEventListener('click', function () { $('menu').open = false; openWorldMap(); });
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });
 $('worldExp').addEventListener('click', function () { wioExport(); });
