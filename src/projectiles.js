@@ -20,7 +20,9 @@ var PROJ_TYPES = {
   fire: { name: 'Flecha em chamas', v: 3, g: 0.05, water: 0.6, stick: true, pressHold: true, tgt: 20, life: 1200, fire: true },
   trident: { name: 'Tridente', v: 2.5, g: 0.05, water: 0.99, stick: true, pressHold: true, tgt: 20, life: 0 },
   snowball: { name: 'Bola de neve', v: 1.5, g: 0.03, water: 0.8, stick: false, tgt: 8 },
-  egg: { name: 'Ovo', v: 1.5, g: 0.03, water: 0.8, stick: false, tgt: 8 }
+  egg: { name: 'Ovo', v: 1.5, g: 0.03, water: 0.8, stick: false, tgt: 8 },
+  // item jogado no chão pelo ejetor ou liberador (src/redstone4.js): cai (0,04 por tique, resistência 0,98), fica 5 min
+  item: { name: 'Item', v: 0, g: 0.04, air: 0.98, water: 0.8, stick: true, pressHold: true, tgt: 0, life: 6000, item: true }
 };
 var PROJ_PASS = /^(air|water|lava|bubble_column|light|.*torch|.*_sapling|.*flower.*|poppy|dandelion|.*tulip|allium|azure_bluet|blue_orchid|oxeye_daisy|cornflower|lily_of_the_valley|wither_rose|short_grass|tall_grass|fern|large_fern|dead_bush|.*rail|redstone_wire|lever|.*button|.*sign|.*banner|vine|tripwire|seagrass|tall_seagrass|kelp.*|sugar_cane|wheat|carrots|potatoes|beetroots|.*mushroom|cobweb|.*_roots|.*fungus|nether_sprouts|.*coral_fan|.*coral|sweet_berry_bush|glow_lichen|sculk_vein|.*pressure_plate|fire|soul_fire|end_portal|nether_portal|structure_void|.*_bush|pitcher_plant|torchflower|spore_blossom|hanging_roots|cave_vines.*|twisting_vines.*|weeping_vines.*|small_dripleaf|frogspawn|leaf_litter|.*_petals|resin_clump)$/;
 var proj = { type: 'arrow', pow: 1, flying: [], stuck: [], raf: 0, last: 0, acc: 0, prev: null };
@@ -59,7 +61,7 @@ function projStep(P) {
   var T = PROJ_TYPES[P.type], r = projSeg(P.p, P.v), p2;
   if (r.hit) { var f = r.hit.t; p2 = [P.p[0] + P.v[0] * f, P.p[1] + P.v[1] * f, P.p[2] + P.v[2] * f]; return { p: p2, v: P.v, hit: r.hit, cross: r.cross }; }
   p2 = [P.p[0] + P.v[0], P.p[1] + P.v[1], P.p[2] + P.v[2]];
-  var k = projInWater(p2) ? T.water : 0.99, v2 = [P.v[0] * k, P.v[1] * k - T.g, P.v[2] * k];
+  var k = projInWater(p2) ? T.water : T.air || 0.99, v2 = [P.v[0] * k, P.v[1] * k - T.g, P.v[2] * k];
   return { p: p2, v: v2, hit: null, cross: r.cross };
 }
 function projGone(p) { return p[1] < -16 || p[1] > SY + 256 || p[0] < -256 || p[2] < -256 || p[0] > SX + 256 || p[2] > SZ + 256; }
@@ -72,8 +74,10 @@ function projPath(o, d, type) {
 }
 
 /* ---------- Lançar e animar ---------- */
-function projMesh(type) {
+var PROJ_ITEM_COL = [0xf2c230, 0x9a7a52, 0xf4f8ff, 0xe8d6b0, 0x3a6fd8, 0xe0702a, 0xb8b8b8, 0xeeeedd, 0x707070];
+function projMesh(type, code) {
   var g = new THREE.Group(), M = function (c, o) { return new THREE.MeshBasicMaterial(Object.assign({ color: c }, o || {})); };
+  if (type === 'item') { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), M(PROJ_ITEM_COL[code || 0] || 0xb08850))); return g; }
   if (type === 'snowball' || type === 'egg') {
     var m = new THREE.Mesh(new THREE.SphereGeometry(type === 'egg' ? 0.11 : 0.13, 10, 8), M(type === 'egg' ? 0xe8d6b0 : 0xf4f8ff));
     if (type === 'egg') m.scale.set(1, 1, 1.3); g.add(m);
@@ -91,10 +95,14 @@ function projMesh(type) {
   return g;
 }
 function projAim(m, p, v) { m.position.set(p[0], p[1], p[2]); var l = Math.hypot(v[0], v[1], v[2]); if (l > 1e-6) m.lookAt(p[0] + v[0], p[1] + v[1], p[2] + v[2]); }
-function projThrow(o, d) {
-  var sp = projSpeed(proj.type), P = { type: proj.type, p: o.slice(), v: [d[0] * sp, d[1] * sp, d[2] * sp], ticks: 0 };
-  P.prev = P.p.slice(); P.mesh = projMesh(P.type); projAim(P.mesh, P.p, P.v); scene.add(P.mesh);
+function projThrow(o, d) { var sp = projSpeed(proj.type); projSpawn(proj.type, o, [d[0] * sp, d[1] * sp, d[2] * sp]); }
+/* Liberador: atira o projétil type de o na direção d com a velocidade sp */
+function projShoot(type, o, d, sp) { projSpawn(type, o, [d[0] * sp, d[1] * sp, d[2] * sp]); }
+function projSpawn(type, o, v, extra) {
+  var P = Object.assign({ type: type, p: o.slice(), v: v.slice(), ticks: 0 }, extra || {});
+  P.prev = P.p.slice(); P.mesh = projMesh(P.type, P.code); projAim(P.mesh, P.p, P.v); scene.add(P.mesh);
   proj.flying.push(P); projRun();
+  if (!PROJ_TYPES[type].item) rsVibe(Math.floor(o[0]), Math.floor(o[1]), Math.floor(o[2]), 3); // projétil atirado: vibração 3
 }
 function projRun() { if (!proj.raf) { proj.last = performance.now(); proj.acc = 0; proj.raf = requestAnimationFrame(projFrame); } }
 function projFrame(now) {
@@ -112,6 +120,10 @@ function projTick() {
     var s = projStep(P);
     s.cross.forEach(function (q) { projCross(P, q); });
     P.p = s.p; P.v = s.v;
+    if (s.hit && P.type === 'item' && s.hit.normal[1] <= 0) { // item batendo de lado ou no teto: escorrega e continua caindo
+      var nn = s.hit.normal; P.p = [s.hit.pt[0] + nn[0] * 0.13, s.hit.pt[1] + nn[1] * 0.13, s.hit.pt[2] + nn[2] * 0.13];
+      P.v = [nn[0] ? 0 : P.v[0], nn[1] ? 0 : P.v[1], nn[2] ? 0 : P.v[2]]; return true;
+    }
     if (s.hit) { projHit(P, s.hit); return false; }
     if (projGone(P.p) || P.ticks > 2400) { scene.remove(P.mesh); return false; }
     return true;
@@ -140,6 +152,15 @@ function projCross(P, q) {
 }
 function projHit(P, h) {
   var T = PROJ_TYPES[P.type], c = h.cell, v = gget(c[0], c[1], c[2]), b = BLOCKS[cellBlock(v)], msg = '';
+  if (T.item) { // item caindo no funil entra nele
+    if (b.java === 'hopper' && rsOn && rsInvAdd(c, P.code || 0, 1)) { scene.remove(P.mesh); return; }
+    P.mesh.rotation.set(0, P.mesh.rotation.y, 0); P.mesh.position.set(h.pt[0], h.pt[1] + 0.13, h.pt[2]);
+    var S0 = { mesh: P.mesh, type: P.type, cell: c.slice(), life: T.life, holds: [], code: P.code || 0 };
+    (P.over || []).forEach(function (q) { if (Math.hypot(q[0] + 0.5 - h.pt[0], q[1] + 0.5 - h.pt[1], q[2] + 0.5 - h.pt[2]) <= 1.0) S0.holds.push(q); });
+    proj.stuck.push(S0); if (!proj.timer) proj.timer = setInterval(projStuckCheck, 1000);
+    projPressHolds(S0, T); projPlatesAll(); updateProjChip(); return;
+  }
+  rsVibe(Math.floor(h.pt[0]), Math.floor(h.pt[1]), Math.floor(h.pt[2]), 2); // projétil batendo: vibração 2
   if (b.java === 'target' && rsOn) {
     var lv = rsHitTarget(c, { pt: h.pt, normal: h.normal }, T.tgt, T.name + ': alvo');
     if (lv == null) lv = 0;
@@ -161,19 +182,26 @@ function projHit(P, h) {
   });
   proj.stuck.push(S); if (!proj.timer) proj.timer = setInterval(projStuckCheck, 1000);
   if (proj.stuck.length > 256) { var o = proj.stuck.shift(); scene.remove(o.mesh); }
+  var msg2 = projPressHolds(S, T); msg = msg || msg2;
+  projPlatesAll();
+  updateProjChip();
+  if (msg) toast(msg, 4000);
+}
+/* Aperta os botões e placas de madeira que o projétil (ou item) segura; devolve o aviso */
+function projPressHolds(S, T) {
+  var msg = '';
   S.holds.forEach(function (q) {
     var cv = gget(q[0], q[1], q[2]); if (!cv) return; var qb = BLOCKS[cellBlock(cv)];
     if (!rsOn) return;
     if (/^(stone|polished_blackstone)_(button|pressure_plate)$/.test(qb.java)) return; // de pedra: só jogadores e criaturas
+    if (T.item && /_button$/.test(qb.java)) return; // item no chão só aperta placas
     if (/_button$|_pressure_plate$/.test(qb.java) && !/weighted/.test(qb.java)) {
       var qp = stateProps(qb, cellOri(cv));
       if (qp.powered !== 'true') { qp.powered = 'true'; beginBatch(T.name + ': ' + qb.name); editSet(q[0], q[1], q[2], mkCell(cellBlock(cv), stateIndex(qb, qp))); endBatch(); }
       msg = msg || T.name + ' cravada em ' + qb.name + ': fica pressionado enquanto ela estiver ali.';
     }
   });
-  projPlatesAll();
-  updateProjChip();
-  if (msg) toast(msg, 4000);
+  return T.item ? '' : msg;
 }
 /* Quantos projéteis cravados seguram o botão ou a placa em i */
 function projHolding(x, y, z) { var n = 0; proj.stuck.forEach(function (S) { S.holds.forEach(function (q) { if (q[0] === x && q[1] === y && q[2] === z) n++; }); }); return n; }

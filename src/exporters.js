@@ -215,7 +215,7 @@
         // dados de entidade que o jogo guarda fora do estado (ex.: cor da cama)
         if (ex.ent) {
           const e = { id: { t: 'string', v: ex.ent.id }, isMovable: { t: 'byte', v: 1 } };
-          for (const k of Object.keys(ex.ent)) if (k !== 'id') e[k] = { t: 'byte', v: ex.ent[k] };
+          for (const k of Object.keys(ex.ent)) if (k !== 'id') e[k] = typeof ex.ent[k] === 'object' ? ex.ent[k] : { t: 'byte', v: ex.ent[k] }; // número: byte; {t, v}: o tipo dado
           posData[String(i)] = { t: 'compound', v: { block_entity_data: { t: 'compound', v: e } } };
         }
         continue;

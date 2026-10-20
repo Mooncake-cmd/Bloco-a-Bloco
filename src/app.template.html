@@ -1323,6 +1323,7 @@ function useAt(c, back, t) {
     rsPulse(ln.hooks.concat(ln.wires), 'Usar: armadilha', 10, 'tripOff'); toast('Armadilha disparada: os ganchos dão sinal 15 por 10 tiques.'); return;
   }
   if (b.java === 'daylight_detector') { var sp = stateProps(b, cellOri(v)); sp.inverted = sp.inverted === 'true' ? 'false' : 'true'; beginBatch('Usar: ' + b.name); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, sp))); endBatch(); toast('Sensor de luz ' + (sp.inverted === 'true' ? 'invertido (modo noite)' : 'normal (modo dia)') + ': força ' + rsDayPow(sp.inverted === 'true') + ' às ' + rsTimeTxt(rsTime) + '. A hora fica no menu Projeto.'); return; }
+  if (/command_block$/.test(b.java) && !back) { openCmd(c); return; } // bloco de comando (src/redstone4.js); Shift + Usar: o padrão
   if (RS_CONT.test(b.java) && !(back && b.shape && b.shape.tog.length)) { openFill(c, b); return; }
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
   var prop = back && b.shape.tog[1] ? b.shape.tog[1] : b.shape.tog[0];
@@ -1333,21 +1334,47 @@ function useAt(c, back, t) {
 }
 /* Contêiner: o nível de conteúdo de 0 a 15 que o comparador lê (o site não guarda os itens) */
 function openFill(c, b) {
-  var i = idx(c[0], c[1], c[2]), cur = rsFill.get(i) || 0, tg = b.shape && b.shape.tog.length ? b.shape.tog[0] : null;
-  var juke = b.java === 'jukebox';
-  var lab = juke ? function (n) { return n === 0 ? 'sem disco' : 'disco ' + n; } : function (n) { return n === 0 ? 'vazio' : n === 15 ? 'cheio' : n + ' de 15'; };
-  openDialog('<h3>' + esc(b.name) + ': conteúdo</h3>' +
-    (juke ? '<p>Escolha o disco: o <b>comparador</b> lê o número dele (1 a 15, como no jogo), e com disco o toca-discos dá sinal 15 em volta.' : '<p>O site não guarda os itens dos contêineres. Escolha quanto o <b>comparador</b> lê deste bloco: 0 é vazio, 15 é cheio (no jogo, depende de quantos itens há dentro).') + (tg ? ' Para ' + ({ lit: 'acender ou apagar', open: 'abrir ou fechar', enabled: 'travar ou destravar' }[tg] || 'mudar ' + tg) + ', use <kbd>Shift</kbd> + Usar.' : '') + '</p>' +
-    '<label>Nível que o comparador lê: <b id="fillOut">' + lab(cur) + '</b><input type="range" id="fillR" min="0" max="15" value="' + cur + '"></label>' +
+  var i = idx(c[0], c[1], c[2]), cur = rsFill.get(i) || 0, j = b.java;
+  if (j === 'jukebox' || j === 'crafter') { // toca-discos: o disco; fabricador: os espaços ocupados
+    var juke = j === 'jukebox', max = juke ? 15 : 9;
+    var lab = juke ? function (n) { return n === 0 ? 'sem disco' : 'disco ' + n; } : function (n) { return n === 0 ? 'vazio' : n + (n > 1 ? ' espaços ocupados' : ' espaço ocupado'); };
+    openDialog('<h3>' + esc(b.name) + ': conteúdo</h3>' +
+      (juke ? '<p>Escolha o disco: o <b>comparador</b> lê o número dele (1 a 15, como no jogo), e com disco o toca-discos dá sinal 15 em volta.</p>'
+        : '<p>Quantos dos 9 espaços têm item (o <b>comparador</b> lê esse número, como no jogo). Quando o sinal chega, o fabricador faz um item (sai pela frente: no contêiner da frente ou no chão) e os espaços se esvaziam.</p>') +
+      '<label>' + (juke ? 'Disco' : 'Espaços ocupados') + ': <b id="fillOut">' + lab(cur) + '</b><input type="range" id="fillR" min="0" max="' + max + '" value="' + Math.min(cur, max) + '"></label>' +
+      '<div class="row"><button class="btn primary" id="fillOk">Usar</button><button class="btn" id="fillNo">Cancelar</button></div>',
+      function () {
+        $('fillR').oninput = function () { $('fillOut').textContent = lab(+this.value); };
+        $('fillNo').onclick = closeDialog;
+        $('fillOk').onclick = function () { var n = +$('fillR').value; closeDialog(); beginBatch('Conteúdo: ' + b.name); rsFillSet(i, n, true); endBatch(); updateStatus(); toast(b.name + ': ' + lab(n) + '.'); };
+      });
+    return;
+  }
+  // contêineres: tipo de item e quantidade (o comparador lê o nível pela conta do jogo)
+  var q = rsInv(i, j), slots = rsSlots(j);
+  var opts = RS_ITEMS.map(function (it, k) { return '<option value="' + k + '">' + it.name + ' (pilha de ' + it.s + ')</option>'; }).join('');
+  var act = j === 'dispenser' ? 'O <b>liberador</b> usa o item quando o sinal chega: atira flechas, bolas de neve e ovos, põe e recolhe água e lava com balde, usa farinha de osso, acende fogo com o isqueiro; o resto ele joga no chão.'
+    : j === 'dropper' ? 'O <b>ejetor</b> solta um item quando o sinal chega: no contêiner da frente, ou no chão.'
+    : j === 'hopper' ? 'O <b>funil</b> passa um item a cada 8 tiques para o contêiner para onde aponta e puxa do contêiner de cima (travado com sinal).'
+    : 'Ejetores e funis põem e tiram itens daqui.';
+  openDialog('<h3>' + esc(b.name) + ': conteúdo</h3><p>' + act + ' O site guarda um tipo de item por bloco, sem os espaços um a um.</p>' +
+    '<label>Item<select id="fillI">' + opts + '</select></label>' +
+    '<label>Quantidade: <b id="fillOut"></b><span class="row"><input type="range" id="fillR" min="0" value="0" style="flex:1"><input type="number" id="fillN" min="0" value="0" style="width:90px"></span></label>' +
     '<p class="pen">Fica salvo no projeto e no navegador, mas não vai para o mundo do jogo nem para o .mcstructure.</p>' +
-    '<div class="row"><button class="btn primary" id="fillOk">Usar este nível</button><button class="btn" id="fillNo">Cancelar</button></div>',
+    '<div class="row"><button class="btn primary" id="fillOk">Usar</button><button class="btn" id="fillNo">Cancelar</button></div>',
     function () {
-      $('fillR').oninput = function () { $('fillOut').textContent = lab(+this.value); };
+      var show = function () {
+        var code = +$('fillI').value, cap = rsInvCap(j, code), n = Math.min(+$('fillR').value, cap); $('fillR').max = cap;
+        var lv = n ? Math.min(15, Math.floor(1 + n / RS_ITEMS[code].s / slots * 14)) : 0;
+        $('fillOut').textContent = n + ' de ' + cap + ' · o comparador lê ' + lv; $('fillN').max = cap; if (+$('fillN').value !== n) $('fillN').value = n;
+      };
+      $('fillI').value = q.code; $('fillR').max = rsInvCap(j, q.code); $('fillR').value = q.n; show();
+      $('fillI').onchange = show; $('fillR').oninput = show; $('fillN').oninput = function () { $('fillR').value = Math.max(0, +this.value || 0); show(); };
       $('fillNo').onclick = closeDialog;
       $('fillOk').onclick = function () {
-        var n = +$('fillR').value; closeDialog();
-        beginBatch('Conteúdo: ' + b.name); rsFillSet(i, n, true); endBatch(); updateStatus();
-        toast(b.name + ': o comparador lê ' + n + '.');
+        var code = +$('fillI').value, n = Math.min(+$('fillR').value, rsInvCap(j, code)); closeDialog();
+        beginBatch('Conteúdo: ' + b.name); rsFillSet(i, n ? 16 + n + 4096 * code : 0, true); endBatch(); updateStatus();
+        toast(b.name + ': ' + (n ? n + ' × ' + RS_ITEMS[code].name : 'vazio') + ' (o comparador lê ' + rsLevel(c[0], c[1], c[2], j) + ').');
       };
     });
 }
@@ -2090,6 +2117,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%BIOME_JS%%*/
 /*%%REDSTONE_JS%%*/
 /*%%RSSTEP_JS%%*/
+/*%%RS4_JS%%*/
 /*%%PROJ_JS%%*/
 /*%%ICONS_JS%%*/
 /*%%HOLO_JS%%*/
@@ -2140,6 +2168,7 @@ function loadProject(o) {
   slot = o.slot | 0;
   if (o.biomes) bioFromRecord(o.biomes); // biomas pintados (src/biome.js)
   if (o.fill) rsFillFrom(o.fill);
+  rsCmdFrom(o.cmd); rsCmdSave = true;
   apoio = new Set(o.apoio || []); apoioSave = true;
   verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
@@ -2435,6 +2464,7 @@ function openHelp() {
     '<span>Histórico</span><span>O relógio entre desfazer e refazer abre a linha do tempo: cada ponto é uma ação. Clique em qualquer ponto para voltar a ele; uma mudança feita depois de voltar abre um ramo novo, e o caminho antigo continua guardado. <b>Marcar esta versão</b> dá nome a um ponto.</span>' +
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
     '<span>Lançar (<kbd>W</kbd>)</span><span>Clique: atira do ponto de vista da câmera na direção do ponteiro (a linha tracejada mostra o caminho). Flecha, flecha em chamas, tridente, bola de neve e ovo (<kbd>Shift</kbd> + <kbd>1</kbd>…<kbd>5</kbd>); <kbd>-</kbd> e <kbd>+</kbd> a força do arco. Acertam o alvo, botões e placas de madeira (enquanto cravados), a linha de armadilha e o sino. Em primeira pessoa, <kbd>Q</kbd>.</span>' +
+    '<span>Etapa 4 da redstone</span><span>Usar num <b>bloco de comando</b> abre o comando (setblock, fill, clone, say, testforblock, execute if block, time). Usar num ejetor, liberador ou funil escolhe o item e quantos. Sensores de sculk ouvem as vibrações (colocar, quebrar, abrir, pistão, projétil) até 8 blocos (o calibrado, 16).</span>' +
     '<span>Redstone passo a passo</span><span>Projeto → Redstone passo a passo: <kbd>P</kbd> pausa e continua, <kbd>.</kbd> avança 1 tique de redstone (<kbd>Shift</kbd>+<kbd>.</kbd>: 1 tique do jogo); o gráfico mostra quando cada componente ligou e desligou (passe o mouse numa linha para achar o bloco).</span>' +
     '<span>Redstone</span><span>Os circuitos funcionam como no jogo: Usar (<kbd>U</kbd>) puxa a alavanca e aperta botões; o pó leva o sinal, tochas invertem, repetidores e comparadores atrasam, lâmpadas acendem, portas abrem e pistões empurram. Projeto → Redstone funcionando liga e desliga.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +

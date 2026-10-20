@@ -39,7 +39,8 @@
    é local: parte das células mudadas e percorre só a rede de redstone ligada a elas. */
 var rsOn = true;
 try { rsOn = localStorage.getItem('bloco-a-bloco-redstone') !== '0'; } catch (e) {}
-var rs = { gt: 0, q: [], pend: new Map(), timer: 0, lv: null, cmp: new Map(), obs: new Map(), door: new Map(), burn: new Map(), touched: [], steps: 0, open: new Set() };
+var rs = { gt: 0, q: [], pend: new Map(), timer: 0, lv: null, cmp: new Map(), obs: new Map(), door: new Map(), burn: new Map(), touched: [], steps: 0, open: new Set(),
+  trig: new Map(), skv: new Map(), skf: new Map(), cmds: new Map() }; // etapa 4 (src/redstone4.js): subida do sinal, vibrações, frequência, comandos
 var RS_H = ['north', 'east', 'south', 'west'], RS_D6 = ['up', 'down', 'north', 'south', 'east', 'west'];
 var rsKinds = [];
 function rsKind(bi) {
@@ -55,6 +56,8 @@ function rsKind(bi) {
     : j === 'target' ? 'target' : j === 'note_block' ? 'note' : /copper_bulb$/.test(j) ? 'bulb' : j === 'bell' ? 'bell' : j === 'hopper' ? 'hopper'
     : j === 'trapped_chest' ? 'tchest' : j === 'lectern' ? 'lectern' : j === 'jukebox' ? 'juke' : j === 'lightning_rod' ? 'rod'
     : j === 'detector_rail' ? 'drail' : j === 'tripwire_hook' ? 'hook' : j === 'tripwire' ? 'trip'
+    : j === 'sculk_sensor' || j === 'calibrated_sculk_sensor' ? 'sculk' : j === 'dispenser' || j === 'dropper' ? 'disp' : j === 'crafter' ? 'crafter'
+    : /command_block$/.test(j) ? 'cmd'
     : (!b.shape || b.shape.fc) && b.solid && !b.isAir && !NOT_STURDY.test(j) ? 'solid' : null;
   rsKinds[bi] = k; return k;
 }
@@ -66,7 +69,7 @@ function rsAt(x, y, z) {
 function rsP(c) { return c.p || (c.p = c.b.shape ? stateProps(c.b, cellOri(c.v)) : c.k === 'observer' ? { facing: c.b.ori.o[cellOri(c.v)][0] } : {}); }
 function rsN(x, y, z, d) { var v = DV[d]; return [x + v[0], y + v[1], z + v[2]]; }
 function rsIdx(c) { return idx(c.x, c.y, c.z); }
-function rsCond(x, y, z) { var c = rsAt(x, y, z); return !!c && (c.k === 'solid' || c.k === 'note' || c.k === 'bulb'); } // bloco musical e lâmpada de cobre também conduzem
+function rsCond(x, y, z) { var c = rsAt(x, y, z); return !!c && (c.k === 'solid' || c.k === 'note' || c.k === 'bulb' || c.k === 'disp' || c.k === 'crafter' || c.k === 'cmd'); } // bloco musical, lâmpada de cobre, ejetor, liberador, fabricador e bloco de comando também conduzem
 function rsAttach(c) { var p = rsP(c); return p.face === 'floor' ? 'down' : p.face === 'ceiling' ? 'up' : OPP[p.facing]; }
 function rsTorchSup(c) { return c.b.java === 'redstone_torch' ? 'down' : OPP[rsP(c).facing]; }
 function rsWireLv(c) { var i = rsIdx(c); return rs.lv && rs.lv.has(i) ? rs.lv.get(i) : +rsP(c).power || 0; }
@@ -83,6 +86,7 @@ function rsWeak(x, y, z, d) {
     case 'lectern': case 'rod': case 'drail': case 'hook': return rsP(c).powered === 'true' ? 15 : 0;
     case 'tchest': return rs.open.has(rsIdx(c)) ? 1 : 0;
     case 'juke': return rsFillGet(c.x, c.y, c.z) > 0 ? 15 : 0;
+    case 'sculk': p = rsP(c); return c.b.java === 'calibrated_sculk_sensor' && d === OPP[p.facing] ? 0 : +p.power || 0;
     case 'torch': return rsP(c).lit === 'true' && d !== rsTorchSup(c) ? 15 : 0;
     case 'rblock': return 15;
     case 'repeater': p = rsP(c); return p.powered === 'true' && d === OPP[p.facing] ? 15 : 0;
@@ -103,6 +107,7 @@ function rsStrong(x, y, z, d, forWire) {
     case 'lectern': case 'drail': return d === 'down' && rsP(c).powered === 'true' ? 15 : 0;
     case 'rod': case 'hook': return d === OPP[rsP(c).facing] && rsP(c).powered === 'true' ? 15 : 0;
     case 'tchest': return d === 'down' && rs.open.has(rsIdx(c)) ? 1 : 0;
+    case 'sculk': return d === 'down' ? +rsP(c).power || 0 : 0;
     case 'torch': return d === 'up' && rsP(c).lit === 'true' ? 15 : 0;
     case 'repeater': p = rsP(c); return d === OPP[p.facing] && p.powered === 'true' ? 15 : 0;
     case 'comparator': return d === OPP[rsP(c).facing] ? rsCmpLv(c) : 0;
@@ -176,9 +181,11 @@ function rsRead(x, y, z) {
   if (!inB(x, y, z)) return -1;
   var v = gget(x, y, z); if (!v) return -1;
   var bi = cellBlock(v), b = BLOCKS[bi], j = b.java; if (bi === PRES_BI) return -1;
-  if (RS_CONT.test(j)) return rsFillGet(x, y, z);
+  if (RS_CONT.test(j)) return rsLevel(x, y, z, j); // itens (src/redstone4.js)
   var p = b.shape ? stateProps(b, cellOri(v)) : {};
   switch (j) {
+    case 'sculk_sensor': case 'calibrated_sculk_sensor': return p.sculk_sensor_phase === 'active' ? rs.skf.get(idx(x, y, z)) || 0 : 0; // frequência da última vibração
+    case 'command_block': case 'chain_command_block': case 'repeating_command_block': { var ce = rs.cmds.get(idx(x, y, z)); return ce ? Math.min(15, ce.ok) : 0; }
     case 'cake': return (7 - (+p.bites || 0)) * 2;
     case 'composter': return +p.level || 0;
     case 'cauldron': return 0;
@@ -214,6 +221,8 @@ function rsSet(x, y, z, v) {
   var old = gget(x, y, z); if (old === v) return;
   setRaw(x, y, z, v);
   rsLogCell(x, y, z, old, v); // gráfico do passo a passo (src/rsstep.js)
+  var vf = rsVibeFreq(old, v, true); if (vf) rsVibe(x, y, z, vf); // sensor de sculk (src/redstone4.js)
+  if (flowOn) fluidTouch(x, y, z); // a água e a lava em volta voltam a escorrer
   // entra no passo de desfazer da ação que causou; um relógio ligado para sempre não enche o histórico: depois de
   // 5.000 mudanças na mesma ação, as próximas não são guardadas para desfazer
   var top = histTop(); if (top && (top.rsN = (top.rsN || 0) + 1) <= 5000) top.add(idx(x, y, z), old, v);
@@ -233,10 +242,10 @@ function rsLater(dt, type, c) {
   rs.pend.set(key, 1); rs.q.push({ t: rs.gt + dt, type: type, p: [c.x, c.y, c.z], key: key });
   if (!rs.timer && !rs.paused) rs.timer = setInterval(rsTick, 50); // pausada (passo a passo): só avança nos cliques
 }
-function rsStop() { rs.q = []; rs.pend.clear(); clearInterval(rs.timer); rs.timer = 0; rs.touched = []; }
-function rsReset() { if (rsLog.on) rsLogClear(); rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); }
+function rsStop() { rs.q = []; rs.pend.clear(); clearInterval(rs.timer); rs.timer = 0; rs.touched = []; rs.skv.clear(); if (rsFx.length) rsFxClear(); }
+function rsReset() { if (rsLog.on) rsLogClear(); rsStop(); rs.cmp.clear(); rs.obs.clear(); rs.door.clear(); rs.burn.clear(); rsFill.clear(); rsFillSave = true; rsBook.clear(); rs.open.clear(); rs.trig.clear(); rs.skf.clear(); rs.cmds.clear(); rsCmdSave = true; }
 function rsTick() {
-  rs.gt++;
+  rs.gt++; rs.tickAt = performance.now();
   var due = rs.q.filter(function (e) { return e.t <= rs.gt; });
   if (due.length) rs.q = rs.q.filter(function (e) { return e.t > rs.gt; });
   rs.steps = 0;
@@ -276,6 +285,12 @@ function rsRun(e) {
     case 'rodOff': if (c.k === 'rod' && p.powered === 'true') rsProp(c, { powered: 'false' }); break;
     case 'tripOff': if (c.k === 'hook') { var ln = rsTripLine(c); (ln ? ln.all : [c]).forEach(function (t) { if (rsP(t).powered === 'true') rsProp(t, { powered: 'false' }); }); } break;
     case 'piston': if (c.k === 'piston') rsPiston(c); break;
+    case 'fire': if (c.k === 'disp' || c.k === 'crafter') rsFire(c); break;
+    case 'hop': if (c.k === 'hopper') rsHop(c); break;
+    case 'vib': if (c.k === 'sculk') rsVibArrive(c); break;
+    case 'skOff': if (c.k === 'sculk' && p.sculk_sensor_phase === 'active') { rsProp(c, { sculk_sensor_phase: 'cooldown', power: '0' }); rsLater(10, 'skCool', c); } break;
+    case 'skCool': if (c.k === 'sculk' && p.sculk_sensor_phase === 'cooldown') rsProp(c, { sculk_sensor_phase: 'inactive' }); break;
+    case 'cmd': if (c.k === 'cmd') rsCmdTick(c); break;
   }
 }
 /* Tocha: acesa se o bloco que a segura não está energizado; queimada não acende */
@@ -382,7 +397,10 @@ function rsEval(seeds) {
           } else if (!pw && p.powered === 'true') rsProp(c, { powered: 'false' });
           break;
         }
-        case 'hopper': { var lk = rsInput(c.x, c.y, c.z) > 0; if ((p.enabled === 'false') !== lk) rsProp(c, { enabled: String(!lk) }); break; }
+        case 'hopper': { var lk = rsInput(c.x, c.y, c.z) > 0; if ((p.enabled === 'false') !== lk) { rsProp(c, { enabled: String(!lk) }); if (!lk) rsLater(8, 'hop', c); } break; }
+        case 'disp': case 'crafter': rsTrigEval(c); break;
+        case 'cmd': rsCmdEval(c); break;
+        case 'sculk': if (p.sculk_sensor_phase && p.sculk_sensor_phase !== 'inactive' && !rs.pend.has('skOff' + i) && !rs.pend.has('skCool' + i)) rsLater(p.sculk_sensor_phase === 'active' ? 30 : 10, p.sculk_sensor_phase === 'active' ? 'skOff' : 'skCool', c); break; // ficou ligado num projeto salvo
         case 'day': { var dp = rsDayPow(p.inverted === 'true'); if ((+p.power || 0) !== dp) rsProp(c, { power: String(dp) }); break; }
       }
     });
@@ -463,7 +481,7 @@ function rsMoveStruct(S, dir) {
   var v = DV[dir], vals = S.move.map(function (p) { return gget(p[0], p[1], p[2]); }), fills = S.move.map(function (p) { return rsFill.get(idx(p[0], p[1], p[2])) || 0; });
   S.brk.forEach(function (p) { rsBreak(p[0], p[1], p[2]); });
   var top = histTop();
-  S.move.forEach(function (p, i) { rsSet(p[0], p[1], p[2], 0); if (fills[i]) { var fi = idx(p[0], p[1], p[2]); rsFill.delete(fi); if (top) top.add(-(RS_FILL_BASE + fi), fills[i], 0); } });
+  S.move.forEach(function (p, i) { if (rs.movedFrom) rs.movedFrom.add(p.join()); rsSet(p[0], p[1], p[2], 0); if (fills[i]) { var fi = idx(p[0], p[1], p[2]); rsFill.delete(fi); if (top) top.add(-(RS_FILL_BASE + fi), fills[i], 0); } });
   S.move.forEach(function (p, i) {
     var n = [p[0] + v[0], p[1] + v[1], p[2] + v[2]]; rsSet(n[0], n[1], n[2], vals[i]);
     if (fills[i]) { var ni = idx(n[0], n[1], n[2]), o = rsFill.get(ni) || 0; rsFill.set(ni, fills[i]); if (top) top.add(-(RS_FILL_BASE + ni), o, fills[i]); }
@@ -471,6 +489,11 @@ function rsMoveStruct(S, dir) {
   if (fills.some(Boolean)) rsFillSave = true;
 }
 function rsPiston(c) {
+  var mark = rs.touched.length; rs.movedFrom = new Set();
+  rsPiston1(c);
+  rsPopAround(rs.touched.slice(mark), rs.movedFrom); rs.movedFrom = null; // o que ficou sem apoio cai (src/redstone4.js)
+}
+function rsPiston1(c) {
   var p = rsP(c), f = p.facing, ext = p.extended === 'true', want = rsInput(c.x, c.y, c.z, f) > 0, sticky = c.b.java === 'sticky_piston';
   var v = DV[f], front = [c.x + v[0], c.y + v[1], c.z + v[2]], me = [c.x, c.y, c.z];
   if (want && !ext) {
@@ -505,9 +528,10 @@ function rsAfterBatch(b) {
   var seeds = [];
   for (var k = 0; k < b.length && seeds.length < 200000; k++) {
     var bi0 = b.i[k];
-    if (bi0 <= -RS_FILL_BASE) { seeds.push(unidx(-bi0 - RS_FILL_BASE)); continue; } // nível de conteúdo mudou
+    if (bi0 <= -RS_FILL_BASE) { var fp0 = unidx(-bi0 - RS_FILL_BASE); seeds.push(fp0); rsInvChanged(fp0); continue; } // nível de conteúdo mudou (funis em volta)
     if (bi0 < 0) continue;
     var p = unidx(bi0); seeds.push(p); rsSeen(p[0], p[1], p[2]);
+    if (b.length <= 4096) { var vf = rsVibeFreq(b.o[k], b.v[k], false); if (vf) rsVibe(p[0], p[1], p[2], vf); } // sensor de sculk ouvindo a edição
     if (rsLog.on) rsLogCell(p[0], p[1], p[2], b.o[k], b.v[k]); // gráfico do passo a passo: a mudança do usuário
     var cv0 = gat(bi0); if (rsFill.has(bi0) && (!cv0 || !RS_CONT.test(BLOCKS[cellBlock(cv0)].java))) { rsFill.delete(bi0); rsFillSave = true; } // o contêiner saiu dali
   }

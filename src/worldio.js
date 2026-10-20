@@ -76,6 +76,13 @@ function nbtPalTyped(raw) {
   }
   return o;
 }
+/* Bloco de entidade (cama, bloco de comando): número = byte; {t, v} = o tipo dado */
+function wioEntTags(ent, x, y, z) {
+  var o = { id: { t: 'string', v: ent.id }, isMovable: { t: 'byte', v: 1 } };
+  for (var k in ent) if (k !== 'id') o[k] = typeof ent[k] === 'object' ? ent[k] : { t: 'byte', v: ent[k] };
+  o.x = { t: 'int', v: x }; o.y = { t: 'int', v: y }; o.z = { t: 'int', v: z };
+  return o;
+}
 function nbtRootLE(compound) {
   var w = new MCExport.NbtWriter(true); w.u8(10); w.str(''); w.payload({ t: 'compound', v: compound }); return w.finish();
 }
@@ -323,7 +330,7 @@ function wioEntry(v, x, y, z, C) {
 async function wioGet(k) { return wio.patches.has(k) ? wio.patches.get(k) : ldbGet(wio.db, k); }
 async function wioBeds(dim, cx, cz) {
   var m = new Map(), d = await wioGet(wioKey(cx, cz, dim, 0x31));
-  if (d) try { nbtList(d).forEach(function (e) { if (e.o.id === 'Bed' && e.o.color != null) m.set(e.o.x + ',' + e.o.y + ',' + e.o.z, e.o.color); }); } catch (x) {}
+  if (d) try { m.list = nbtList(d); m.list.forEach(function (e) { if (e.o.id === 'Bed' && e.o.color != null) m.set(e.o.x + ',' + e.o.y + ',' + e.o.z, e.o.color); }); } catch (x) {}
   return m;
 }
 
@@ -450,6 +457,7 @@ async function wioLoadArea(dim, x0, z0, w, d, prog) {
     if (prog && ++n % 16 === 0) prog(n, tot);
     if (!col || !col.ok) { miss++; continue; }
     var beds = await wioBeds(dim, cx, cz);
+    rsCmdLoadWorld(beds.list, x0, D.min, z0); // comandos dos blocos de comando da área (src/redstone4.js)
     try { var d3 = await wioGet(wioKey(cx, cz, dim, 0x2b)); if (d3 && d3.length > 512) bioFromWorld(d3, a, b); } catch (e) {} // bioma de cada coluna, para mostrar
     for (var ey = 0; ey < ns; ey++) { // todas as alturas: um pedaço criado ao editar (antes só ar) também conta
       var sy = ey + ms, raw = await wioGet(wioKey(cx, cz, dim, 0x2f, sy)); if (!raw) continue;
@@ -504,13 +512,13 @@ async function wioCommit(prog) {
         var x = i >> 8, z = (i >> 4) & 15, y = i & 15, ex = (ecx << 4) + x, ey = (ecy << 4) + y, ez = (ecz << 4) + z;
         var wx = cx * 16 + x, wy = sy * 16 + y, wz = cz * 16 + z;
         var cur = gget(ex, ey, ez), base = wioBase(dec, c0, c1, i, beds, wx, wy, wz);
-        if (cur === base) continue;
+        if (cur === base && !(rs.cmds.size && rsCmdDirtyAt(ex, ey, ez))) continue; // o comando mudou: grava o bloco de entidade de novo
         var e = wioEntry(cur, ex, ey, ez), er = e.raw || e, es = wioStr(er), pi = pidx0.get(es);
         if (pi === undefined) { pi = L0.pal.length; L0.pal.push(er); pidx0.set(es, pi); }
         L0.idx[i] = pi;
         if (L1) { if (air1 < 0) { air1 = L1.pal.findIndex(function (q) { return wioCellOf(q) === 0; }); if (air1 < 0) { air1 = L1.pal.length; L1.pal.push(air); } } L1.idx[i] = air1; }
         removed.add(wx + ',' + wy + ',' + wz); hcols.add(x + ',' + z);
-        if (e.ent) added.push(nbtRootLE({ id: { t: 'string', v: e.ent.id }, isMovable: { t: 'byte', v: 1 }, color: { t: 'byte', v: e.ent.color }, x: { t: 'int', v: wx }, y: { t: 'int', v: wy }, z: { t: 'int', v: wz } }));
+        if (e.ent) added.push(nbtRootLE(wioEntTags(e.ent, wx, wy, wz)));
         ch = true; res.blocks++;
       }
       if (ch) wio.patches.set(sk, subEncode(sy, dec.layers));
@@ -950,7 +958,7 @@ async function nwBuild(name, prog) {
         if (wy < -60) e = ground[wy + 64];
         else if (ex < SX && ez < SZ && ey < SY) {
           var v = gget(ex, ey, ez);
-          if (v) { e = wioEntry(v, ex, ey, ez, C); tops[(z << 4) | x] = wy; if (e.ent) { bes.push(nbtRootLE({ id: { t: 'string', v: e.ent.id }, isMovable: { t: 'byte', v: 1 }, color: { t: 'byte', v: e.ent.color }, x: { t: 'int', v: ex }, y: { t: 'int', v: wy }, z: { t: 'int', v: ez } })); e = e.raw; } }
+          if (v) { e = wioEntry(v, ex, ey, ez, C); tops[(z << 4) | x] = wy; if (e.ent) { bes.push(nbtRootLE(wioEntTags(e.ent, ex, wy, ez))); e = e.raw; } }
         }
         if (!e) continue;
         var s = wioStr(e), pi = pmap.get(s);

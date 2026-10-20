@@ -11,7 +11,9 @@ var CW = { north: 'east', east: 'south', south: 'west', west: 'north' }, CCW = {
 
 var SP_EXTRA = { redstone_wire: ['power'], piston: ['extended'], sticky_piston: ['extended'], powered_rail: ['powered'], activator_rail: ['powered'], detector_rail: ['powered'], repeater: ['locked'],
   note_block: ['powered'], bell: ['powered'], hopper: ['enabled'],
-  lectern: ['has_book', 'powered'], tripwire_hook: ['powered'], tripwire: ['powered'], daylight_detector: ['inverted'] };
+  lectern: ['has_book', 'powered'], tripwire_hook: ['powered'], tripwire: ['powered'], daylight_detector: ['inverted'],
+  sculk_sensor: ['sculk_sensor_phase'], calibrated_sculk_sensor: ['sculk_sensor_phase'],
+  command_block: ['conditional'], chain_command_block: ['conditional'], repeating_command_block: ['conditional'] };
 ['', 'exposed_', 'weathered_', 'oxidized_'].forEach(function (o) { ['', 'waxed_'].forEach(function (w) { SP_EXTRA[w + o + 'copper_bulb'] = ['powered']; }); });
 async function loadShapes() {
   var bin = Uint8Array.from(atob(SHAPES_GZ), function (c) { return c.charCodeAt(0); });
@@ -492,6 +494,7 @@ function shapeExport(b, s, x, y, z) {
   var r = bedrockFromProps(b, o); r.j = j;
   var bm = /^(\w+?)_bed$/.exec(b.java);
   if (bm && BED_COLORS.indexOf(bm[1]) >= 0) r.ent = { id: 'Bed', color: BED_COLORS.indexOf(bm[1]) };
+  if (/command_block$/.test(b.java) && typeof rsCmdEnt === 'function' && x != null) r.ent = rsCmdEnt(x, y, z, b.java); // o comando (src/redstone4.js)
   return r;
 }
 /* Nome e estados Bedrock de um conjunto completo de propriedades Java */

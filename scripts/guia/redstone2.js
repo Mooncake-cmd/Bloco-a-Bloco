@@ -32,9 +32,7 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   await ev(`(function(){ Object.assign(cam,{yaw:1.05,pitch:0.6,dist:13,tx:5,ty:1,tz:12}); updateCamera(); requestRender(); })()`);
   await p.waitForTimeout(2500); await hide();
   await p.screenshot({ path: path.join(OUT, 'redstone-comparador.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
-  await ev(`openFill([3,1,9], BLOCKS[BY_JAVA.chest])`); await p.fill('#fillR', '9'); await p.dispatchEvent('#fillR', 'input'); await p.waitForTimeout(300);
-  await (await p.$('.dialog')).screenshot({ path: path.join(OUT, 'redstone-conteudo.jpg'), type: 'jpeg', quality: 85 });
-  await p.keyboard.press('Escape');
+  // a janela de conteúdo (redstone-conteudo.jpg) agora sai de scripts/guia/redstone4.js
   // etapa 2: lâmpadas de cobre (uma acesa ficou acesa depois do sinal), alvo acertado no centro ligando o pó e uma
   // lâmpada, bloco musical em cima de tábuas, sino e funil travado pela alavanca
   await ev(`(function(){ newWorld(20, 10, 14); rsPlayNote = function(){}; rsPlayBell = function(){};
