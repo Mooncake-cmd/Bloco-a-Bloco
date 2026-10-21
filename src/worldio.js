@@ -610,15 +610,17 @@ async function wioRestore() {
   var file = await idbDo('readonly', function (st) { return st.get('wio:file'); }).catch(function () { return null; });
   var pat = await idbDo('readonly', function (st) { return st.get('wio:patches'); }).catch(function () { return null; });
   if (!file) { wioForget(); return false; }
+  var kept = typeof tabWioTake === 'function' ? tabWioTake() : null; // o mundo já lido por esta aba (src/tabs.js)
   try {
     busy('Abrindo de novo o mundo ' + (meta.name || '') + '…', null);
-    wio = await wioOpenFile(file, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
-    (meta.pres || []).forEach(function (s) {
+    if (kept) wio = kept;
+    else wio = await wioOpenFile(file, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
+    if (!kept) (meta.pres || []).forEach(function (s) {
       var raw = unb64(s);
       if (wio.java) { var key = new TextDecoder().decode(raw); wio.presMap.set(key, wio.pres.length); wio.pres.push({ raw: raw, name: key.replace(/\[.*$/, ''), key: key }); }
       else { wio.presMap.set(wioStr(raw), wio.pres.length); wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); }
     });
-    if (pat) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
+    if (pat && !kept) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
     var A = meta.area;
     await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
     var recs = await idbDo('readonly', function (st) { return st.getAll(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () { return []; });
@@ -631,6 +633,12 @@ async function wioRestore() {
     });
     var wb = await idbDo('readonly', function (st) { return st.get('w:bio'); }).catch(function () { return null; });
     if (wb) { bioFromRecord(wb); bioPaint.forEach(function (a, k) { wio.bioEdited.add(k); }); bioSaveFlag = false; } // biomas pintados ainda não gravados no mundo
+    var fl = await idbDo('readonly', function (st) { return st.get('w:fill'); }).catch(function () { return null; });
+    if (fl) rsFillFrom(fl);
+    var cm = await idbDo('readonly', function (st) { return st.get('w:cmd'); }).catch(function () { return null; });
+    if (cm) rsCmdFrom(cm);
+    var ap = await idbDo('readonly', function (st) { return st.get('w:apoio'); }).catch(function () { return null; });
+    if (ap) { apoio = new Set(ap); apoioSave = false; }
     if (wm && wm.hotbar) { hotbar = wm.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; }); slot = wm.slot | 0; }
     worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; });
     verCounter++; dirtyAll(); renderHotbar(); renderList(); wioChip();
@@ -652,6 +660,7 @@ function wioChip() {
   var c = $('worldChip'); if (!c) return;
   c.hidden = !(wio && wio.area);
   document.body.classList.toggle('wio-on', !!(wio && wio.area));
+  if (typeof tabAutoName === 'function' && !(typeof tabs !== 'undefined' && tabs.busy && !wio)) tabAutoName(wio && wio.area ? wio.name : null, !!(wio && wio.area)); // o nome da aba
   if (c.hidden) return;
   var A = wio.area, D = wioDim(A.dim);
   $('worldTxt').innerHTML = '<b>' + esc(wio.name) + '</b> · ' + D.name + ' · X ' + A.x0 + ' a ' + (A.x0 + A.w - 1) + ', Z ' + A.z0 + ' a ' + (A.z0 + A.d - 1);
@@ -808,7 +817,7 @@ function wioArea() {
         overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-wd') === st.dim)); });
         mp = null; mask = null; bbmp = null; st.view = null; draw();
         $('wmInfo').textContent = 'Desenhando o mapa…';
-        var m = await wioMap(st.dim, function (i, n) { $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
+        var m = await wioMap(st.dim, function (i, n) { if ($('wmInfo')) $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
         if (!overlayRoot.contains(cv)) return;
         mp = m; if (!mp) { info(); return; }
         bmp = await createImageBitmap(mp.img); bbmp = await createImageBitmap(mp.bimg); fit(); setMode(bmode); info();

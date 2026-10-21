@@ -34,6 +34,16 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{display:grid;grid-template-columns:minmax(0,1fr) 308px;height:100%}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0}
+#tabbar{display:flex;align-items:flex-end;gap:2px;padding:4px 6px 0;background:var(--bg);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin;min-height:30px}
+#tabbar .tab{display:flex;align-items:center;gap:5px;max-width:200px;min-width:90px;padding:4px 4px 4px 9px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--panel-2);opacity:.72;cursor:pointer;font-size:12px;user-select:none;flex:0 1 auto}
+#tabbar .tab:hover{opacity:.9}
+#tabbar .tab.on{background:var(--panel);opacity:1;font-weight:600;position:relative;top:1px}
+#tabbar .tabnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#tabbar .tabic{font-size:11px;opacity:.8}
+#tabbar .tabx,#tabbar .tabnew{border:none;background:transparent;color:inherit;cursor:pointer;border-radius:50%;width:20px;height:20px;line-height:18px;padding:0;font-size:15px}
+#tabbar .tabx:hover,#tabbar .tabnew:hover{background:var(--line)}
+#tabbar .tabnew{font-size:18px;margin:0 0 3px 4px;flex:none}
+body.tab-busy #tabbar{pointer-events:none;opacity:.6}
 #toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:8px 8px;background:var(--panel);border-bottom:1px solid var(--line)}
 .brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
 .brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
@@ -237,7 +247,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
   .slot{width:36px;height:36px}
 }
 /* Tela limpa (Tab): só a cena 3D, a hotbar e os avisos das ferramentas; as teclas continuam valendo */
-body.clean #toolbar,body.clean #sidebar,body.clean #status{display:none}
+body.clean #tabbar,body.clean #toolbar,body.clean #sidebar,body.clean #status{display:none}
 body.clean #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
 #cleanChip{position:absolute;right:12px;top:12px;display:none;align-items:center;gap:8px;padding:5px 6px 5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px);font-size:12px;color:var(--muted);z-index:5}
 body.clean #cleanChip{display:flex}
@@ -250,6 +260,7 @@ body.clean #cleanChip{display:flex}
 
 <div id="app">
   <div id="main">
+    <div id="tabbar" role="tablist" aria-label="Abas"></div>
     <div id="toolbar" role="toolbar" aria-label="Ferramentas de construção">
       <div class="group" id="tools"></div>
       <div class="group">
@@ -2571,7 +2582,7 @@ function idb() {
 function idbDo(mode, fn) {
   return idb().then(function (db) {
     return new Promise(function (res, rej) {
-      var t = db.transaction('kv', mode), q = fn(t.objectStore('kv'));
+      var t = db.transaction('kv', mode), q = fn(tabStore(t.objectStore('kv'))); // cada aba com as suas chaves (src/tabs.js)
       t.oncomplete = function () { res(q && q.result); }; t.onerror = t.onabort = function () { rej(t.error); };
     });
   });
@@ -5298,6 +5309,166 @@ function wmBind() {
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
   cv.addEventListener('pointerleave', function () { $('wmvTip').hidden = true; });
 }
+
+/* ---------- Abas: várias construções ou mundos abertos ao mesmo tempo ---------- */
+/* Uma barra de abas em cima, como no navegador. Cada aba é um espaço de trabalho inteiro: a construção, o histórico,
+   os biomas pintados, os contêineres, os comandos, os blocos de apoio e o mundo do jogo aberto (com a área).
+   Tudo isso já fica salvo no navegador (IndexedDB) com as chaves w:, h: e wio:. Cada aba usa as dela, com um prefixo
+   (T<id>:); a aba 0 fica sem prefixo, então o que já estava salvo continua sendo a primeira aba. Trocar de aba = gravar
+   a aba atual (o salvamento automático e a sessão do mundo) e abrir a outra pelo mesmo caminho de quando a página
+   recarrega. O mundo do jogo de cada aba fica lido na memória, para a troca não ler o arquivo de novo.
+   Ficam de todas as abas: a biblioteca, os pacotes de textura, as paletas, a cópia do Ctrl+C (copiar numa aba e
+   colar na outra), a ferramenta e as preferências. A redstone e a água só andam na aba aberta. */
+var TAB_KEY = 'bloco-a-bloco-abas', TAB_WS = /^(w:|h:|wio:)/;
+var tabs = { list: [{ id: 0, name: 'Construção 1' }], cur: 0, next: 1, busy: false, wio: {} };
+try { var tb0 = JSON.parse(localStorage.getItem(TAB_KEY) || 'null'); if (tb0 && tb0.list && tb0.list.length) { tabs.list = tb0.list; tabs.cur = tb0.cur | 0; tabs.next = tb0.next || 1; } } catch (e) {}
+if (!tabs.list.some(function (t) { return t.id === tabs.cur; })) tabs.cur = tabs.list[0].id;
+function tabSaveMeta() { try { localStorage.setItem(TAB_KEY, JSON.stringify({ list: tabs.list, cur: tabs.cur, next: tabs.next })); } catch (e) {} }
+function tabCur() { return tabs.list.filter(function (t) { return t.id === tabs.cur; })[0]; }
+/* As chaves do espaço de trabalho da aba atual (as outras ficam iguais) */
+function tabMapKey(k, id) { return (id == null ? tabs.cur : id) && typeof k === 'string' && TAB_WS.test(k) ? 'T' + (id == null ? tabs.cur : id) + ':' + k : k; }
+function tabMapQuery(q) {
+  if (q && typeof q === 'object' && 'lower' in q && typeof q.lower === 'string') return IDBKeyRange.bound(tabMapKey(q.lower), tabMapKey(q.upper), q.lowerOpen, q.upperOpen);
+  return tabMapKey(q);
+}
+/* idbDo entrega a loja por aqui: na aba 0, a própria; nas outras, uma que põe o prefixo */
+function tabStore(st) {
+  if (!tabs.cur) return st;
+  return {
+    put: function (v, k) { return st.put(v, tabMapKey(k)); },
+    get: function (k) { return st.get(tabMapKey(k)); },
+    delete: function (k) { return st.delete(tabMapQuery(k)); },
+    getAll: function (q, n) { return st.getAll(tabMapQuery(q), n); }
+  };
+}
+/* Apaga tudo o que a aba id guardou */
+function tabDropData(id) {
+  return idb().then(function (db) {
+    return new Promise(function (res) {
+      var t = db.transaction('kv', 'readwrite'), st = t.objectStore('kv');
+      if (id) st.delete(IDBKeyRange.bound('T' + id + ':', 'T' + id + ':￿'));
+      else ['w:', 'h:', 'wio:'].forEach(function (p) { st.delete(IDBKeyRange.bound(p, p + '￿')); });
+      t.oncomplete = t.onerror = t.onabort = function () { res(); };
+    });
+  }).catch(function () {});
+}
+
+/* ---------- Barra ---------- */
+function tabRender() {
+  var bar = $('tabbar'); if (!bar) return;
+  bar.innerHTML = tabs.list.map(function (t) {
+    var on = t.id === tabs.cur;
+    return '<div class="tab' + (on ? ' on' : '') + '" data-tab="' + t.id + '" title="' + esc(t.name) + (on ? ' (dois cliques: renomear)' : '') + '">' +
+      '<span class="tabic">' + (t.world ? '🌍' : '▦') + '</span><span class="tabnm">' + esc(t.name) + '</span>' +
+      '<button class="tabx" data-tabx="' + t.id + '" title="Fechar a aba" aria-label="Fechar a aba">×</button></div>';
+  }).join('') + '<button class="tabnew" id="tabNew" title="Nova aba (uma construção nova)" aria-label="Nova aba">+</button>';
+}
+function tabBind() {
+  var bar = $('tabbar');
+  bar.addEventListener('click', function (e) {
+    var x = e.target.closest('[data-tabx]'); if (x) { e.stopPropagation(); tabClose(+x.getAttribute('data-tabx')); return; }
+    if (e.target.closest('#tabNew')) { tabNew(); return; }
+    var t = e.target.closest('[data-tab]'); if (t) tabSwitch(+t.getAttribute('data-tab'));
+  });
+  bar.addEventListener('dblclick', function (e) {
+    var t = e.target.closest('[data-tab]'); if (!t || +t.getAttribute('data-tab') !== tabs.cur || e.target.closest('[data-tabx]')) return;
+    tabRename();
+  });
+  bar.addEventListener('auxclick', function (e) { var t = e.target.closest('[data-tab]'); if (t && e.button === 1) { e.preventDefault(); tabClose(+t.getAttribute('data-tab')); } }); // botão do meio fecha, como no navegador
+}
+function tabRename() {
+  var t = tabCur();
+  openDialog('<h3>Nome da aba</h3><label>Nome<input type="text" id="tabNm" maxlength="40"></label><div class="row"><button class="btn primary" id="tabOk">Usar</button><button class="btn" id="tabNo">Cancelar</button></div>', function () {
+    $('tabNm').value = t.name; $('tabNm').select();
+    var go = function () { var v = $('tabNm').value.trim(); if (v) { t.name = v; t.auto = false; tabSaveMeta(); tabRender(); } closeDialog(); };
+    $('tabOk').onclick = go; $('tabNo').onclick = closeDialog; $('tabNm').addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+  });
+}
+/* Nome automático: o do arquivo aberto ou o do mundo, enquanto a aba tiver o nome padrão */
+function tabAutoName(nm, world) {
+  var t = tabCur(); if (!t) return;
+  if (world != null) t.world = !!world;
+  if (nm && (t.auto !== false)) t.name = String(nm).replace(/\.(json|mcstructure|schem|litematic|mcworld|zip)$/i, '').slice(0, 40);
+  tabSaveMeta(); tabRender();
+}
+
+/* ---------- Trocar, abrir e fechar ---------- */
+function tabWait(cond, ms) { return new Promise(function (res) { var t0 = Date.now(); (function k() { if (cond() || Date.now() - t0 > ms) res(); else setTimeout(k, 40); })(); }); }
+/* Grava tudo da aba atual e para o que está andando */
+async function tabFlush() {
+  if (walk) walkStop();
+  if (typeof wm !== 'undefined' && wm) closeWorldMap();
+  if (overlayRoot.firstChild) closeDialog();
+  rsStop(); fluidStop();
+  if (typeof projClear === 'function') projClear();
+  var t = tabCur(); if (t) t.cam = { tx: cam.tx, ty: cam.ty, tz: cam.tz, dist: cam.dist, yaw: cam.yaw, pitch: cam.pitch };
+  autosave();
+  await tabWait(function () { return !autosaveBusy && !autosaveAgain; }, 15000);
+  if (worldDirty.size || (hist && hist.dirty)) { autosave(); await tabWait(function () { return !autosaveBusy && !autosaveAgain; }, 15000); }
+  if (wio) { await wioSaveSession(false); tabs.wio[tabs.cur] = wio; }
+}
+/* Abre a aba atual a partir do que ela guardou (como ao recarregar a página) */
+async function tabLoad() {
+  wio = null; sel = null; selA = null; pasting = false; anchor = null; anchor2 = null;
+  var ok = false;
+  try { ok = await wioRestore(); } catch (e) { ok = false; }
+  if (!ok) { busy('Abrindo a aba…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
+  if (ok) { try { await histLoad(); } catch (e) {} }
+  if (!ok) { newWorld(32, 32, 32); dirtyAll(); }
+  var t = tabCur();
+  if (t && t.cam) { Object.assign(cam, t.cam); updateCamera(); } else resetCamera();
+  verCounter++; changed(); updateStatus(); renderList(); renderHotbar(); wioChip(); histUI(); selRefresh(); updatePreview();
+  rsDayUpdate(true);
+  if (t) t.world = !!wio;
+  tabSaveMeta(); tabRender();
+}
+async function tabSwitch(id, pre) {
+  if (tabs.busy || id === tabs.cur || !tabs.list.some(function (t) { return t.id === id; })) return;
+  tabs.busy = true; document.body.classList.add('tab-busy');
+  try {
+    if (pre) await pre();
+    await tabFlush();
+    tabs.cur = id; tabSaveMeta(); tabRender();
+    await tabLoad();
+  } finally { tabs.busy = false; document.body.classList.remove('tab-busy'); }
+}
+async function tabNew() {
+  if (tabs.busy) return;
+  var id = tabs.next++, n = 1;
+  while (tabs.list.some(function (t) { return t.name === 'Construção ' + n; })) n++;
+  tabs.list.push({ id: id, name: 'Construção ' + n });
+  await tabSwitch(id, function () { return tabDropData(id); }); // começa vazia (se sobrou algo de uma aba antiga com o mesmo número)
+  toast('Aba nova: uma construção vazia. Abra um projeto, uma estrutura ou um mundo do jogo nela pelo menu Projeto. As outras abas continuam como estavam.', 6000);
+}
+function tabClose(id) {
+  if (tabs.busy) return;
+  var t = tabs.list.filter(function (q) { return q.id === id; })[0]; if (!t) return;
+  var now = Date.now();
+  if (tabClose.ask !== id || now - tabClose.t > 4000) { tabClose.ask = id; tabClose.t = now; toast('Clique de novo no × em até 4 s para fechar “' + t.name + '”: o que está nela (e não foi salvo em arquivo ou exportado) se perde.', 5000); return; }
+  tabClose.ask = null;
+  (async function () {
+    tabs.busy = true;
+    try {
+      var i = tabs.list.indexOf(t);
+      if (tabs.list.length === 1) { // a última: fica uma vazia no lugar
+        rsStop(); fluidStop(); delete tabs.wio[id]; wio = null; await tabDropData(id);
+        t.name = 'Construção 1'; t.auto = true; t.cam = null; t.world = false; tabs.cur = id; tabSaveMeta();
+        newWorld(32, 32, 32); dirtyAll(); resetCamera(); changed(); updateStatus(); wioChip(); worldClear = true; autosave(); tabRender();
+        return;
+      }
+      tabs.list.splice(i, 1); delete tabs.wio[id];
+      if (id === tabs.cur) {
+        rsStop(); fluidStop(); wio = null;
+        tabs.cur = tabs.list[Math.min(i, tabs.list.length - 1)].id; tabSaveMeta(); tabRender();
+        await tabDropData(id);
+        await tabLoad();
+      } else { tabSaveMeta(); tabRender(); await tabDropData(id); }
+      toast('Aba fechada.');
+    } finally { tabs.busy = false; }
+  })();
+}
+/* O mundo já lido desta aba (para wioRestore não ler o arquivo de novo) */
+function tabWioTake() { var w = tabs.wio[tabs.cur] || null; delete tabs.wio[tabs.cur]; return w; }
 
 /* ---------- Biblioteca de construções ---------- */
 /* Guarda construções com nome no navegador (IndexedDB, chaves 'lib:<id>'), separadas do projeto: valem para qualquer
@@ -10064,15 +10235,17 @@ async function wioRestore() {
   var file = await idbDo('readonly', function (st) { return st.get('wio:file'); }).catch(function () { return null; });
   var pat = await idbDo('readonly', function (st) { return st.get('wio:patches'); }).catch(function () { return null; });
   if (!file) { wioForget(); return false; }
+  var kept = typeof tabWioTake === 'function' ? tabWioTake() : null; // o mundo já lido por esta aba (src/tabs.js)
   try {
     busy('Abrindo de novo o mundo ' + (meta.name || '') + '…', null);
-    wio = await wioOpenFile(file, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
-    (meta.pres || []).forEach(function (s) {
+    if (kept) wio = kept;
+    else wio = await wioOpenFile(file, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
+    if (!kept) (meta.pres || []).forEach(function (s) {
       var raw = unb64(s);
       if (wio.java) { var key = new TextDecoder().decode(raw); wio.presMap.set(key, wio.pres.length); wio.pres.push({ raw: raw, name: key.replace(/\[.*$/, ''), key: key }); }
       else { wio.presMap.set(wioStr(raw), wio.pres.length); wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); }
     });
-    if (pat) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
+    if (pat && !kept) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
     var A = meta.area;
     await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
     var recs = await idbDo('readonly', function (st) { return st.getAll(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () { return []; });
@@ -10085,6 +10258,12 @@ async function wioRestore() {
     });
     var wb = await idbDo('readonly', function (st) { return st.get('w:bio'); }).catch(function () { return null; });
     if (wb) { bioFromRecord(wb); bioPaint.forEach(function (a, k) { wio.bioEdited.add(k); }); bioSaveFlag = false; } // biomas pintados ainda não gravados no mundo
+    var fl = await idbDo('readonly', function (st) { return st.get('w:fill'); }).catch(function () { return null; });
+    if (fl) rsFillFrom(fl);
+    var cm = await idbDo('readonly', function (st) { return st.get('w:cmd'); }).catch(function () { return null; });
+    if (cm) rsCmdFrom(cm);
+    var ap = await idbDo('readonly', function (st) { return st.get('w:apoio'); }).catch(function () { return null; });
+    if (ap) { apoio = new Set(ap); apoioSave = false; }
     if (wm && wm.hotbar) { hotbar = wm.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; }); slot = wm.slot | 0; }
     worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; });
     verCounter++; dirtyAll(); renderHotbar(); renderList(); wioChip();
@@ -10106,6 +10285,7 @@ function wioChip() {
   var c = $('worldChip'); if (!c) return;
   c.hidden = !(wio && wio.area);
   document.body.classList.toggle('wio-on', !!(wio && wio.area));
+  if (typeof tabAutoName === 'function' && !(typeof tabs !== 'undefined' && tabs.busy && !wio)) tabAutoName(wio && wio.area ? wio.name : null, !!(wio && wio.area)); // o nome da aba
   if (c.hidden) return;
   var A = wio.area, D = wioDim(A.dim);
   $('worldTxt').innerHTML = '<b>' + esc(wio.name) + '</b> · ' + D.name + ' · X ' + A.x0 + ' a ' + (A.x0 + A.w - 1) + ', Z ' + A.z0 + ' a ' + (A.z0 + A.d - 1);
@@ -10262,7 +10442,7 @@ function wioArea() {
         overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-wd') === st.dim)); });
         mp = null; mask = null; bbmp = null; st.view = null; draw();
         $('wmInfo').textContent = 'Desenhando o mapa…';
-        var m = await wioMap(st.dim, function (i, n) { $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
+        var m = await wioMap(st.dim, function (i, n) { if ($('wmInfo')) $('wmInfo').textContent = 'Desenhando o mapa: ' + i + ' de ' + n + ' chunks'; });
         if (!overlayRoot.contains(cv)) return;
         mp = m; if (!mp) { info(); return; }
         bmp = await createImageBitmap(mp.img); bbmp = await createImageBitmap(mp.bimg); fit(); setMode(bmode); info();
@@ -11319,7 +11499,8 @@ function openHelp() {
     '<span>Bloco de apoio (<kbd>Z</kbd>)</span><span>Põe um vidro bem na sua frente, no meio da tela, a uns 4 blocos da câmera (em primeira pessoa, embaixo dos pés), para começar a construir no alto sem subir um pilar. Não vai para a exportação; Projeto → Remover blocos de apoio tira todos.</span>' +
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span>' +
-    '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span></div>' +
+    '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
+    '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
     '<div class="row"><button class="btn primary" id="hClose">Entendi</button></div>',
@@ -11356,6 +11537,7 @@ $('worldArea').addEventListener('click', function () { wioArea(); });
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
   var f = e.target.files && e.target.files[0]; if (!f) return;
+  tabAutoName(f.name, false); // a aba fica com o nome do arquivo
   if (/\.(mcstructure|schem|litematic)$/i.test(f.name)) {
     e.target.value = '';
     busy('Abrindo ' + f.name + '…', null);
@@ -11600,6 +11782,7 @@ async function start() {
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   initThree(); bindCanvas(); renderIcons();
+  tabRender(); tabBind();
   loadPacks().then(function () { if (packs.length) applyTextures(); });
   var ok = false;
   if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }

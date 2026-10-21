@@ -9,7 +9,7 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.addInitScript(s => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', '1'); localStorage.setItem('bloco-a-bloco-v1', s); localStorage.removeItem('bloco-a-bloco-tex'); } }, JSON.stringify(proj));
-  await p.goto(URL); await p.waitForTimeout(2500);
+  await p.goto(URL); await p.addStyleTag({ content: 'body:not(.cap-abas) #tabbar{display:none}' }); await p.waitForTimeout(2500); // as capturas recortam a partir da barra de ferramentas; a visão geral mostra a barra das abas
   const cam = async c => { await p.evaluate(c => { Object.assign(window.__bab.cam, c); window.__bab.update(); }, c); await p.waitForTimeout(900); };
   const shot = async (name, clip, rects) => { await p.screenshot({ path: path.join(OUT, name + '.jpg'), type: 'jpeg', quality: 82, clip: clip || undefined }); if (rects) meta[name] = { clip: clip || { x: 0, y: 0, width: 1280, height: 800 }, rects }; console.log('ok', name); };
   const hideToast = () => p.evaluate(() => document.getElementById('toast').classList.remove('show'));
@@ -22,7 +22,9 @@ const rectsOf = async (p, sels) => p.evaluate(sels => { const o = {}; for (const
   await shot('carregando', { x: 340, y: 0, width: 600, height: 160 });
   await p.waitForFunction(() => /blocos com textura/.test(document.getElementById('toast').textContent), null, { timeout: 300000 });
   await p.waitForTimeout(1500); await hideToast(); await cam(VIEW);
-  await shot('visao-geral', null, await rectsOf(p, { tools: '#tools', undo: '#undo', layer: '#layerBtn', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary', view: '#viewport', hotbar: '#hotbar', status: '#status', search: '#search', chips: '#chips', list: '#list' }));
+  await p.evaluate(() => document.body.classList.add('cap-abas')); await cam(VIEW);
+  await shot('visao-geral', null, await rectsOf(p, { tabs: '#tabbar', tools: '#tools', undo: '#undo', layer: '#layerBtn', mat: '#matBtn', exp: '#exportBtn', menu: '#menu summary', view: '#viewport', hotbar: '#hotbar', status: '#status', search: '#search', chips: '#chips', list: '#list' }));
+  await p.evaluate(() => document.body.classList.remove('cap-abas')); await cam(VIEW);
   await cam({ yaw: 0.6, pitch: 0.42, dist: 26, tx: 12, ty: 3, tz: 12 }); await hideToast();
   await shot('medidas', { x: 0, y: 54, width: 972, height: 718 });
   await cam(VIEW);

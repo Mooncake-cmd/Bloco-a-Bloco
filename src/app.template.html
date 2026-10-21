@@ -34,6 +34,16 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{display:grid;grid-template-columns:minmax(0,1fr) 308px;height:100%}
 #main{display:flex;flex-direction:column;min-width:0;min-height:0}
+#tabbar{display:flex;align-items:flex-end;gap:2px;padding:4px 6px 0;background:var(--bg);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin;min-height:30px}
+#tabbar .tab{display:flex;align-items:center;gap:5px;max-width:200px;min-width:90px;padding:4px 4px 4px 9px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;background:var(--panel-2);opacity:.72;cursor:pointer;font-size:12px;user-select:none;flex:0 1 auto}
+#tabbar .tab:hover{opacity:.9}
+#tabbar .tab.on{background:var(--panel);opacity:1;font-weight:600;position:relative;top:1px}
+#tabbar .tabnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#tabbar .tabic{font-size:11px;opacity:.8}
+#tabbar .tabx,#tabbar .tabnew{border:none;background:transparent;color:inherit;cursor:pointer;border-radius:50%;width:20px;height:20px;line-height:18px;padding:0;font-size:15px}
+#tabbar .tabx:hover,#tabbar .tabnew:hover{background:var(--line)}
+#tabbar .tabnew{font-size:18px;margin:0 0 3px 4px;flex:none}
+body.tab-busy #tabbar{pointer-events:none;opacity:.6}
 #toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:8px 8px;background:var(--panel);border-bottom:1px solid var(--line)}
 .brand{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.1}
 .brand small{font-family:var(--font-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
@@ -237,7 +247,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
   .slot{width:36px;height:36px}
 }
 /* Tela limpa (Tab): só a cena 3D, a hotbar e os avisos das ferramentas; as teclas continuam valendo */
-body.clean #toolbar,body.clean #sidebar,body.clean #status{display:none}
+body.clean #tabbar,body.clean #toolbar,body.clean #sidebar,body.clean #status{display:none}
 body.clean #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
 #cleanChip{position:absolute;right:12px;top:12px;display:none;align-items:center;gap:8px;padding:5px 6px 5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px);font-size:12px;color:var(--muted);z-index:5}
 body.clean #cleanChip{display:flex}
@@ -250,6 +260,7 @@ body.clean #cleanChip{display:flex}
 
 <div id="app">
   <div id="main">
+    <div id="tabbar" role="tablist" aria-label="Abas"></div>
     <div id="toolbar" role="toolbar" aria-label="Ferramentas de construção">
       <div class="group" id="tools"></div>
       <div class="group">
@@ -2034,7 +2045,7 @@ function idb() {
 function idbDo(mode, fn) {
   return idb().then(function (db) {
     return new Promise(function (res, rej) {
-      var t = db.transaction('kv', mode), q = fn(t.objectStore('kv'));
+      var t = db.transaction('kv', mode), q = fn(tabStore(t.objectStore('kv'))); // cada aba com as suas chaves (src/tabs.js)
       t.oncomplete = function () { res(q && q.result); }; t.onerror = t.onabort = function () { rej(t.error); };
     });
   });
@@ -2123,6 +2134,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SHAPES2_JS%%*/
 /*%%TUBES_JS%%*/
 /*%%WMAP_JS%%*/
+/*%%TABS_JS%%*/
 /*%%LIBRARY_JS%%*/
 /*%%WALK_JS%%*/
 /*%%GHOST_JS%%*/
@@ -2492,7 +2504,8 @@ function openHelp() {
     '<span>Bloco de apoio (<kbd>Z</kbd>)</span><span>Põe um vidro bem na sua frente, no meio da tela, a uns 4 blocos da câmera (em primeira pessoa, embaixo dos pés), para começar a construir no alto sem subir um pilar. Não vai para a exportação; Projeto → Remover blocos de apoio tira todos.</span>' +
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span>' +
-    '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span></div>' +
+    '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
+    '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
     '<div class="row"><button class="btn primary" id="hClose">Entendi</button></div>',
@@ -2529,6 +2542,7 @@ $('worldArea').addEventListener('click', function () { wioArea(); });
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
   var f = e.target.files && e.target.files[0]; if (!f) return;
+  tabAutoName(f.name, false); // a aba fica com o nome do arquivo
   if (/\.(mcstructure|schem|litematic)$/i.test(f.name)) {
     e.target.value = '';
     busy('Abrindo ' + f.name + '…', null);
@@ -2773,6 +2787,7 @@ async function start() {
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   initThree(); bindCanvas(); renderIcons();
+  tabRender(); tabBind();
   loadPacks().then(function () { if (packs.length) applyTextures(); });
   var ok = false;
   if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }
