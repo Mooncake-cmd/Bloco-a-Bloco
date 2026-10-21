@@ -1,4 +1,4 @@
-// Capturas do mapa do mundo para o guia: node scripts/guia/mapa.js <url do editor> <pacote Bedrock .zip> <mundo .mcworld gerado pelo jogo> <pasta de saída>
+// Capturas do mapa do mundo (e da área livre na janela de área) para o guia: node scripts/guia/mapa.js <url do editor> <pacote Bedrock .zip> <mundo .mcworld gerado pelo jogo> <pasta de saída>
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
 const [URL, PACK, WORLD, OUT] = process.argv.slice(2);
@@ -30,5 +30,13 @@ const [URL, PACK, WORLD, OUT] = process.argv.slice(2);
   await p.mouse.move(820, 430); await p.mouse.move(822, 432); await hide(); await p.waitForTimeout(400);
   await p.screenshot({ path: path.join(OUT, 'mapa-biomas.jpg'), type: 'jpeg', quality: 85 });
   console.log('3', await ev(`$('wmvTip').textContent`), errs);
+  // 4. a janela de área com a área livre desenhada
+  await p.keyboard.press('Escape'); await ev('wioArea()'); await p.waitForTimeout(1500);
+  await p.selectOption('#wmS', 'free'); await p.waitForTimeout(200);
+  const r = await p.evaluate(() => { const c = document.getElementById('wmCv').getBoundingClientRect(); return [c.left, c.top, c.width, c.height]; });
+  await p.mouse.move(r[0] + r[2] * 0.42, r[1] + r[3] * 0.3); await p.mouse.down(); await p.mouse.move(r[0] + r[2] * 0.7, r[1] + r[3] * 0.62, { steps: 8 }); await p.mouse.up();
+  await hide(); await p.waitForTimeout(300);
+  await (await p.$('.dialog')).screenshot({ path: path.join(OUT, 'mundo-livre.jpg'), type: 'jpeg', quality: 85 });
+  console.log('4', await p.textContent('#wmInfo'));
   await b.close();
 })();

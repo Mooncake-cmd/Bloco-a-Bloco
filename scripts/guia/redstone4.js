@@ -1,4 +1,4 @@
-// Capturas da etapa 4 da redstone para o guia (sensor de sculk, ejetor/liberador/funil, bloco de comando, janela de conteúdo):
+// Capturas da etapa 4 da redstone para o guia (sensor de sculk, ejetor/liberador/funil, bloco de comando, janela de conteúdo, força do pó):
 // node scripts/guia/redstone4.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
@@ -54,5 +54,13 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   await ev(`$('cmdRun').click()`); await p.waitForTimeout(300);
   dlg = await p.$('.dialog'); await dlg.screenshot({ path: path.join(OUT, 'redstone-comando.jpg'), type: 'jpeg', quality: 85 });
   console.log('comando', await ev(`$('cmdOut').textContent`), await ev(`cellName(gget(10,3,14))`), errs);
+  // 5. a força do pó: uma linha com um ramal e um repetidor, os números ligados
+  await p.click('#cmdNo'); await clear();
+  await build([[4, 1, 12, 'lever[face=floor,facing=north]'], ...[5, 6, 7, 8, 9, 10, 11, 12, 13].map(function (x) { return [x, 1, 12, 'redstone_wire']; }), [9, 1, 13, 'redstone_wire'], [9, 1, 14, 'redstone_wire'], [9, 1, 15, 'redstone_wire'],
+    [14, 1, 12, 'repeater[facing=west]'], [15, 1, 12, 'redstone_wire'], [16, 1, 12, 'redstone_wire'], [17, 1, 12, 'redstone_wire'], [18, 1, 12, 'redstone_lamp']]);
+  await ev(`(function(){ setRsNums(true); Object.assign(cam, { yaw: 0.2, pitch: 0.85, dist: 13, tx: 11, ty: 1, tz: 13 }); updateCamera(); requestRender(); })()`);
+  await ev(`useAt([4, 1, 12], false, null)`); await p.waitForTimeout(900); await hide();
+  await p.screenshot({ path: path.join(OUT, 'redstone-forca.jpg'), type: 'jpeg', quality: 85, clip: { x: 0, y: 54, width: 972, height: 718 } });
+  await ev('setRsNums(false)');
   await b.close();
 })();

@@ -289,6 +289,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="cleanBtn">Tela limpa (Tab)</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
+          <button class="tbtn txt" id="rsNumBtn">Força do pó de redstone: não</button>
           <button class="tbtn txt" id="rsSndBtn">Sons da redstone: sim</button>
           <button class="tbtn txt" id="rsStepBtn">Redstone passo a passo…</button>
           <button class="tbtn txt" id="rsTimeBtn">Hora do dia: 12:00…</button>
@@ -8062,6 +8063,56 @@ function rsPopAround(cells, moved) {
 }
 function rsCmdDirtyAt(x, y, z) { var e = rs.cmds.get(idx(x, y, z)); return !!(e && e.dirty); }
 
+/* ---------- Força do pó de redstone na tela ---------- */
+/* Projeto → Força do pó: sim/não. Em cada pó, o número da força (0 a 15) deitado no bloco, virado para quem olha
+   (gira de 90 em 90 graus com a câmera). Um InstancedMesh por número; refeito quando a construção muda (só os chunks
+   que têm pó são percorridos) ou quando a câmera vira para outro lado. Respeita a Camada. */
+var rsNum = { on: false, key: null, meshes: [], tex: [], q: 0 };
+try { rsNum.on = localStorage.getItem('bloco-a-bloco-rsnum') === '1'; } catch (e) {}
+function rsNumTex(n) {
+  if (rsNum.tex[n]) return rsNum.tex[n];
+  var c = document.createElement('canvas'); c.width = c.height = 64; var g = c.getContext('2d');
+  g.font = 'bold ' + (n > 9 ? 40 : 46) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 8; g.strokeStyle = 'rgba(20,4,4,.95)'; g.strokeText(String(n), 32, 35);
+  g.fillStyle = n ? 'rgb(255,' + Math.round(150 + n * 7) + ',' + Math.round(120 + n * 9) + ')' : '#b9b9b9'; g.fillText(String(n), 32, 35);
+  var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.anisotropy = 4;
+  return (rsNum.tex[n] = t);
+}
+function rsNumClear() { rsNum.meshes.forEach(function (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }); rsNum.meshes = []; }
+function updateRsNums() {
+  if (!scene) return;
+  var yaw = walk ? walk.yaw : cam.yaw, q = ((Math.round(yaw / (Math.PI / 2)) % 4) + 4) % 4;
+  var key = rsNum.on ? verCounter + '|' + q + '|' + (layerOn ? layerY : -1) + '|' + SX : null;
+  if (key === rsNum.key) return;
+  rsNum.key = key; rsNumClear();
+  if (!rsNum.on) return;
+  var WI = BY_JAVA.redstone_wire, lists = []; for (var n = 0; n <= 15; n++) lists.push([]);
+  var total = 0;
+  W.forEach(function (ch) {
+    var pal = ch.d ? ch.pal : [ch.u];
+    if (!pal.some(function (v) { return v && cellBlock(v) === WI; })) return;
+    var x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
+    for (var o = 0; o < 4096 && total < 60000; o++) {
+      var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (!v || cellBlock(v) !== WI) continue;
+      var y = y0 + (o >> 8); if (layerOn && y > layerY) continue;
+      lists[+stateProps(BLOCKS[WI], cellOri(v)).power || 0].push(x0 + (o & 15), y, z0 + ((o >> 4) & 15)); total++;
+    }
+  });
+  var d = new THREE.Object3D(); d.rotation.order = 'YXZ'; d.rotation.set(-Math.PI / 2, q * Math.PI / 2, 0);
+  lists.forEach(function (L, n) {
+    if (!L.length) return;
+    var m = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: rsNumTex(n), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }), L.length / 3);
+    for (var k = 0; k < L.length; k += 3) { d.position.set(L[k] + 0.5, L[k + 1] + 0.075, L[k + 2] + 0.5); d.updateMatrix(); m.setMatrixAt(k / 3, d.matrix); }
+    m.instanceMatrix.needsUpdate = true; m.renderOrder = 7; m.frustumCulled = false;
+    scene.add(m); rsNum.meshes.push(m);
+  });
+}
+function setRsNums(on) {
+  rsNum.on = on; try { localStorage.setItem('bloco-a-bloco-rsnum', on ? '1' : '0'); } catch (e) {}
+  var b = $('rsNumBtn'); if (b) b.textContent = 'Força do pó de redstone: ' + (on ? 'sim' : 'não');
+  rsNum.key = null; requestRender();
+}
+
 /* ---------- Lançar: flecha, flecha em chamas, tridente, bola de neve e ovo ---------- */
 /* A ferramenta Lançar (W) atira do ponto de vista da câmera na direção do ponteiro; em primeira pessoa, Q atira na
    direção da mira. A física é a do jogo (Java, por tique, 20 por segundo):
@@ -10109,7 +10160,9 @@ function wioArea() {
   }
   var h0 = at ? [at.x, at.z] : home(st.dim); st.cx = h0[0]; st.cz = h0[1];
   var tabs = WIO_DIMS.map(function (D) { return '<button data-wd="' + D.id + '"' + (wio.dims[D.id].size ? '' : ' disabled') + '>' + D.name + '</button>'; }).join('');
-  var sizes = [64, 128, 192, 256, 320, 384, 448, 512].map(function (s) { return '<option value="' + s + '">' + s + ' × ' + s + '</option>'; }).join('');
+  var sizes = [64, 128, 192, 256, 320, 384, 448, 512].map(function (s) { return '<option value="' + s + '">' + s + ' × ' + s + '</option>'; }).join('') + '<option value="free">Área livre (arrastar no mapa)</option>';
+  // área livre: um retângulo qualquer, desenhado no mapa ou digitado (fica para a próxima vez)
+  st.free = wioArea.free && wioArea.free.dim === st.dim && !at ? wioArea.free : null;
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
     '<div class="wtabs mbtns">' + tabs + '</div>' +
     '<div class="wmap"><canvas id="wmCv"></canvas><div class="wzoom"><button id="wmIn" title="Aproximar">+</button><button id="wmOut" title="Afastar">−</button></div></div>' +
@@ -10118,6 +10171,8 @@ function wioArea() {
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button><button class="btn" id="wmBig" title="O mundo inteiro em tela cheia, com zoom de verdade, biomas, grade dos chunks e as coordenadas do Nether">Mapa em tela cheia</button></div>' +
+    '<div class="row" id="wmFreeRow" hidden><label>De X<input type="number" id="wmFx0"></label><label>Z<input type="number" id="wmFz0"></label><label>Até X<input type="number" id="wmFx1"></label><label>Z<input type="number" id="wmFz1"></label>' +
+    '<span class="pen">Arraste no mapa para desenhar a área (o botão direito move o mapa; um clique leva a área até ali). Ela se ajusta aos chunks; até ' + WIO_MAX + ' blocos de cada lado.</span></div>' +
     '<div class="info" id="wmInfo"></div>' +
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
@@ -10134,17 +10189,31 @@ function wioArea() {
       };
       $('wmModeT').onclick = function () { setMode(false); }; $('wmModeB').onclick = function () { setMode(true); };
       $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
-      $('wmS').value = String(st.size);
+      $('wmS').value = st.free ? 'free' : String(st.size); $('wmFreeRow').hidden = !st.free;
       $('wmNo').onclick = closeDialog;
       $('wmBig').onclick = function () { closeDialog(); openWorldMap(); };
       function area() {
+        if (st.free) { // os cantos do retângulo, ajustados aos chunks (cada lado entre 16 e WIO_MAX)
+          var F = st.free, ax = Math.floor(Math.min(F.x0, F.x1) / 16) * 16, az = Math.floor(Math.min(F.z0, F.z1) / 16) * 16;
+          var w = Math.max(16, Math.min(WIO_MAX, Math.ceil((Math.max(F.x0, F.x1) + 1) / 16) * 16 - ax)), d = Math.max(16, Math.min(WIO_MAX, Math.ceil((Math.max(F.z0, F.z1) + 1) / 16) * 16 - az));
+          return [ax, az, w, d];
+        }
         var s = st.size, x0 = Math.round((st.cx - s / 2) / 16) * 16, z0 = Math.round((st.cz - s / 2) / 16) * 16;
         return [x0, z0, s, s];
+      }
+      function freeTo() { // leva a área livre (mesmo tamanho) para o centro st.cx, st.cz
+        if (!st.free) return;
+        var fa = area(), nx = Math.round((st.cx - fa[2] / 2) / 16) * 16, nz = Math.round((st.cz - fa[3] / 2) / 16) * 16; st.free = { dim: st.dim, x0: nx, z0: nz, x1: nx + fa[2] - 1, z1: nz + fa[3] - 1 };
+      }
+      function freeSync() { // campos dos cantos e o centro a partir do retângulo
+        var a = area(); wioArea.free = st.free; st.cx = a[0] + a[2] / 2; st.cz = a[1] + a[3] / 2;
+        [['wmFx0', a[0]], ['wmFz0', a[1]], ['wmFx1', a[0] + a[2] - 1], ['wmFz1', a[1] + a[3] - 1]].forEach(function (q) { if (document.activeElement !== $(q[0])) $(q[0]).value = q[1]; });
       }
       function info() {
         var a = area(), D = wioDim(st.dim), cols = 0, ok = 0;
         for (var x = a[0] >> 4; x < (a[0] + a[2]) >> 4; x++) for (var z = a[1] >> 4; z < (a[1] + a[3]) >> 4; z++) { cols++; var c = wio.dims[st.dim].get(x + ',' + z); if (c && c.ok) ok++; }
-        $('wmInfo').innerHTML = D.name + ': X ' + a[0] + ' a ' + (a[0] + a[2] - 1) + ', Z ' + a[1] + ' a ' + (a[1] + a[3] - 1) + ', altura ' + D.min + ' a ' + (D.min + D.h - 1) +
+        if (st.free) freeSync();
+        $('wmInfo').innerHTML = D.name + ': X ' + a[0] + ' a ' + (a[0] + a[2] - 1) + ', Z ' + a[1] + ' a ' + (a[1] + a[3] - 1) + ', altura ' + D.min + ' a ' + (D.min + D.h - 1) + (st.free ? ' (' + a[2] + ' × ' + a[3] + ')' : '') +
           '<br>' + ok + ' de ' + cols + ' chunks já gerados pelo jogo' + (ok < cols ? ' (os outros ficam vazios e o que for construído neles não vai para o mundo)' : '') + '.';
         $('wmGo').disabled = !ok;
         if (document.activeElement !== $('wmX')) $('wmX').value = Math.round(st.cx);
@@ -10199,14 +10268,21 @@ function wioArea() {
         bmp = await createImageBitmap(mp.img); bbmp = await createImageBitmap(mp.bimg); fit(); setMode(bmode); info();
       }
       overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) {
-        b.onclick = function () { var d = +b.getAttribute('data-wd'); if (d === st.dim) return; st.dim = d; var h = home(d); st.cx = h[0]; st.cz = h[1]; loadDim(); };
+        b.onclick = function () { var d = +b.getAttribute('data-wd'); if (d === st.dim) return; st.dim = d; var h = home(d); st.cx = h[0]; st.cz = h[1]; freeTo(); loadDim(); };
       });
       var drag = null;
-      cv.addEventListener('pointerdown', function (e) { cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: false, cx: st.view && st.view.cx, cz: st.view && st.view.cz }; });
+      var worldAt = function (e) { var r = cv.getBoundingClientRect(), dpr = cv.width / r.width; return [st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s, st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s]; };
+      cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      cv.addEventListener('pointerdown', function (e) {
+        cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: false, cx: st.view && st.view.cx, cz: st.view && st.view.cz };
+        if (st.free && st.view && e.button === 0) drag.sel = worldAt(e); // área livre: o botão esquerdo desenha, os outros movem o mapa
+      });
       cv.addEventListener('pointermove', function (e) {
         if (!drag || !st.view) return; var dpr = cv.width / cv.clientWidth, dx = (e.clientX - drag.x) * dpr, dz = (e.clientY - drag.y) * dpr;
         if (Math.abs(dx) + Math.abs(dz) > 6) drag.moved = true;
-        if (drag.moved) { st.view.cx = drag.cx - dx / st.view.s; st.view.cz = drag.cz - dz / st.view.s; draw(); }
+        if (!drag.moved) return;
+        if (drag.sel) { var w = worldAt(e); st.free = { dim: st.dim, x0: Math.floor(drag.sel[0]), z0: Math.floor(drag.sel[1]), x1: Math.floor(w[0]), z1: Math.floor(w[1]) }; draw(); info(); return; }
+        st.view.cx = drag.cx - dx / st.view.s; st.view.cz = drag.cz - dz / st.view.s; draw();
       });
       // o chunk sob o ponteiro: gerado ou não
       cv.addEventListener('pointermove', function (e) {
@@ -10222,6 +10298,7 @@ function wioArea() {
         if (drag && !drag.moved && st.view) {
           var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
           st.cx = st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s; st.cz = st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s;
+          if (st.free) { var fa = area(), ox = Math.round((st.cx - fa[0] - fa[2] / 2) / 16) * 16, oz = Math.round((st.cz - fa[1] - fa[3] / 2) / 16) * 16; st.free = { dim: st.dim, x0: fa[0] + ox, z0: fa[1] + oz, x1: fa[0] + ox + fa[2] - 1, z1: fa[1] + oz + fa[3] - 1 }; }
           draw(); info();
         }
         drag = null;
@@ -10229,9 +10306,17 @@ function wioArea() {
       var zoom = function (f) { if (!st.view) return; st.view.s = Math.max(0.02, Math.min(16, st.view.s * f)); draw(); };
       cv.addEventListener('wheel', function (e) { e.preventDefault(); zoom(e.deltaY < 0 ? 1.25 : 0.8); }, { passive: false });
       $('wmIn').onclick = function () { zoom(1.5); }; $('wmOut').onclick = function () { zoom(1 / 1.5); };
-      $('wmX').oninput = $('wmZ').oninput = function () { st.cx = +$('wmX').value || 0; st.cz = +$('wmZ').value || 0; if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
-      $('wmS').onchange = function () { st.size = +$('wmS').value; draw(); info(); };
-      $('wmMe').onclick = function () { var h = home(st.dim); if (wio.player && wio.player.dim === st.dim) h = [wio.player.x, wio.player.z]; st.cx = h[0]; st.cz = h[1]; if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
+      $('wmX').oninput = $('wmZ').oninput = function () {
+        st.cx = +$('wmX').value || 0; st.cz = +$('wmZ').value || 0; freeTo();
+        if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info();
+      };
+      $('wmS').onchange = function () {
+        if ($('wmS').value === 'free') { var a0 = area(); st.free = { dim: st.dim, x0: a0[0], z0: a0[1], x1: a0[0] + a0[2] - 1, z1: a0[1] + a0[3] - 1 }; }
+        else { st.free = null; wioArea.free = null; st.size = +$('wmS').value; }
+        $('wmFreeRow').hidden = !st.free; draw(); info();
+      };
+      ['wmFx0', 'wmFz0', 'wmFx1', 'wmFz1'].forEach(function (id) { $(id).oninput = function () { st.free = { dim: st.dim, x0: +$('wmFx0').value || 0, z0: +$('wmFz0').value || 0, x1: +$('wmFx1').value || 0, z1: +$('wmFz1').value || 0 }; draw(); info(); }; });
+      $('wmMe').onclick = function () { var h = home(st.dim); if (wio.player && wio.player.dim === st.dim) h = [wio.player.x, wio.player.z]; st.cx = h[0]; st.cz = h[1]; freeTo(); if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
       $('wmGo').onclick = async function () {
         var a = area(); closeDialog();
         try {
@@ -11215,7 +11300,7 @@ function openHelp() {
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span>Mapa do mundo</span><span>Projeto → Mapa do mundo (com um mundo aberto): o mundo visto de cima em tela cheia; o zoom traz mais detalhe (bem perto, as texturas). Terreno ou Biomas, grade dos chunks, o bioma debaixo do ponteiro e, no clique, X e Z do jogo e do Nether.</span>' +
-    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
+    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 (ou uma Área livre, desenhada no mapa) e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
@@ -11223,6 +11308,7 @@ function openHelp() {
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
     '<span>Lançar (<kbd>W</kbd>)</span><span>Clique: atira do ponto de vista da câmera na direção do ponteiro (a linha tracejada mostra o caminho). Flecha, flecha em chamas, tridente, bola de neve e ovo (<kbd>Shift</kbd> + <kbd>1</kbd>…<kbd>5</kbd>); <kbd>-</kbd> e <kbd>+</kbd> a força do arco. Acertam o alvo, botões e placas de madeira (enquanto cravados), a linha de armadilha e o sino. Em primeira pessoa, <kbd>Q</kbd>.</span>' +
     '<span>Etapa 4 da redstone</span><span>Usar num <b>bloco de comando</b> abre o comando (setblock, fill, clone, say, testforblock, execute if block, time). Usar num ejetor, liberador ou funil escolhe o item e quantos. Sensores de sculk ouvem as vibrações (colocar, quebrar, abrir, pistão, projétil) até 8 blocos (o calibrado, 16).</span>' +
+    '<span>Força do pó</span><span>Projeto → Força do pó de redstone: o número da força (0 a 15) deitado em cada pó.</span>' +
     '<span>Redstone passo a passo</span><span>Projeto → Redstone passo a passo: <kbd>P</kbd> pausa e continua, <kbd>.</kbd> avança 1 tique de redstone (<kbd>Shift</kbd>+<kbd>.</kbd>: 1 tique do jogo); o gráfico mostra quando cada componente ligou e desligou (passe o mouse numa linha para achar o bloco).</span>' +
     '<span>Redstone</span><span>Os circuitos funcionam como no jogo: Usar (<kbd>U</kbd>) puxa a alavanca e aperta botões; o pó leva o sinal, tochas invertem, repetidores e comparadores atrasam, lâmpadas acendem, portas abrem e pistões empurram. Projeto → Redstone funcionando liga e desliga.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
@@ -11363,6 +11449,8 @@ function apoioClear() {
   toast(l.length + (l.length > 1 ? ' blocos de apoio removidos.' : ' bloco de apoio removido.') + ' Ctrl+Z traz de volta.');
 }
 $('terrainBtn').addEventListener('click', function () { $('menu').open = false; openTerrain(); });
+$('rsNumBtn').addEventListener('click', function () { $('menu').open = false; setRsNums(!rsNum.on); toast(rsNum.on ? 'A força do sinal aparece em cada pó de redstone (0 a 15).' : 'Números da força escondidos.'); });
+setRsNums(rsNum.on);
 $('rsStepBtn').addEventListener('click', function () { $('menu').open = false; openRsStep(); });
 $('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
 /* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
@@ -11490,6 +11578,7 @@ function frame() {
   updateView();
   rebuildDirty();
   updateLightLabels();
+  updateRsNums(); // força do pó (src/redstone4.js)
   updateMeasure();
   updateGhost(); updateBioView();
   renderer.render(scene, camera);

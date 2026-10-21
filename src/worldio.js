@@ -706,7 +706,9 @@ function wioArea() {
   }
   var h0 = at ? [at.x, at.z] : home(st.dim); st.cx = h0[0]; st.cz = h0[1];
   var tabs = WIO_DIMS.map(function (D) { return '<button data-wd="' + D.id + '"' + (wio.dims[D.id].size ? '' : ' disabled') + '>' + D.name + '</button>'; }).join('');
-  var sizes = [64, 128, 192, 256, 320, 384, 448, 512].map(function (s) { return '<option value="' + s + '">' + s + ' × ' + s + '</option>'; }).join('');
+  var sizes = [64, 128, 192, 256, 320, 384, 448, 512].map(function (s) { return '<option value="' + s + '">' + s + ' × ' + s + '</option>'; }).join('') + '<option value="free">Área livre (arrastar no mapa)</option>';
+  // área livre: um retângulo qualquer, desenhado no mapa ou digitado (fica para a próxima vez)
+  st.free = wioArea.free && wioArea.free.dim === st.dim && !at ? wioArea.free : null;
   openDialog('<h3>' + esc(wio.name) + '</h3>' +
     '<div class="wtabs mbtns">' + tabs + '</div>' +
     '<div class="wmap"><canvas id="wmCv"></canvas><div class="wzoom"><button id="wmIn" title="Aproximar">+</button><button id="wmOut" title="Afastar">−</button></div></div>' +
@@ -715,6 +717,8 @@ function wioArea() {
     '<p class="wmhelp">Clique no mapa para escolher o centro da área. Arraste para mover; roda do mouse aproxima.' +
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button><button class="btn" id="wmBig" title="O mundo inteiro em tela cheia, com zoom de verdade, biomas, grade dos chunks e as coordenadas do Nether">Mapa em tela cheia</button></div>' +
+    '<div class="row" id="wmFreeRow" hidden><label>De X<input type="number" id="wmFx0"></label><label>Z<input type="number" id="wmFz0"></label><label>Até X<input type="number" id="wmFx1"></label><label>Z<input type="number" id="wmFz1"></label>' +
+    '<span class="pen">Arraste no mapa para desenhar a área (o botão direito move o mapa; um clique leva a área até ali). Ela se ajusta aos chunks; até ' + WIO_MAX + ' blocos de cada lado.</span></div>' +
     '<div class="info" id="wmInfo"></div>' +
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
@@ -731,17 +735,31 @@ function wioArea() {
       };
       $('wmModeT').onclick = function () { setMode(false); }; $('wmModeB').onclick = function () { setMode(true); };
       $('wmUn').onchange = function (e) { try { localStorage.setItem('bloco-a-bloco-ungen', e.target.checked ? '1' : '0'); } catch (x) {} draw(); };
-      $('wmS').value = String(st.size);
+      $('wmS').value = st.free ? 'free' : String(st.size); $('wmFreeRow').hidden = !st.free;
       $('wmNo').onclick = closeDialog;
       $('wmBig').onclick = function () { closeDialog(); openWorldMap(); };
       function area() {
+        if (st.free) { // os cantos do retângulo, ajustados aos chunks (cada lado entre 16 e WIO_MAX)
+          var F = st.free, ax = Math.floor(Math.min(F.x0, F.x1) / 16) * 16, az = Math.floor(Math.min(F.z0, F.z1) / 16) * 16;
+          var w = Math.max(16, Math.min(WIO_MAX, Math.ceil((Math.max(F.x0, F.x1) + 1) / 16) * 16 - ax)), d = Math.max(16, Math.min(WIO_MAX, Math.ceil((Math.max(F.z0, F.z1) + 1) / 16) * 16 - az));
+          return [ax, az, w, d];
+        }
         var s = st.size, x0 = Math.round((st.cx - s / 2) / 16) * 16, z0 = Math.round((st.cz - s / 2) / 16) * 16;
         return [x0, z0, s, s];
+      }
+      function freeTo() { // leva a área livre (mesmo tamanho) para o centro st.cx, st.cz
+        if (!st.free) return;
+        var fa = area(), nx = Math.round((st.cx - fa[2] / 2) / 16) * 16, nz = Math.round((st.cz - fa[3] / 2) / 16) * 16; st.free = { dim: st.dim, x0: nx, z0: nz, x1: nx + fa[2] - 1, z1: nz + fa[3] - 1 };
+      }
+      function freeSync() { // campos dos cantos e o centro a partir do retângulo
+        var a = area(); wioArea.free = st.free; st.cx = a[0] + a[2] / 2; st.cz = a[1] + a[3] / 2;
+        [['wmFx0', a[0]], ['wmFz0', a[1]], ['wmFx1', a[0] + a[2] - 1], ['wmFz1', a[1] + a[3] - 1]].forEach(function (q) { if (document.activeElement !== $(q[0])) $(q[0]).value = q[1]; });
       }
       function info() {
         var a = area(), D = wioDim(st.dim), cols = 0, ok = 0;
         for (var x = a[0] >> 4; x < (a[0] + a[2]) >> 4; x++) for (var z = a[1] >> 4; z < (a[1] + a[3]) >> 4; z++) { cols++; var c = wio.dims[st.dim].get(x + ',' + z); if (c && c.ok) ok++; }
-        $('wmInfo').innerHTML = D.name + ': X ' + a[0] + ' a ' + (a[0] + a[2] - 1) + ', Z ' + a[1] + ' a ' + (a[1] + a[3] - 1) + ', altura ' + D.min + ' a ' + (D.min + D.h - 1) +
+        if (st.free) freeSync();
+        $('wmInfo').innerHTML = D.name + ': X ' + a[0] + ' a ' + (a[0] + a[2] - 1) + ', Z ' + a[1] + ' a ' + (a[1] + a[3] - 1) + ', altura ' + D.min + ' a ' + (D.min + D.h - 1) + (st.free ? ' (' + a[2] + ' × ' + a[3] + ')' : '') +
           '<br>' + ok + ' de ' + cols + ' chunks já gerados pelo jogo' + (ok < cols ? ' (os outros ficam vazios e o que for construído neles não vai para o mundo)' : '') + '.';
         $('wmGo').disabled = !ok;
         if (document.activeElement !== $('wmX')) $('wmX').value = Math.round(st.cx);
@@ -796,14 +814,21 @@ function wioArea() {
         bmp = await createImageBitmap(mp.img); bbmp = await createImageBitmap(mp.bimg); fit(); setMode(bmode); info();
       }
       overlayRoot.querySelectorAll('[data-wd]').forEach(function (b) {
-        b.onclick = function () { var d = +b.getAttribute('data-wd'); if (d === st.dim) return; st.dim = d; var h = home(d); st.cx = h[0]; st.cz = h[1]; loadDim(); };
+        b.onclick = function () { var d = +b.getAttribute('data-wd'); if (d === st.dim) return; st.dim = d; var h = home(d); st.cx = h[0]; st.cz = h[1]; freeTo(); loadDim(); };
       });
       var drag = null;
-      cv.addEventListener('pointerdown', function (e) { cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: false, cx: st.view && st.view.cx, cz: st.view && st.view.cz }; });
+      var worldAt = function (e) { var r = cv.getBoundingClientRect(), dpr = cv.width / r.width; return [st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s, st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s]; };
+      cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      cv.addEventListener('pointerdown', function (e) {
+        cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: false, cx: st.view && st.view.cx, cz: st.view && st.view.cz };
+        if (st.free && st.view && e.button === 0) drag.sel = worldAt(e); // área livre: o botão esquerdo desenha, os outros movem o mapa
+      });
       cv.addEventListener('pointermove', function (e) {
         if (!drag || !st.view) return; var dpr = cv.width / cv.clientWidth, dx = (e.clientX - drag.x) * dpr, dz = (e.clientY - drag.y) * dpr;
         if (Math.abs(dx) + Math.abs(dz) > 6) drag.moved = true;
-        if (drag.moved) { st.view.cx = drag.cx - dx / st.view.s; st.view.cz = drag.cz - dz / st.view.s; draw(); }
+        if (!drag.moved) return;
+        if (drag.sel) { var w = worldAt(e); st.free = { dim: st.dim, x0: Math.floor(drag.sel[0]), z0: Math.floor(drag.sel[1]), x1: Math.floor(w[0]), z1: Math.floor(w[1]) }; draw(); info(); return; }
+        st.view.cx = drag.cx - dx / st.view.s; st.view.cz = drag.cz - dz / st.view.s; draw();
       });
       // o chunk sob o ponteiro: gerado ou não
       cv.addEventListener('pointermove', function (e) {
@@ -819,6 +844,7 @@ function wioArea() {
         if (drag && !drag.moved && st.view) {
           var r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
           st.cx = st.view.cx + ((e.clientX - r.left) * dpr - cv.width / 2) / st.view.s; st.cz = st.view.cz + ((e.clientY - r.top) * dpr - cv.height / 2) / st.view.s;
+          if (st.free) { var fa = area(), ox = Math.round((st.cx - fa[0] - fa[2] / 2) / 16) * 16, oz = Math.round((st.cz - fa[1] - fa[3] / 2) / 16) * 16; st.free = { dim: st.dim, x0: fa[0] + ox, z0: fa[1] + oz, x1: fa[0] + ox + fa[2] - 1, z1: fa[1] + oz + fa[3] - 1 }; }
           draw(); info();
         }
         drag = null;
@@ -826,9 +852,17 @@ function wioArea() {
       var zoom = function (f) { if (!st.view) return; st.view.s = Math.max(0.02, Math.min(16, st.view.s * f)); draw(); };
       cv.addEventListener('wheel', function (e) { e.preventDefault(); zoom(e.deltaY < 0 ? 1.25 : 0.8); }, { passive: false });
       $('wmIn').onclick = function () { zoom(1.5); }; $('wmOut').onclick = function () { zoom(1 / 1.5); };
-      $('wmX').oninput = $('wmZ').oninput = function () { st.cx = +$('wmX').value || 0; st.cz = +$('wmZ').value || 0; if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
-      $('wmS').onchange = function () { st.size = +$('wmS').value; draw(); info(); };
-      $('wmMe').onclick = function () { var h = home(st.dim); if (wio.player && wio.player.dim === st.dim) h = [wio.player.x, wio.player.z]; st.cx = h[0]; st.cz = h[1]; if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
+      $('wmX').oninput = $('wmZ').oninput = function () {
+        st.cx = +$('wmX').value || 0; st.cz = +$('wmZ').value || 0; freeTo();
+        if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info();
+      };
+      $('wmS').onchange = function () {
+        if ($('wmS').value === 'free') { var a0 = area(); st.free = { dim: st.dim, x0: a0[0], z0: a0[1], x1: a0[0] + a0[2] - 1, z1: a0[1] + a0[3] - 1 }; }
+        else { st.free = null; wioArea.free = null; st.size = +$('wmS').value; }
+        $('wmFreeRow').hidden = !st.free; draw(); info();
+      };
+      ['wmFx0', 'wmFz0', 'wmFx1', 'wmFz1'].forEach(function (id) { $(id).oninput = function () { st.free = { dim: st.dim, x0: +$('wmFx0').value || 0, z0: +$('wmFz0').value || 0, x1: +$('wmFx1').value || 0, z1: +$('wmFz1').value || 0 }; draw(); info(); }; });
+      $('wmMe').onclick = function () { var h = home(st.dim); if (wio.player && wio.player.dim === st.dim) h = [wio.player.x, wio.player.z]; st.cx = h[0]; st.cz = h[1]; freeTo(); if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
       $('wmGo').onclick = async function () {
         var a = area(); closeDialog();
         try {

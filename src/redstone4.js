@@ -519,3 +519,53 @@ function rsPopAround(cells, moved) {
   return pop.length;
 }
 function rsCmdDirtyAt(x, y, z) { var e = rs.cmds.get(idx(x, y, z)); return !!(e && e.dirty); }
+
+/* ---------- Força do pó de redstone na tela ---------- */
+/* Projeto → Força do pó: sim/não. Em cada pó, o número da força (0 a 15) deitado no bloco, virado para quem olha
+   (gira de 90 em 90 graus com a câmera). Um InstancedMesh por número; refeito quando a construção muda (só os chunks
+   que têm pó são percorridos) ou quando a câmera vira para outro lado. Respeita a Camada. */
+var rsNum = { on: false, key: null, meshes: [], tex: [], q: 0 };
+try { rsNum.on = localStorage.getItem('bloco-a-bloco-rsnum') === '1'; } catch (e) {}
+function rsNumTex(n) {
+  if (rsNum.tex[n]) return rsNum.tex[n];
+  var c = document.createElement('canvas'); c.width = c.height = 64; var g = c.getContext('2d');
+  g.font = 'bold ' + (n > 9 ? 40 : 46) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 8; g.strokeStyle = 'rgba(20,4,4,.95)'; g.strokeText(String(n), 32, 35);
+  g.fillStyle = n ? 'rgb(255,' + Math.round(150 + n * 7) + ',' + Math.round(120 + n * 9) + ')' : '#b9b9b9'; g.fillText(String(n), 32, 35);
+  var t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter; t.anisotropy = 4;
+  return (rsNum.tex[n] = t);
+}
+function rsNumClear() { rsNum.meshes.forEach(function (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }); rsNum.meshes = []; }
+function updateRsNums() {
+  if (!scene) return;
+  var yaw = walk ? walk.yaw : cam.yaw, q = ((Math.round(yaw / (Math.PI / 2)) % 4) + 4) % 4;
+  var key = rsNum.on ? verCounter + '|' + q + '|' + (layerOn ? layerY : -1) + '|' + SX : null;
+  if (key === rsNum.key) return;
+  rsNum.key = key; rsNumClear();
+  if (!rsNum.on) return;
+  var WI = BY_JAVA.redstone_wire, lists = []; for (var n = 0; n <= 15; n++) lists.push([]);
+  var total = 0;
+  W.forEach(function (ch) {
+    var pal = ch.d ? ch.pal : [ch.u];
+    if (!pal.some(function (v) { return v && cellBlock(v) === WI; })) return;
+    var x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
+    for (var o = 0; o < 4096 && total < 60000; o++) {
+      var v = ch.d ? ch.pal[ch.d[o]] : ch.u; if (!v || cellBlock(v) !== WI) continue;
+      var y = y0 + (o >> 8); if (layerOn && y > layerY) continue;
+      lists[+stateProps(BLOCKS[WI], cellOri(v)).power || 0].push(x0 + (o & 15), y, z0 + ((o >> 4) & 15)); total++;
+    }
+  });
+  var d = new THREE.Object3D(); d.rotation.order = 'YXZ'; d.rotation.set(-Math.PI / 2, q * Math.PI / 2, 0);
+  lists.forEach(function (L, n) {
+    if (!L.length) return;
+    var m = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: rsNumTex(n), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }), L.length / 3);
+    for (var k = 0; k < L.length; k += 3) { d.position.set(L[k] + 0.5, L[k + 1] + 0.075, L[k + 2] + 0.5); d.updateMatrix(); m.setMatrixAt(k / 3, d.matrix); }
+    m.instanceMatrix.needsUpdate = true; m.renderOrder = 7; m.frustumCulled = false;
+    scene.add(m); rsNum.meshes.push(m);
+  });
+}
+function setRsNums(on) {
+  rsNum.on = on; try { localStorage.setItem('bloco-a-bloco-rsnum', on ? '1' : '0'); } catch (e) {}
+  var b = $('rsNumBtn'); if (b) b.textContent = 'Força do pó de redstone: ' + (on ? 'sim' : 'não');
+  rsNum.key = null; requestRender();
+}

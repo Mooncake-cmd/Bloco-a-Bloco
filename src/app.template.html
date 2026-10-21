@@ -289,6 +289,7 @@ body.clean #cleanChip{display:flex}
           <button class="tbtn txt" id="cleanBtn">Tela limpa (Tab)</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
+          <button class="tbtn txt" id="rsNumBtn">Força do pó de redstone: não</button>
           <button class="tbtn txt" id="rsSndBtn">Sons da redstone: sim</button>
           <button class="tbtn txt" id="rsStepBtn">Redstone passo a passo…</button>
           <button class="tbtn txt" id="rsTimeBtn">Hora do dia: 12:00…</button>
@@ -2472,7 +2473,7 @@ function openHelp() {
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span>Mapa do mundo</span><span>Projeto → Mapa do mundo (com um mundo aberto): o mundo visto de cima em tela cheia; o zoom traz mais detalhe (bem perto, as texturas). Terreno ou Biomas, grade dos chunks, o bioma debaixo do ponteiro e, no clique, X e Z do jogo e do Nether.</span>' +
-    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
+    '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 (ou uma Área livre, desenhada no mapa) e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
     '<span><kbd>1</kbd>…<kbd>9</kbd></span><span>Escolher bloco rápido</span>' +
     '<span><kbd>[</kbd> <kbd>]</kbd></span><span>Descer e subir a camada visível (ou as setas ▼ ▲ ao lado do controle)</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span><span>Desfazer e refazer</span>' +
@@ -2480,6 +2481,7 @@ function openHelp() {
     '<span>Pincel de mistura (<kbd>Q</kbd>)</span><span>Pinta com vários blocos de uma vez, cada um com uma porcentagem (soma 100%): cada voxel do pincel sorteia o seu. <b>Editar mistura…</b> escolhe os blocos e as porcentagens (ou uma mistura pronta). Pintar troca os blocos que existem, Superfície só a pele, Encher só o vazio. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> + clique põe o bloco clicado na mistura.</span>' +
     '<span>Lançar (<kbd>W</kbd>)</span><span>Clique: atira do ponto de vista da câmera na direção do ponteiro (a linha tracejada mostra o caminho). Flecha, flecha em chamas, tridente, bola de neve e ovo (<kbd>Shift</kbd> + <kbd>1</kbd>…<kbd>5</kbd>); <kbd>-</kbd> e <kbd>+</kbd> a força do arco. Acertam o alvo, botões e placas de madeira (enquanto cravados), a linha de armadilha e o sino. Em primeira pessoa, <kbd>Q</kbd>.</span>' +
     '<span>Etapa 4 da redstone</span><span>Usar num <b>bloco de comando</b> abre o comando (setblock, fill, clone, say, testforblock, execute if block, time). Usar num ejetor, liberador ou funil escolhe o item e quantos. Sensores de sculk ouvem as vibrações (colocar, quebrar, abrir, pistão, projétil) até 8 blocos (o calibrado, 16).</span>' +
+    '<span>Força do pó</span><span>Projeto → Força do pó de redstone: o número da força (0 a 15) deitado em cada pó.</span>' +
     '<span>Redstone passo a passo</span><span>Projeto → Redstone passo a passo: <kbd>P</kbd> pausa e continua, <kbd>.</kbd> avança 1 tique de redstone (<kbd>Shift</kbd>+<kbd>.</kbd>: 1 tique do jogo); o gráfico mostra quando cada componente ligou e desligou (passe o mouse numa linha para achar o bloco).</span>' +
     '<span>Redstone</span><span>Os circuitos funcionam como no jogo: Usar (<kbd>U</kbd>) puxa a alavanca e aperta botões; o pó leva o sinal, tochas invertem, repetidores e comparadores atrasam, lâmpadas acendem, portas abrem e pistões empurram. Projeto → Redstone funcionando liga e desliga.</span>' +
     '<span>Paletas</span><span>O aviso <b>✎ Paletas</b> (no fim das categorias) cria paletas suas e edita, reordena ou exclui as do site; <b>Restaurar as do site</b> desfaz as mudanças nelas.</span>' +
@@ -2620,6 +2622,8 @@ function apoioClear() {
   toast(l.length + (l.length > 1 ? ' blocos de apoio removidos.' : ' bloco de apoio removido.') + ' Ctrl+Z traz de volta.');
 }
 $('terrainBtn').addEventListener('click', function () { $('menu').open = false; openTerrain(); });
+$('rsNumBtn').addEventListener('click', function () { $('menu').open = false; setRsNums(!rsNum.on); toast(rsNum.on ? 'A força do sinal aparece em cada pó de redstone (0 a 15).' : 'Números da força escondidos.'); });
+setRsNums(rsNum.on);
 $('rsStepBtn').addEventListener('click', function () { $('menu').open = false; openRsStep(); });
 $('rsTimeBtn').addEventListener('click', function () { $('menu').open = false; openTime(); });
 /* Hora do dia (para o sensor de luz): parada ou passando, como no jogo ou mais rápido */
@@ -2747,6 +2751,7 @@ function frame() {
   updateView();
   rebuildDirty();
   updateLightLabels();
+  updateRsNums(); // força do pó (src/redstone4.js)
   updateMeasure();
   updateGhost(); updateBioView();
   renderer.render(scene, camera);
