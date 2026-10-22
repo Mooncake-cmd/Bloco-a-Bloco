@@ -33,7 +33,7 @@ function updateSelChip() {
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
     $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
       '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
-      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
+      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="seat" title="Fundação até o chão, terreno acertado em volta, caminho das portas e vegetação do bioma">Assentar no terreno…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
     c.hidden = false;
@@ -232,8 +232,12 @@ function blockByText(txt) {
   for (var i = 0; i < BLOCKS.length; i++) if (!BLOCKS[i].hide && BLOCKS[i].name.toLowerCase() === txt) return i;
   return -1;
 }
-function openReplace() {
+/* Substituir na seleção: por um bloco só, ou por uma mistura (a mesma do pincel de mistura, Q): cada bloco
+   trocado sorteia o novo pela porcentagem de cada um da mistura (mixSampler, src/mixbrush.js).
+   o (opcional) reabre a janela como estava: { mix, from, fill, surf } */
+function openReplace(o) {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
+  o = o || {};
   var counts = {}, sd = selSize(sel), vol = sd[0] * sd[1] * sd[2];
   blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { var bi = cellBlock(v); counts[bi] = (counts[bi] || 0) + 1; });
   var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0), empty = vol - total;
@@ -243,29 +247,63 @@ function openReplace() {
   var d = selSize(sel);
   openDialog('<h3>Substituir na seleção</h3><p>Área de ' + d[0] + ' × ' + d[1] + ' × ' + d[2] + ' com ' + total + ' blocos e ' + empty + ' espaços vazios. Quando o bloco novo tem as mesmas propriedades (ex.: escada por escada), a direção é mantida.</p>' +
     '<label>Trocar<select id="rpFrom">' + opts + '</select></label>' +
-    '<label>Por (nome ou id; “ar” apaga)<input type="text" id="rpTo" list="rpList" value="' + esc(BLOCKS[curBlock()].java) + '" autocomplete="off"></label><datalist id="rpList">' + list + '</datalist>' +
-    '<label class="check"><input type="checkbox" id="rpFill"><span>Também preencher os espaços vazios da seleção com o bloco novo</span></label>' +
+    '<div class="row" role="radiogroup" aria-label="Trocar por"><label class="check"><input type="radio" name="rpBy" value="one"' + (o.mix ? '' : ' checked') + '><span>Por um bloco</span></label><label class="check"><input type="radio" name="rpBy" value="mix"' + (o.mix ? ' checked' : '') + '><span>Por uma mistura (porcentagens)</span></label></div>' +
+    '<div id="rpOne"><label>Por (nome ou id; “ar” apaga)<input type="text" id="rpTo" list="rpList" value="' + esc(BLOCKS[curBlock()].java) + '" autocomplete="off"></label><datalist id="rpList">' + list + '</datalist></div>' +
+    '<div id="rpMix"><p class="pen">Cada bloco trocado sorteia um destes, com a chance de cada um (a mesma mistura do pincel de mistura, <kbd>Q</kbd>). “Ar” na mistura abre falhas.</p>' +
+    '<div id="rpMixBar"></div><p id="rpMixTxt" class="pen"></p><div class="row"><button class="btn" id="rpMixEd">Editar mistura…</button><select id="rpPre" aria-label="Mistura pronta"><option value="">Mistura pronta…</option>' +
+    MIX_PRESETS.map(function (q, i) { return '<option value="' + i + '">' + esc(q[0]) + '</option>'; }).join('') + '</select></div></div>' +
+    '<label class="check"><input type="checkbox" id="rpSurf"' + (o.surf ? ' checked' : '') + '><span>Só a superfície (blocos com uma face para o vazio: a “pele” da parede ou do terreno)</span></label>' +
+    '<label class="check"><input type="checkbox" id="rpFill"' + (o.fill ? ' checked' : '') + '><span>Também preencher os espaços vazios da seleção com o bloco novo (ou a mistura)</span></label>' +
     '<p id="rpErr" class="err" hidden></p>' +
     '<div class="row"><button class="btn primary" id="rpOk">Substituir</button><button class="btn" id="rpNo">Cancelar</button></div>',
     function () {
+      if (o.from != null && overlayRoot.querySelector('#rpFrom option[value="' + o.from + '"]')) $('rpFrom').value = o.from;
+      var byMix = function () { return overlayRoot.querySelector('[name="rpBy"]:checked').value === 'mix'; };
+      var mixUI = function () {
+        var S = mixSampler(mix.mats);
+        $('rpMixBar').innerHTML = mixBarHtml(mix.mats, true);
+        $('rpMixTxt').innerHTML = mix.mats.map(function (m) { return esc(mixName(m[0])) + ' ' + mixFmt(m[1]) + '%'; }).join(' · ') + (S.err ? ' <b class="err">(' + esc(S.err) + ')</b>' : '');
+      };
+      var sync = function () { var m = byMix(); $('rpOne').hidden = m; $('rpMix').hidden = !m; $('rpFill').nextElementSibling.textContent = 'Também preencher os espaços vazios da seleção com ' + (m ? 'a mistura' : 'o bloco novo'); $('rpErr').hidden = true; };
+      var state = function () { return { mix: byMix(), from: $('rpFrom').value, fill: $('rpFill').checked, surf: $('rpSurf').checked }; };
+      overlayRoot.querySelectorAll('[name="rpBy"]').forEach(function (r) { r.onchange = sync; });
+      $('rpSurf').onchange = function () { if ($('rpSurf').checked) $('rpFill').checked = false; };
+      $('rpFill').onchange = function () { if ($('rpFill').checked) $('rpSurf').checked = false; };
+      // o editor da mistura é o do pincel; ao usar, volta para esta janela com a mistura nova
+      $('rpMixEd').onclick = function () { var st = state(); openMixEditor(null, function () { openReplace(st); }); };
+      $('rpPre').onchange = function (e) { var q = MIX_PRESETS[+e.target.value]; if (e.target.value === '' || !q) return; mix.mats = q[1].map(function (m) { return [m[0], m[1]]; }); mixSave(); updateMixChip(); mixUI(); e.target.value = ''; };
+      mixUI(); sync();
       $('rpNo').onclick = closeDialog;
       $('rpOk').onclick = function () {
-        var to = blockByText($('rpTo').value);
-        if (to === -1) { $('rpErr').hidden = false; $('rpErr').textContent = 'Bloco não encontrado: escreva o id (ex.: stone_bricks) ou escolha um nome da lista.'; return; }
-        var from = $('rpFrom').value, fill = $('rpFill').checked && to >= 0, n = 0;
-        if (fill && vol > 16e6) { $('rpErr').hidden = false; $('rpErr').textContent = 'Preencher ' + Math.round(vol / 1e6) + ' milhões de espaços de uma vez é demais para desfazer. Selecione uma área menor.'; return; }
-        beginBatch(fill ? 'Substituir e preencher' : 'Substituir');
+        var err = function (t) { $('rpErr').hidden = false; $('rpErr').textContent = t; };
+        var useMix = byMix(), S = null, to = -1;
+        if (useMix) { S = mixSampler(mix.mats); if (S.err) { err(S.err + ' Ajuste em Editar mistura.'); return; } }
+        else { to = blockByText($('rpTo').value); if (to === -1) { err('Bloco não encontrado: escreva o id (ex.: stone_bricks) ou escolha um nome da lista.'); return; } }
+        var from = $('rpFrom').value, fill = $('rpFill').checked && (useMix || to >= 0), surf = $('rpSurf').checked && !fill, n = 0;
+        var got = useMix ? mix.mats.map(function () { return 0; }) : null;
+        // o bloco novo de cada posição: o fixo, ou um sorteio da mistura (ar = apagar)
+        var newCell = function (v) {
+          if (!useMix) return to === -2 ? 0 : convertCell(v, to);
+          var m = S.pick(Math.random()), bi = S.bis[m]; got[m]++;
+          return bi === AIR_BI ? 0 : convertCell(v, bi);
+        };
+        if (fill && vol > 16e6) { err('Preencher ' + Math.round(vol / 1e6) + ' milhões de espaços de uma vez é demais para desfazer. Selecione uma área menor.'); return; }
+        beginBatch((fill ? 'Substituir e preencher' : 'Substituir') + (useMix ? ' (mistura)' : ''));
         if (fill) {
           for (var y = sel.a[1]; y <= sel.b[1]; y++) for (var z = sel.a[2]; z <= sel.b[2]; z++) for (var x = sel.a[0]; x <= sel.b[0]; x++) {
             var v = gget(x, y, z);
-            if (v ? (from === 'all' || cellBlock(v) === +from) : true) { editSet(x, y, z, convertCell(v, to)); n++; }
+            if (v ? (from === 'all' || cellBlock(v) === +from) : true) { var nv = newCell(v); if (nv !== v) { editSet(x, y, z, nv); n++; } }
           }
-        } else { // só onde há blocos: percorre só os pedaços ocupados
-          var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { if (from === 'all' || cellBlock(v) === +from) list.push(x, y, z); });
-          for (var k = 0; k < list.length; k += 3) { var w = gget(list[k], list[k + 1], list[k + 2]); if (w) { editSet(list[k], list[k + 1], list[k + 2], to === -2 ? 0 : convertCell(w, to)); n++; } }
+        } else { // só onde há blocos: percorre só os pedaços ocupados (a superfície é vista antes de mudar qualquer bloco)
+          var list = []; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { if ((from === 'all' || cellBlock(v) === +from) && (!surf || mixAccepts('surface', x, y, z))) list.push(x, y, z); });
+          for (var k = 0; k < list.length; k += 3) { var w = gget(list[k], list[k + 1], list[k + 2]); if (w) { var nw = newCell(w); if (nw !== w) { editSet(list[k], list[k + 1], list[k + 2], nw); n++; } } }
         }
         endBatch(); closeDialog();
-        toast(n + ' blocos ' + (to === -2 ? 'apagados' : 'trocados por ' + BLOCKS[to].name) + '.');
+        if (!useMix) { toast(n + ' blocos ' + (to === -2 ? 'apagados' : 'trocados por ' + BLOCKS[to].name) + '.'); return; }
+        var tot = got.reduce(function (a, b) { return a + b; }, 0);
+        if (!tot) { toast('Nenhum bloco para trocar na seleção.'); return; }
+        // o que saiu de fato, para comparar com a mistura pedida (como no pincel)
+        toast(tot.toLocaleString('pt-BR') + ' blocos sorteados: ' + mix.mats.map(function (m, i) { return mixName(m[0]) + ' ' + Math.round(100 * got[i] / tot) + '% (pedido ' + mixFmt(m[1]) + '%)'; }).join(' · '), 7000);
       };
     });
 }
@@ -275,7 +313,7 @@ $('selBtns').addEventListener('click', function (e) {
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
-  else if (a === 'repl') openReplace(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
+  else if (a === 'repl') openReplace(); else if (a === 'seat') openSeat(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
   else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
 });
 /* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */

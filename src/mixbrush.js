@@ -155,7 +155,8 @@ function mixPreviewReset() {
 }
 
 /* ---------- Janela: editar a mistura ---------- */
-function openMixEditor(addJava) {
+/* done (opcional): quem chamou (ex.: Substituir na seleção) continua dali; sem ele, a ferramenta vira o pincel de mistura */
+function openMixEditor(addJava, done) {
   var rows = mix.mats.map(function (m) { return [m[0], +m[1]]; });
   if (addJava && rows.length < 10 && !rows.some(function (r) { return r[0] === addJava; })) rows.push([addJava, 0]);
   var list = '<option value="ar">Ar (deixa vazio)</option>' + BLOCKS.map(function (b, i) { return b.hide || b.isAir || !mixOk(i) ? '' : '<option value="' + esc(b.java) + '">' + esc(b.name) + '</option>'; }).join('');
@@ -213,13 +214,15 @@ function openMixEditor(addJava) {
       var acc = 0; rows.forEach(function (r, i) { if (i < rows.length - 1) { r[1] = Math.round(r[1] * 1000 / s) / 10; acc += r[1]; } });
       rows[rows.length - 1][1] = Math.round((100 - acc) * 10) / 10; draw();
     };
-    $('mxNo').onclick = closeDialog;
+    $('mxNo').onclick = function () { closeDialog(); if (done) done(); };
     $('mxOk').onclick = function () {
       read();
       var seen = {}, dup = rows.filter(function (r) { if (seen[r[0]]) return true; seen[r[0]] = 1; return false; })[0];
       var S = dup ? { err: 'O bloco ' + mixName(dup[0]) + ' aparece duas vezes: junte as porcentagens numa linha só.' } : mixSampler(rows);
       if (S.err) { $('mxErr').hidden = false; $('mxErr').textContent = S.err; return; }
-      mix.mats = rows; mixSave(); closeDialog(); if (tool !== 'mix') setTool('mix'); updateMixChip(); updatePreview();
+      mix.mats = rows; mixSave(); closeDialog();
+      if (done) { updateMixChip(); done(); return; }
+      if (tool !== 'mix') setTool('mix'); updateMixChip(); updatePreview();
       toast('Mistura pronta: ' + rows.map(function (m) { return mixFmt(m[1]) + '% ' + mixName(m[0]); }).join(', ') + '.');
     };
   });

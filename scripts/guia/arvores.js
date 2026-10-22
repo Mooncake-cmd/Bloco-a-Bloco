@@ -7,7 +7,7 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   const p = await b.newPage({ viewport: { width: 1280, height: 800 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
   const S = [70, 40, 46], proj = { v: 1, size: S, pal: ['grass_block'], rle: [1, S[0] * S[2], 0, S[0] * S[2] * (S[1] - 1)] };
   await p.addInitScript(s => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', '1'); localStorage.setItem('bloco-a-bloco-v1', s); } }, JSON.stringify(proj));
-  await p.goto(URL); await p.addStyleTag({ content: '#tabbar{display:none}' }); await p.waitForTimeout(2500); // as capturas recortam a partir da barra de ferramentas (a barra das abas tem a dela: abas.js)
+  await p.goto(URL); await p.addStyleTag({ content: '#tabbar{display:none!important}' }); await p.waitForTimeout(2500); // as capturas recortam a partir da barra de ferramentas (a barra das abas tem a dela: abas.js)
   await p.setInputFiles('#packIn', PACK);
   await p.waitForFunction(() => /blocos com textura/.test(document.getElementById('toast').textContent), null, { timeout: 300000 });
   await p.evaluate(() => {
