@@ -37,6 +37,7 @@ src/redstone.js         Redstone funcionando: pó, tochas, repetidores, comparad
 src/biome.js            Pincel de bioma: biomas por coluna (pintados e lidos do mundo), cor da grama/folhas/água pelo bioma, Transformar o terreno (receitas por bioma), placas coloridas, chave 0x2B (Data3D)
 src/terrain.js          Gerar terreno: relevo por ruído ou imagem (8 tipos), em volta da construção, na seleção ou no espaço; biomas por coluna com as receitas do pincel de bioma
 src/tubes.js            Tubos: cilindros maciços ou ocos ao longo de linhas desenhadas no espaço (rasterização em tubeCells, gravação em tubeGenerate)
+src/field.js            Pincel de campo: discos, anéis, arcos, espirais, cascas e funis com gradiente de blocos (fieldCells: forma no referencial do plano, eixo do gradiente, estrias e pontilhado por hash)
 src/rsstep.js           Redstone passo a passo: pausar, avançar tique a tique e o gráfico de quando cada componente ligou e desligou
 src/redstone4.js        Redstone, etapa 4: itens nos contêineres, ejetor, liberador, funil, fabricador, sensores de sculk, bloco de comando, pistão derrubando o que fica sem apoio
 src/worldmap.js         Mapa do mundo: o mundo do jogo visto de cima, com detalhe pelo zoom (visão geral, ladrilhos, texturas), biomas, grade e coordenadas do Nether
