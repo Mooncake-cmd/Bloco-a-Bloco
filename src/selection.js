@@ -62,7 +62,7 @@ function copySel(cut) {
   blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) {
     cells[((y - sel.a[1]) * d[2] + (z - sel.a[2])) * d[0] + (x - sel.a[0])] = v; n++;
   });
-  clip = { w: d[0], h: d[1], l: d[2], cells: cells, n: n };
+  clip = { w: d[0], h: d[1], l: d[2], cells: cells, n: n, be: bentClipBox(sel.a, sel.b) }; // be: itens e texto (src/blockent.js)
   if (cut) { deleteSel(true); toast('Recortado: ' + n + ' blocos. Ctrl+V para colar.'); }
   else toast('Copiado: ' + n + ' blocos. Ctrl+V para colar.');
   selRefresh();
@@ -160,7 +160,7 @@ function rotateClip() {
     var nx = l - 1 - z, nz = x; // norte vira leste
     out[(y * w + nz) * l + nx] = rotateCell(clip.cells[(y * l + z) * w + x]);
   }
-  clip = { w: l, h: h, l: w, cells: out, n: clip.n };
+  clip = { w: l, h: h, l: w, cells: out, n: clip.n, be: bentClipMap(clip.be, w, h, l, function (x, y, z) { return (y * w + x) * l + (l - 1 - z); }) };
   updateSelChip(); updatePreview();
 }
 
@@ -173,7 +173,7 @@ function flipClip(a) {
     var nx = a === 0 ? w - 1 - x : x, nz = a === 2 ? l - 1 - z : z;
     out[(y * l + nz) * w + nx] = mirrorCell(clip.cells[(y * l + z) * w + x], a);
   }
-  clip = { w: w, h: h, l: l, cells: out, n: clip.n };
+  clip = { w: w, h: h, l: l, cells: out, n: clip.n, be: bentClipMap(clip.be, w, h, l, function (x, y, z) { return (y * l + (a === 2 ? l - 1 - z : z)) * w + (a === 0 ? w - 1 - x : x); }) };
   updateSelChip(); updatePreview();
   toast(a === 0 ? 'Cópia espelhada: leste e oeste trocaram de lado.' : 'Cópia espelhada: norte e sul trocaram de lado.');
 }
@@ -190,19 +190,46 @@ function startPaste() {
 }
 function commitPaste(t) {
   var o = pasteOrigin(t); if (!o) return;
-  var n = 0, out = 0;
+  var n = 0, out = 0, up = 0, down = 0;
   beginBatch('Colar');
   for (var y = 0; y < clip.h; y++) for (var z = 0; z < clip.l; z++) for (var x = 0; x < clip.w; x++) {
     var v = clip.cells[(y * clip.l + z) * clip.w + x]; if (!v) continue; // o ar copiado não apaga o que já existe
     var X = o[0] + x, Y = o[1] + y, Z = o[2] + z;
-    if (!inB(X, Y, Z)) { out++; continue; }
+    if (!inB(X, Y, Z)) { out++; if (Y >= SY) up++; else if (Y < 0) down++; continue; }
     editSet(X, Y, Z, v); n++;
   }
+  var nbe = bentPasteAt(clip.be, clip.w, clip.l, o); // itens e texto (src/blockent.js)
   endBatch();
-  toast('Colados ' + n + ' blocos' + (out ? ' (' + out + ' ficaram fora do espaço)' : '') + '. Clique de novo para colar outra cópia, Esc para terminar.', 5000);
+  toast('Colados ' + n + ' blocos' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Clique de novo para colar outra cópia, Esc para terminar.', out ? 12000 : 5000);
 }
+/* Blocos da cópia que não cabem: acima do teto, abaixo do chão ou fora pelos lados (num mundo do jogo, os limites de altura são os do mundo) */
+function pasteOutTxt(out, up, down) {
+  if (!out) return '';
+  var D = wio && wio.area ? (wio.java ? JW_DIMS[wio.area.dim] : wioDim(wio.area.dim)) : null, top = D ? D.min + D.h - 1 : null, bot = D ? D.min : null;
+  var p = [];
+  if (up) p.push(up.toLocaleString('pt-BR') + ' acima ' + (D ? 'do teto do mundo (Y ' + top + ')' : 'do espaço'));
+  if (down) p.push(down.toLocaleString('pt-BR') + ' abaixo ' + (D ? 'do fundo do mundo (Y ' + bot + ')' : 'do espaço'));
+  if (out - up - down) p.push((out - up - down).toLocaleString('pt-BR') + ' fora pelos lados' + (D ? ' (fora da área carregada)' : ''));
+  return 'Atenção: ' + out.toLocaleString('pt-BR') + ' blocos ficaram de fora: ' + p.join(', ') + '. ';
+}
+/* Quantos blocos da cópia ficariam de fora com a origem o (para o aviso da prévia) */
+function pasteOutCount(o) {
+  var r = [0, 0, 0];
+  if (o[1] >= 0 && o[1] + clip.h <= SY && o[0] >= 0 && o[2] >= 0 && o[0] + clip.w <= SX && o[2] + clip.l <= SZ) return r;
+  for (var y = 0; y < clip.h; y++) for (var z = 0; z < clip.l; z++) for (var x = 0; x < clip.w; x++) {
+    if (!clip.cells[(y * clip.l + z) * clip.w + x]) continue;
+    var X = o[0] + x, Y = o[1] + y, Z = o[2] + z; if (inB(X, Y, Z)) continue;
+    r[0]++; if (Y >= SY) r[1]++; else if (Y < 0) r[2]++;
+  }
+  return r;
+}
+var pasteWarnAt = '';
 function pastePreview(t) {
   var o = pasteOrigin(t); if (!o) return;
+  // aviso quando a cópia passa do teto ou do fundo (uma vez por posição de altura)
+  var oc = pasteOutCount(o), wk = o[1] + ':' + oc[1] + ':' + oc[2];
+  if ((oc[1] || oc[2]) && wk !== pasteWarnAt) { pasteWarnAt = wk; toast(pasteOutTxt(oc[0], oc[1], oc[2]) + 'Cole mais ' + (oc[1] ? 'para baixo' : 'para cima') + ' para caber.', 6000); }
+  if (!oc[1] && !oc[2]) pasteWarnAt = '';
   var m = new THREE.Matrix4(), k = 0, info = new THREE.Color(cssColor('--info'));
   for (var y = 0; y < clip.h && k < 40000; y++) for (var z = 0; z < clip.l && k < 40000; z++) for (var x = 0; x < clip.w && k < 40000; x++) {
     if (!clip.cells[(y * clip.l + z) * clip.w + x]) continue;

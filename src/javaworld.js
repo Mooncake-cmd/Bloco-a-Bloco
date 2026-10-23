@@ -313,7 +313,9 @@ async function jwLoadArea(dim, x0, z0, w, d, prog) {
       ba[(lz << 4) | lx] = id;
     }
     bioOrig.set(bioKey(a, b), ba);
+    var bel = nbtVal(t.v, 'block_entities'); if (bel && bel.a.length) bentLoadJava(bel.a, x0, D.min, z0); // itens e texto (src/blockent.js)
   }
+  bentDirty.clear(); bentSave = true;
   wio.area = { dim: dim, x0: x0, z0: z0, w: w, d: d, miss: miss };
   wio.edited = new Set();
   lightFull = true; verCounter++; dirtyAll();
@@ -346,14 +348,17 @@ async function jwCommit(prog) {
     if (prog) prog(++n, cols.size);
     var col = wio.dims[dim].get(cx + ',' + cz), t = col && col.ok ? await jwChunk(dim, cx, cz) : null;
     if (!t) { ys.forEach(function (ecy) { var ch = W.get(ckey(ecx, ecy, ecz)); if (ch) res.lost += ch.n; }); continue; }
-    var removed = new Set(), any = false;
+    var removed = new Set(), any = false, addBe = [];
     for (var yi = 0; yi < ys.length; yi++) {
       var ecy = ys[yi], sy = ecy + ms, sec = jwSecFor(t, sy), dec = jwSecDecode(sec) || { pal: ['minecraft:air'], idx: new Uint16Array(4096) };
       var cells = dec.pal.map(jwCellOfKey), pmap = new Map(dec.pal.map(function (k, i) { return [k, i]; })), ch = false;
       for (var i = 0; i < 4096; i++) {
         var x = i & 15, z = (i >> 4) & 15, y = i >> 8, ex = (ecx << 4) + x, ey = (ecy << 4) + y, ez = (ecz << 4) + z;
-        var cur = gget(ex, ey, ez), base = cells[dec.idx[i]];
-        if (cur === base) continue;
+        var cur = gget(ex, ey, ez), base = cells[dec.idx[i]], bd = bentDirty.size && bentDirty.has(idx(ex, ey, ez));
+        if (cur === base && !bd) continue;
+        var wx = cx * 16 + x, wy = sy * 16 + y, wz = cz * 16 + z;
+        if (cur && beKind(BLOCKS[cellBlock(cur)].java)) { var bt = beJavaTree(idx(ex, ey, ez), BLOCKS[cellBlock(cur)].java, wx, wy, wz); if (bt) { addBe.push(bt); removed.add(wx + ',' + wy + ',' + wz); any = true; } } // itens e texto (src/blockent.js)
+        if (cur === base) { removed.add(wx + ',' + wy + ',' + wz); any = true; continue; }
         var key = jwKeyOfCell(cur, ex, ey, ez); if (!key) { res.bedrockOnly++; key = 'minecraft:air'; }
         var pi = pmap.get(key); if (pi === undefined) { pi = dec.pal.length; dec.pal.push(key); cells.push(jwCellOfKey(key)); pmap.set(key, pi); }
         if (pi === dec.idx[i]) continue;
@@ -364,9 +369,10 @@ async function jwCommit(prog) {
     if (!any) continue;
     var be = nbtVal(t.v, 'block_entities');
     if (be && be.a.length) be.a = be.a.filter(function (e) { return !removed.has(nbtVal(e, 'x') + ',' + nbtVal(e, 'y') + ',' + nbtVal(e, 'z')); });
+    if (addBe.length) { if (!be) { be = { et: 10, a: [] }; nbtSet(t.v, 'block_entities', 9, be); } if (!be.a.length) be.et = 10; be.a = be.a.concat(addBe); }
     jwPut(dim, cx, cz, t, true);
   }
-  wio.edited.clear();
+  wio.edited.clear(); bentDirty.clear();
   wio.maps[dim] = null;
   return res;
 }
@@ -455,7 +461,8 @@ async function importLitematic(u8) {
       var nm = k.replace(/^minecraft:/, '').replace(/\[.*$/, ''); if (JW_AIR[nm]) return 0;
       var c = cellFromJava(k); if (!c) unknown[nm] = 0; return c;
     });
-    boxes.push({ lo: lo, ab: ab, idx: idx, cells: cells, pal: pal });
+    var tes = nbtVal(R, 'TileEntities');
+    boxes.push({ lo: lo, ab: ab, idx: idx, cells: cells, pal: pal, te: tes && tes.a ? tes.a : [] });
     for (var i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], lo[i]); mx[i] = Math.max(mx[i], lo[i] + ab[i] - 1); }
   });
   var w = mx[0] - mn[0] + 1, h = mx[1] - mn[1] + 1, l = mx[2] - mn[2] + 1;
@@ -469,5 +476,11 @@ async function importLitematic(u8) {
     }
     return 0;
   });
-  importReport('.litematic' + (regs.length > 1 ? ' (' + regs.length + ' regiões juntas)' : ''), cut, unknown);
+  // itens dos contêineres e texto das placas (posição relativa ao canto de baixo da região)
+  var nbe = 0;
+  boxes.forEach(function (B) { B.te.forEach(function (c) {
+    var o = nbtTreeObj(c, 10), x = B.lo[0] - mn[0] + (o.x | 0), y = B.lo[1] - mn[1] + (o.y | 0), z = B.lo[2] - mn[2] + (o.z | 0); if (!inB(x, y, z)) return;
+    var i = idx(x, y, z), j = beJ(i), be = j && beFromJava(o, j); if (be) { bentSet(i, be, false); nbe++; }
+  }); });
+  importReport('.litematic' + (regs.length > 1 ? ' (' + regs.length + ' regiões juntas)' : ''), cut, unknown, nbe);
 }

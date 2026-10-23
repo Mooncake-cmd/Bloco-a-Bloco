@@ -123,10 +123,12 @@
     voxels = voxels.filter(v => !BLOCKS[v[3]].bo);
     if (!voxels.length) throw new Error('A construção só tem blocos que não existem no Java.');
     const b = bounds(voxels);
-    const grid = new Int32Array(b.w * b.h * b.l).fill(-1), oris = new Int32Array(grid.length), extra = [];
-    for (const [x, y, z, idx, o, ex] of voxels) {
+    const grid = new Int32Array(b.w * b.h * b.l).fill(-1), oris = new Int32Array(grid.length), extra = [], bents = [];
+    for (const [x, y, z, idx, o, ex, be] of voxels) {
       const i = ((y - b.minY) * b.l + (z - b.minZ)) * b.w + (x - b.minX);
       grid[i] = idx; oris[i] = o == null ? -1 : o; if (ex) extra[i] = ex;
+      // itens e texto (Sponge v3: Pos relativo, Id e os dados em Data)
+      if (be && be.java) bents.push({ Pos: { t: 'ints', v: [x - b.minX, y - b.minY, z - b.minZ] }, Id: { t: 'string', v: be.jid }, Data: { t: 'compound', v: be.java } });
     }
     const palette = { 'minecraft:air': 0 };
     let next = 1;
@@ -158,7 +160,7 @@
             v: {
               Palette: { t: 'compound', v: pal },
               Data: { t: 'bytes', v: Uint8Array.from(data) },
-              BlockEntities: { t: 'list', of: 'compound', v: [] }
+              BlockEntities: { t: 'list', of: 'compound', v: bents }
             }
           }
         }
@@ -188,11 +190,17 @@
     const b = bounds(voxels);
     const sx = b.w, sy = b.h, sz = b.l;
     const total = sx * sy * sz;
-    const grid = new Int32Array(total).fill(-1), oris = new Int32Array(total), extra = [];
-    for (const [x, y, z, idx, o, ex] of voxels) {
+    const grid = new Int32Array(total).fill(-1), oris = new Int32Array(total), extra = [], bents = [];
+    for (const [x, y, z, idx, o, ex, be] of voxels) {
       const i = ((x - b.minX) * sy + (y - b.minY)) * sz + (z - b.minZ);
-      grid[i] = idx; oris[i] = o == null ? -1 : o; if (ex) extra[i] = ex;
+      grid[i] = idx; oris[i] = o == null ? -1 : o; if (ex) extra[i] = ex; if (be && be.bed) bents[i] = be.bed;
     }
+    // dados de entidade que o jogo guarda fora do estado (cor da cama, comando, itens, texto da placa)
+    const entData = function (ent) {
+      const e = { id: { t: 'string', v: ent.id }, isMovable: { t: 'byte', v: 1 } };
+      for (const k of Object.keys(ent)) if (k !== 'id') e[k] = typeof ent[k] === 'object' ? ent[k] : { t: 'byte', v: ent[k] }; // número: byte; {t, v}: o tipo dado
+      return { t: 'compound', v: { block_entity_data: { t: 'compound', v: e } } };
+    };
     const emptyName = opts.preserveTerrain === false ? 'minecraft:air' : 'minecraft:structure_void';
     const pal = []; const palIndex = {};
     function getPal(name, states, version) {
@@ -212,15 +220,11 @@
       // ex.bn/bs/bv: nome, estados e versão Bedrock calculados pelo editor (tabela Java -> Bedrock)
       if (ex) {
         layer0[i] = getPal('minecraft:' + ex.bn, ex.bs, ex.bv);
-        // dados de entidade que o jogo guarda fora do estado (ex.: cor da cama)
-        if (ex.ent) {
-          const e = { id: { t: 'string', v: ex.ent.id }, isMovable: { t: 'byte', v: 1 } };
-          for (const k of Object.keys(ex.ent)) if (k !== 'id') e[k] = typeof ex.ent[k] === 'object' ? ex.ent[k] : { t: 'byte', v: ex.ent[k] }; // número: byte; {t, v}: o tipo dado
-          posData[String(i)] = { t: 'compound', v: { block_entity_data: { t: 'compound', v: e } } };
-        }
+        if (ex.ent || bents[i]) posData[String(i)] = entData(ex.ent || bents[i]);
         continue;
       }
       layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk, oris[i] < 0 ? null : oris[i]), blk.bst && blk.bst[0]);
+      if (bents[i]) posData[String(i)] = entData(bents[i]);
     }
     const layer1 = new Array(total).fill(-1);
     const root = {

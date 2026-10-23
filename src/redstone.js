@@ -170,7 +170,7 @@ function rsFillGet(x, y, z) { return rsFill.get(idx(x, y, z)) || 0; }
 function rsFillSet(i, lv, log) {
   var old = rsFill.get(i) || 0; if (old === lv) return;
   if (lv) rsFill.set(i, lv); else rsFill.delete(i);
-  rsFillSave = true;
+  rsFillSave = true; bentMark(i);
   if (log && batch) batch.add(-(RS_FILL_BASE + i), old, lv);
 }
 function rsFillApplyLog(i, val) { rsFillSet(-i - RS_FILL_BASE, val, false); }
@@ -533,7 +533,7 @@ function rsAfterBatch(b) {
     var p = unidx(bi0); seeds.push(p); rsSeen(p[0], p[1], p[2]);
     if (b.length <= 4096) { var vf = rsVibeFreq(b.o[k], b.v[k], false); if (vf) rsVibe(p[0], p[1], p[2], vf); } // sensor de sculk ouvindo a edição
     if (rsLog.on) rsLogCell(p[0], p[1], p[2], b.o[k], b.v[k]); // gráfico do passo a passo: a mudança do usuário
-    var cv0 = gat(bi0); if (rsFill.has(bi0) && (!cv0 || !RS_CONT.test(BLOCKS[cellBlock(cv0)].java))) { rsFill.delete(bi0); rsFillSave = true; } // o contêiner saiu dali
+    var cv0 = gat(bi0); if (rsFill.has(bi0) && (!cv0 || !RS_CONT.test(BLOCKS[cellBlock(cv0)].java))) { rsFill.delete(bi0); rsFillSave = true; } bentCheck(bi0); // o contêiner (ou a placa) saiu dali
   }
   rs.touched = seeds.concat(rs.touched);
   rsSettle();

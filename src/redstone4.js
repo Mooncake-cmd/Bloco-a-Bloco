@@ -66,7 +66,7 @@ function rsInvSet(i, code, n) { rsFillLog(i, n > 0 ? 16 + n + 4096 * code : 0); 
 function rsFillLog(i, val) {
   var old = rsFill.get(i) || 0; if (old === val) return;
   if (val) rsFill.set(i, val); else rsFill.delete(i);
-  rsFillSave = true;
+  rsFillSave = true; bentMark(i);
   var top = batch || histTop(); if (top) top.add(-(RS_FILL_BASE + i), old, val);
 }
 /* Nível que o comparador lê */

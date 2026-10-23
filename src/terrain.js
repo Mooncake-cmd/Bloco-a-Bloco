@@ -167,6 +167,7 @@ function worldShift(dx, dy, dz, sx, sy, sz) {
   W.forEach(function (ch) { keep.push(ch); });
   bioPaint.forEach(function (a, k) { var p = k.split(','), cx = +p[0], cz = +p[1]; for (var o = 0; o < 256; o++) if (a[o] !== 255) bios.push([cx * 16 + (o & 15), cz * 16 + (o >> 4), a[o]]); });
   rsFill.forEach(function (lv, i) { fills.push([unidx(i), lv]); });
+  var bes = []; bent.forEach(function (be, i) { bes.push([unidx(i), be]); });
   var hb = hotbar.slice(), sl = slot, sel0 = sel;
   newWorld(sx, sy, sz);
   if (sel0) { sel = { a: [sel0.a[0] + dx, sel0.a[1] + dy, sel0.a[2] + dz], b: [sel0.b[0] + dx, sel0.b[1] + dy, sel0.b[2] + dz] }; if (scene) { updateSelChip(); drawSelBox(); } } // a seleção vai junto
@@ -180,7 +181,8 @@ function worldShift(dx, dy, dz, sx, sy, sz) {
   });
   bios.forEach(function (b) { if (b[0] + dx < SX && b[1] + dz < SZ) bioSetRaw(b[0] + dx, b[1] + dz, b[2]); });
   fills.forEach(function (f) { var p = f[0]; if (inB(p[0] + dx, p[1] + dy, p[2] + dz)) rsFill.set(idx(p[0] + dx, p[1] + dy, p[2] + dz), f[1]); });
-  rsFillSave = true; hotbar = hb; slot = sl;
+  bes.forEach(function (f) { var p = f[0]; if (inB(p[0] + dx, p[1] + dy, p[2] + dz)) bent.set(idx(p[0] + dx, p[1] + dy, p[2] + dz), f[1]); });
+  rsFillSave = true; bentSave = true; hotbar = hb; slot = sl;
   verCounter++; dirtyAll(); changed();
 }
 

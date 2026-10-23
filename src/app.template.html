@@ -131,6 +131,13 @@ body.walking #viewport canvas{cursor:none}
 .mixl{font-size:12px}
 #bioSel{max-width:180px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px}
 .bsw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
+.begrid{display:grid;grid-template-columns:repeat(9,40px);gap:3px;margin:6px 0;max-width:100%;overflow-x:auto}
+.beslot{position:relative;width:40px;height:40px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2)}
+.beslot .sw{position:absolute;inset:6px;width:auto;height:auto;border-radius:3px;image-rendering:pixelated;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.beslot b{position:absolute;right:3px;bottom:1px;font:700 12px var(--font-mono);color:#fff;text-shadow:0 1px 2px #000,0 0 2px #000}
+.besign{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0;display:flex;flex-direction:column;gap:4px}
+.besign legend{font-weight:600;padding:0 4px}
+.besign input[type=text]{font-family:var(--font-mono);text-align:center}
 .mxrows{display:flex;flex-direction:column;gap:6px}
 .mxrow{display:flex;align-items:center;gap:8px}
 .mxrow .sw{width:26px;height:26px;border-radius:4px;flex:none}
@@ -172,6 +179,7 @@ body.walking #viewport canvas{cursor:none}
 #wmvX{margin-left:auto}
 #wmvCv{flex:1 1 auto;min-height:0;width:100%;display:block;touch-action:none;cursor:crosshair}
 #wmvTip{position:absolute;pointer-events:none;max-width:260px;padding:6px 9px;border-radius:7px;background:rgba(20,22,21,.92);color:#fff;font:12px/1.45 var(--font-mono);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+#wmView .wmfy{display:inline-flex;align-items:center;gap:6px}#wmView .wmfy input{width:80px}
 #wmView .wmvinfo{padding:8px 12px;background:var(--panel);border-top:1px solid var(--line);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #wmvZoom{min-width:110px;text-align:center;font:12px var(--font-mono)}
 .overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
@@ -1255,6 +1263,7 @@ function updateStatus() {
   var tv = t && t.hit ? gget(t.hit[0], t.hit[1], t.hit[2]) : 0, tb = tv ? BLOCKS[cellBlock(tv)] : null;
   if (tb && cellBlock(tv) === PRES_BI) tb = { name: 'Bloco do jogo: ' + presName(tv) + ' (mantido como está)' };
   $('stBlock').textContent = (tb ? tb.name + (tb.ori ? ', ' + oriLabel(tb, cellOri(tv)) : tb.shape && tb.sp.length ? ' [' + shapeLabel(tb, cellOri(tv)) + ']' : '') + ' (alvo)  ' : '') + BLOCKS[curBlock()].name;
+  var bs = t && t.hit ? beStatus(t.hit) : ''; if (bs) $('stBlock').textContent = $('stBlock').textContent.replace(' (alvo)', ' (alvo: ' + bs + ')');
   var vox = bbox();
   $('stSize').textContent = vox ? vox.w + ' × ' + vox.h + ' × ' + vox.l : 'vazia';
   $('stCount').textContent = blockCount;
@@ -1352,6 +1361,7 @@ function useAt(c, back, t) {
     rsPulse(ln.hooks.concat(ln.wires), 'Usar: armadilha', 10, 'tripOff'); toast('Armadilha disparada: os ganchos dão sinal 15 por 10 tiques.'); return;
   }
   if (b.java === 'daylight_detector') { var sp = stateProps(b, cellOri(v)); sp.inverted = sp.inverted === 'true' ? 'false' : 'true'; beginBatch('Usar: ' + b.name); editSet(c[0], c[1], c[2], mkCell(cellBlock(v), stateIndex(b, sp))); endBatch(); toast('Sensor de luz ' + (sp.inverted === 'true' ? 'invertido (modo noite)' : 'normal (modo dia)') + ': força ' + rsDayPow(sp.inverted === 'true') + ' às ' + rsTimeTxt(rsTime) + '. A hora fica no menu Projeto.'); return; }
+  if (BE_SIGN.test(b.java)) { openSign(c, b); return; } // placa: o texto (src/blockent.js)
   if (/command_block$/.test(b.java) && !back) { openCmd(c); return; } // bloco de comando (src/redstone4.js); Shift + Usar: o padrão
   if (RS_CONT.test(b.java) && !(back && b.shape && b.shape.tog.length)) { openFill(c, b); return; }
   if (!b.shape || !b.shape.tog.length) { toast(b.name + ' não tem o que abrir, ligar ou mudar.'); return; }
@@ -1361,7 +1371,7 @@ function useAt(c, back, t) {
   if (b.java === 'note_block') { var np = stateProps(b, s2); rsPlayNote(c[0], c[1], c[2], +np.note || 0); toast(b.name + ': nota ' + np.note + ' (' + rsInstrument(c[0], c[1], c[2]) + ')'); return; }
   toast(b.name + ': ' + prop + ' = ' + stateProps(b, s2)[prop]);
 }
-/* Contêiner: o nível de conteúdo de 0 a 15 que o comparador lê (o site não guarda os itens) */
+/* Contêiner: os itens (espaço por espaço, src/blockent.js) e o conteúdo da simulação (um tipo de item e a quantidade: o nível de 0 a 15 que o comparador lê) */
 function openFill(c, b) {
   var i = idx(c[0], c[1], c[2]), cur = rsFill.get(i) || 0, j = b.java;
   if (j === 'jukebox' || j === 'crafter') { // toca-discos: o disco; fabricador: os espaços ocupados
@@ -1386,11 +1396,14 @@ function openFill(c, b) {
     : j === 'dropper' ? 'O <b>ejetor</b> solta um item quando o sinal chega: no contêiner da frente, ou no chão.'
     : j === 'hopper' ? 'O <b>funil</b> passa um item a cada 8 tiques para o contêiner para onde aponta e puxa do contêiner de cima (travado com sinal).'
     : 'Ejetores e funis põem e tiram itens daqui.';
-  openDialog('<h3>' + esc(b.name) + ': conteúdo</h3><p>' + act + ' O site guarda um tipo de item por bloco, sem os espaços um a um.</p>' +
+  var its = beItems(i, j), nsl = beSlots(j), bez = bent.get(i), orig = bez && bez.k === 'inv' && bez.fv === (rsFill.get(i) || 0) && its.length;
+  openDialog('<h3>' + esc(b.name) + ': conteúdo</h3>' +
+    beGrid(its, nsl) + '<p class="pen">' + (its.length ? esc(beSummary(its)) + (orig ? ' (como veio do arquivo ou do mundo).' : '.') : 'Vazio.') + ' Vai junto ao exportar para o mundo do jogo, o .mcstructure e o .schem, e ao copiar, colar e guardar na biblioteca.</p>' +
+    '<h4>Trocar o conteúdo</h4><p>' + act + ' Aqui o conteúdo é um tipo de item só (o que a simulação da redstone usa); trocar substitui os itens acima.</p>' +
     '<label>Item<select id="fillI">' + opts + '</select></label>' +
     '<label>Quantidade: <b id="fillOut"></b><span class="row"><input type="range" id="fillR" min="0" value="0" style="flex:1"><input type="number" id="fillN" min="0" value="0" style="width:90px"></span></label>' +
-    '<p class="pen">Fica salvo no projeto e no navegador, mas não vai para o mundo do jogo nem para o .mcstructure.</p>' +
-    '<div class="row"><button class="btn primary" id="fillOk">Usar</button><button class="btn" id="fillNo">Cancelar</button></div>',
+    '<p class="pen">“Itens comuns” vão para o jogo como pedregulho.</p>' +
+    '<div class="row"><button class="btn primary" id="fillOk">Trocar</button><button class="btn" id="fillEmpty">Esvaziar</button><button class="btn" id="fillNo">Fechar</button></div>',
     function () {
       var show = function () {
         var code = +$('fillI').value, cap = rsInvCap(j, code), n = Math.min(+$('fillR').value, cap); $('fillR').max = cap;
@@ -1400,8 +1413,9 @@ function openFill(c, b) {
       $('fillI').value = q.code; $('fillR').max = rsInvCap(j, q.code); $('fillR').value = q.n; show();
       $('fillI').onchange = show; $('fillR').oninput = show; $('fillN').oninput = function () { $('fillR').value = Math.max(0, +this.value || 0); show(); };
       $('fillNo').onclick = closeDialog;
+      $('fillEmpty').onclick = function () { closeDialog(); beginBatch('Conteúdo: ' + b.name); bent.delete(i); bentSave = true; rsFillSet(i, 0, true); endBatch(); updateStatus(); toast(b.name + ': vazio.'); };
       $('fillOk').onclick = function () {
-        var code = +$('fillI').value, n = Math.min(+$('fillR').value, rsInvCap(j, code)); closeDialog();
+        var code = +$('fillI').value, n = Math.min(+$('fillR').value, rsInvCap(j, code)); closeDialog(); bent.delete(i); bentSave = true;
         beginBatch('Conteúdo: ' + b.name); rsFillSet(i, n ? 16 + n + 4096 * code : 0, true); endBatch(); updateStatus();
         toast(b.name + ': ' + (n ? n + ' × ' + RS_ITEMS[code].name : 'vazio') + ' (o comparador lê ' + rsLevel(c[0], c[1], c[2], j) + ').');
       };
@@ -2153,6 +2167,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%REDSTONE_JS%%*/
 /*%%RSSTEP_JS%%*/
 /*%%RS4_JS%%*/
+/*%%BENT_JS%%*/
 /*%%PROJ_JS%%*/
 /*%%ICONS_JS%%*/
 /*%%HOLO_JS%%*/
@@ -2205,6 +2220,7 @@ function loadProject(o) {
   if (o.fill) rsFillFrom(o.fill);
   rsCmdFrom(o.cmd); rsCmdSave = true;
   apoio = new Set(o.apoio || []); apoioSave = true;
+  if (o.bent) { bentFrom({ e: o.bent }); bentSave = true; }
   verCounter++; dirtyAll(); renderHotbar(); renderList(); changed();
   return miss;
 }
@@ -2212,7 +2228,7 @@ function newWorld(sx, sy, sz) {
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
-  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset(); bioReset(); apoio = new Set(); apoioSave = true; tube.paths = []; tube.sel = null; tube.cache = null; fcur = null; fsCache = null;
+  histReset(); batch = null; stroke = null; anchor = null; updateAnchorChip(); fluidStop(); rsReset(); bioReset(); apoio = new Set(); apoioSave = true; bentReset(); tube.paths = []; tube.sel = null; tube.cache = null; fcur = null; fsCache = null;
   if (sym.p[0] > 2 * sx || sym.p[1] > 2 * sy || sym.p[2] > 2 * sz || !(sym.p[0] || sym.p[1] || sym.p[2])) symCenter(); if (scene) drawSym();
   sel = null; selA = null; pasting = false; updateSelChip(); if (scene) drawSelBox(); // a área copiada continua disponível para colar no projeto novo
   layerOn = false; layerY = 0; syncLayerUI();
@@ -2224,7 +2240,8 @@ var autosaveWarned = false; // autosave() está em src/world.js (IndexedDB, só 
 function resizeWorld(sx, sy, sz) {
   // guarda os chunks, muda o tamanho e devolve o que cabe (a chave dos chunks depende da largura)
   var keep = []; W.forEach(function (ch) { keep.push(ch); });
-  var hb = hotbar.slice(), sl = slot;
+  var hb = hotbar.slice(), sl = slot, fills = [], bes = []; // o conteúdo dos contêineres e das placas vai por coordenada (o índice depende da largura)
+  rsFill.forEach(function (lv, i) { fills.push([unidx(i), lv]); }); bent.forEach(function (be, i) { bes.push([unidx(i), be]); });
   newWorld(sx, sy, sz);
   keep.forEach(function (ch) {
     var x0 = ch.cx << 4, y0 = ch.cy << 4, z0 = ch.cz << 4;
@@ -2234,6 +2251,9 @@ function resizeWorld(sx, sy, sz) {
       if (inB(x, y, z)) { gset(x, y, z, v); blockCount++; }
     }
   });
+  fills.forEach(function (f) { var p = f[0]; if (inB(p[0], p[1], p[2])) rsFill.set(idx(p[0], p[1], p[2]), f[1]); });
+  bes.forEach(function (f) { var p = f[0]; if (inB(p[0], p[1], p[2])) bent.set(idx(p[0], p[1], p[2]), f[1]); });
+  rsFillSave = true; bentSave = true;
   hotbar = hb; slot = sl;
   verCounter++; dirtyAll(); changed();
 }
@@ -2292,7 +2312,10 @@ function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&
 function voxelOf(x, y, z, v) {
   var bi = cellBlock(v);
   if (bi === PRES_BI) { var pe = wio && wio.pres[cellOri(v)], pt = pe && !pe.key ? nbtPalTyped(pe.raw) : null; return [x, y, z, bi, null, pt ? { bn: pt.name.replace(/^minecraft:/, ''), bs: pt.states, bv: pt.version } : null]; }
-  return BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v)]; }
+  var r = BLOCKS[bi].shape ? [x, y, z, bi, null, shapeExport(BLOCKS[bi], cellOri(v), x, y, z)] : [x, y, z, bi, cellOri(v), null];
+  if (bent.size || rsFill.size) { var i = idx(x, y, z), j = BLOCKS[bi].java; if (beKind(j)) { var be = beBedrockEnt(i, j), jd = beJavaData(i, j); if (be || jd) r[6] = { bed: be, java: jd, jid: beJavaId(j) }; } } // conteúdo e texto (src/blockent.js)
+  return r;
+}
 function collectVoxels(box) {
   var out = [];
   if (box) blocksInBox(box[0], box[1], box[2], box[3], box[4], box[5], function (x, y, z, v) { if (!isApoio(x, y, z, v)) out.push(voxelOf(x, y, z, v)); });
@@ -2512,6 +2535,8 @@ function openHelp() {
     '<span>Bloco de apoio (<kbd>Z</kbd>)</span><span>Põe um vidro bem na sua frente, no meio da tela, a uns 4 blocos da câmera (em primeira pessoa, embaixo dos pés), para começar a construir no alto sem subir um pilar. Não vai para a exportação; Projeto → Remover blocos de apoio tira todos.</span>' +
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span>' +
+    '<span>Conteúdo dos blocos</span><span>Usar (<kbd>U</kbd>) num baú, ejetor, funil ou outro contêiner mostra os itens espaço por espaço; numa placa, o texto da frente e do verso (para ler e mudar). Vem de .litematic, .schem, .mcstructure e mundos do jogo e vai junto ao exportar, copiar, colar e guardar na biblioteca.</span>' +
+    '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +

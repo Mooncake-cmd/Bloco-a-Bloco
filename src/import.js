@@ -97,9 +97,9 @@ function fillWorld(w, h, l, get) {
   verCounter++; dirtyAll(); changed(); renderList();
   return false;
 }
-function importReport(kind, cut, unknown) {
+function importReport(kind, cut, unknown, nbe) {
   var names = Object.keys(unknown), n = names.reduce(function (a, k) { return a + unknown[k]; }, 0);
-  var msg = kind + ' importado: ' + blockCount + ' blocos.';
+  var msg = kind + ' importado: ' + blockCount + ' blocos' + (nbe ? ', ' + nbe + (nbe > 1 ? ' com conteúdo ou texto (baús, placas...)' : ' com conteúdo ou texto') : '') + '.';
   msg += ' Espaço: ' + SX + ' × ' + SY + ' × ' + SZ + '.';
   if (n) msg += ' ' + n + ' blocos desconhecidos ficaram de fora: ' + names.slice(0, 6).map(function (k) { return k.replace('minecraft:', ''); }).join(', ') + (names.length > 6 ? '…' : '') + '.';
   toast(msg, n || cut ? 10000 : 4000);
@@ -128,7 +128,14 @@ function importMcstructure(u8) {
     } if (!v && pal[k]) { var n = String(pal[k].name).replace(/^minecraft:/, ''); if (n in unknown) unknown[n]++; }
     return v;
   });
-  importReport('.mcstructure', cut, unknown);
+  // itens dos contêineres e texto das placas (dados de entidade de cada posição)
+  var nbe = 0;
+  Object.keys(pos).forEach(function (k) {
+    var d = pos[k] && pos[k].block_entity_data; if (!d) return;
+    var i0 = +k, x = Math.floor(i0 / (H * L)), y = Math.floor(i0 / L) % H, z = i0 % L; if (!inB(x, y, z)) return;
+    var i = idx(x, y, z), j = beJ(i), be = j && beFromBedrock(d, j); if (be) { bentSet(i, be, false); nbe++; }
+  });
+  importReport('.mcstructure', cut, unknown, nbe);
 }
 function varints(u8, n) {
   var out = new Int32Array(n), p = 0;
@@ -158,5 +165,11 @@ function importSchem(u8) {
     if (!v && k) { var name = Object.keys(pal).find(function (q) { return pal[q] === k; }); if (name) { var n = name.replace(/^minecraft:/, '').replace(/\[.*$/, ''); if (n in unknown) unknown[n]++; } }
     return v || 0;
   });
-  importReport('.schem', cut, unknown);
+  // itens dos contêineres e texto das placas: v3 em Blocks.BlockEntities ({Pos, Id, Data}); v2 na raiz (os dados soltos)
+  var bes = (s.Blocks && s.Blocks.BlockEntities) || s.BlockEntities || [], nbe = 0;
+  bes.forEach(function (e) {
+    var P = e.Pos; if (!P || !inB(P[0], P[1], P[2])) return;
+    var i = idx(P[0], P[1], P[2]), j = beJ(i), be = j && beFromJava(e.Data || e, j); if (be) { bentSet(i, be, false); nbe++; }
+  });
+  importReport('.schem', cut, unknown, nbe);
 }

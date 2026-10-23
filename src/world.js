@@ -140,6 +140,7 @@ function serialize() {
   if (rsFill.size) o.fill = rsFillRecord(); // nível de conteúdo dos contêineres (src/redstone.js)
   if (rs.cmds.size) o.cmd = rsCmdRecord(); // comandos dos blocos de comando (src/redstone4.js)
   if (apoio.size) o.apoio = Array.from(apoio); // blocos de apoio (vidro temporário)
+  if (bent.size) o.bent = bentRecord().e; // itens dos contêineres e texto das placas (src/blockent.js)
   W.forEach(function (ch) {
     var r = chunkRecord(ch);
     if (r.d) { r.w = r.d instanceof Uint16Array ? 2 : 1; r.d = b64(new Uint8Array(r.d.buffer)); }
@@ -170,6 +171,7 @@ function autosave() {
     if (rsFillSave || clear) { rsFillSave = false; st.put(rsFillRecord(), 'w:fill'); } // conteúdo dos contêineres
     if (rsCmdSave || clear) { rsCmdSave = false; st.put(rsCmdRecord(), 'w:cmd'); } // comandos
     if (apoioSave || clear) { apoioSave = false; st.put(Array.from(apoio), 'w:apoio'); } // blocos de apoio
+    if (bentSave || clear) { bentSave = false; st.put(bentRecord(), 'w:bent'); } // conteúdo dos blocos e texto das placas
     histSaveInto(st, clear); // a linha do tempo vai na mesma gravação: construção e histórico sempre combinam
   }).then(function () {
     autosaveBusy = false;
@@ -195,7 +197,8 @@ function loadAutosave() {
       return idbDo('readonly', function (st) { return st.get('w:bio'); }).then(function (b) { if (b) bioFromRecord(b); bioSaveFlag = false; return idbDo('readonly', function (st) { return st.get('w:fill'); }); })
         .then(function (f) { if (f) rsFillFrom(f); return idbDo('readonly', function (st) { return st.get('w:cmd'); }); })
         .then(function (cm) { rsCmdFrom(cm); return idbDo('readonly', function (st) { return st.get('w:apoio'); }); })
-        .then(function (a) { apoio = new Set(a || []); apoioSave = false; return true; }, function () { return true; });
+        .then(function (a) { apoio = new Set(a || []); apoioSave = false; return idbDo('readonly', function (st) { return st.get('w:bent'); }); })
+        .then(function (be) { bentFrom(be); return true; }, function () { return true; });
     });
   }, function () { return false; });
 }

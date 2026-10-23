@@ -320,6 +320,7 @@ function wioEntry(v, x, y, z, C) {
   var r;
   if (b.shape) { var s = shapeExport(b, cellOri(v), x, y, z); r = { n: s.bn, s: s.bs, v: s.bv, ent: s.ent }; }
   else { var be = MCExport.bedrockEntry(b, b.ori ? cellOri(v) : null); r = { n: be.name, s: be.states, v: be.version }; }
+  if (!r.ent && beKind(b.java) && inB(x, y, z)) r.ent = beBedrockEnt(idx(x, y, z), b.java); // itens e texto (src/blockent.js)
   var key = r.n + JSON.stringify(r.s) + r.v, raw = C.entries.get(key);
   if (!raw) {
     raw = nbtRootLE({ name: { t: 'string', v: 'minecraft:' + r.n }, states: { t: 'compound', v: r.s }, version: { t: 'int', v: r.v || WIO_BLOCK_VERSION } });
@@ -473,7 +474,9 @@ async function wioLoadArea(dim, x0, z0, w, d, prog) {
       }
       if (ch.n) { W.set(ckey(a, ey, b), ch); blockCount += ch.n; }
     }
+    bentLoadBedrock(beds.list, x0, D.min, z0); // itens dos contêineres e texto das placas (src/blockent.js)
   }
+  bentDirty.clear(); bentSave = true;
   wio.area = { dim: dim, x0: x0, z0: z0, w: w, d: d, miss: miss };
   wio.edited = new Set();
   lightFull = true; verCounter++; dirtyAll();
@@ -512,7 +515,7 @@ async function wioCommit(prog) {
         var x = i >> 8, z = (i >> 4) & 15, y = i & 15, ex = (ecx << 4) + x, ey = (ecy << 4) + y, ez = (ecz << 4) + z;
         var wx = cx * 16 + x, wy = sy * 16 + y, wz = cz * 16 + z;
         var cur = gget(ex, ey, ez), base = wioBase(dec, c0, c1, i, beds, wx, wy, wz);
-        if (cur === base && !(rs.cmds.size && rsCmdDirtyAt(ex, ey, ez))) continue; // o comando mudou: grava o bloco de entidade de novo
+        if (cur === base && !(rs.cmds.size && rsCmdDirtyAt(ex, ey, ez)) && !(bentDirty.size && bentDirty.has(idx(ex, ey, ez)))) continue; // o comando mudou: grava o bloco de entidade de novo
         var e = wioEntry(cur, ex, ey, ez), er = e.raw || e, es = wioStr(er), pi = pidx0.get(es);
         if (pi === undefined) { pi = L0.pal.length; L0.pal.push(er); pidx0.set(es, pi); }
         L0.idx[i] = pi;
@@ -542,7 +545,7 @@ async function wioCommit(prog) {
       var ck = wioKey(cx, cz, dim, 0x3b); if (wio.db.idx.has(ck)) wio.patches.set(ck, null);
     }
   }
-  wio.edited.clear();
+  wio.edited.clear(); bentDirty.clear();
   wio.maps[dim] = null;
   return res;
 }
@@ -639,6 +642,8 @@ async function wioRestore() {
     if (cm) rsCmdFrom(cm);
     var ap = await idbDo('readonly', function (st) { return st.get('w:apoio'); }).catch(function () { return null; });
     if (ap) { apoio = new Set(ap); apoioSave = false; }
+    var bq = await idbDo('readonly', function (st) { return st.get('w:bent'); }).catch(function () { return null; });
+    if (bq) { bentFrom(bq); bentDirty.forEach(function (i) { var p = unidx(i); wio.edited.add((p[0] >> 4) + ',' + (p[1] >> 4) + ',' + (p[2] >> 4)); }); }
     if (wm && wm.hotbar) { hotbar = wm.hotbar.map(function (j, i) { return j in BY_JAVA ? BY_JAVA[j] : hotbar[i] || 0; }); slot = wm.slot | 0; }
     worldDirty.clear(); worldClear = false; W.forEach(function (ch) { ch.sv = false; });
     verCounter++; dirtyAll(); renderHotbar(); renderList(); wioChip();

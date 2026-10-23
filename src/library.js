@@ -47,7 +47,7 @@ function libFromClip(c, name) {
     d[i] = pi;
   }
   if (big) throw new Error('Blocos diferentes demais nessa seleção para a biblioteca.');
-  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, w: c.w, h: c.h, l: c.l, n: c.n, t: Date.now(), pal: pal, d: d, pres: pres, presFmt: presFmt, thumb: libThumb(c) };
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, w: c.w, h: c.h, l: c.l, n: c.n, t: Date.now(), pal: pal, d: d, pres: pres, presFmt: presFmt, be: c.be ? Array.from(c.be) : null, thumb: libThumb(c) };
 }
 /* Item -> cópia pronta para colar; blocos do jogo voltam para a lista do mundo aberto (sem mundo, ficam de fora) */
 function libToClip(it) {
@@ -75,7 +75,7 @@ function libToClip(it) {
   });
   var d = it.d instanceof Uint16Array ? it.d : new Uint16Array(it.d.buffer || it.d), cells = new Uint32Array(d.length), n = 0;
   for (var i = 0; i < d.length; i++) { var v = vals[d[i]]; if (v > 0) { cells[i] = v; n++; } else if (v === -2) other++; else if (v < 0) lost++; }
-  return { clip: { w: it.w, h: it.h, l: it.l, cells: cells, n: n }, lost: lost, other: other, from: fmts.java ? 'Java' : 'Bedrock' };
+  return { clip: { w: it.w, h: it.h, l: it.l, cells: cells, n: n, be: it.be ? new Map(it.be) : null }, lost: lost, other: other, from: fmts.java ? 'Java' : 'Bedrock' };
 }
 /* Cópia de uma caixa (cantos a e b) para guardar; noApoio tira os vidros de apoio (Z) */
 function libClipBox(a, b, noApoio) {
@@ -86,7 +86,7 @@ function libClipBox(a, b, noApoio) {
     if (noApoio && isApoio(x, y, z, v)) return;
     cells[((y - a[1]) * d[2] + (z - a[2])) * d[0] + (x - a[0])] = v; n++;
   });
-  return { w: d[0], h: d[1], l: d[2], cells: cells, n: n };
+  return { w: d[0], h: d[1], l: d[2], cells: cells, n: n, be: bentClipBox(a, b) };
 }
 /* Caixa da construção inteira: os blocos do espaço todo (sem os de apoio), apertada em volta deles */
 function libWholeBox() {
