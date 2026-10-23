@@ -3392,6 +3392,7 @@ var selA = null;          // primeiro canto, enquanto a seleção está sendo fe
 var sel = null;           // { a: [x,y,z] mínimo, b: [x,y,z] máximo }
 var clip = null;          // { w, h, l, cells: Uint32Array, n: blocos }
 var pasting = false;      // modo colar: a prévia segue o mouse e o clique cola
+var pasteOff = [0, 0, 0]; // deslocamento da prévia pelas setas (soma ao ponto apontado; volta a zero ao começar a colar)
 var selBox = null;
 
 function selSize(s) { return [s.b[0] - s.a[0] + 1, s.b[1] - s.a[1] + 1, s.b[2] - s.a[2] + 1]; }
@@ -3412,8 +3413,9 @@ function updateSelChip() {
   var c = $('selChip');
   if (pasting && clip) {
     c.hidden = false;
-    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). Clique para colar.';
-    $('selBtns').innerHTML = '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="flipx" title="Espelhar: leste e oeste trocam de lado (F)">Espelhar ↔</button><button data-s="flipz" title="Espelhar: norte e sul trocam de lado (Shift+F)">Espelhar ↕</button><button data-s="cancel">Cancelar</button>';
+    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). Clique (ou Enter) para colar.' + pasteOffTxt();
+    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + '</span>' +
+      '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="flipx" title="Espelhar: leste e oeste trocam de lado (F)">Espelhar ↔</button><button data-s="flipz" title="Espelhar: norte e sul trocam de lado (Shift+F)">Espelhar ↕</button><button data-s="cancel">Cancelar</button>';
   } else if (sel) {
     var d = selSize(sel);
     c.hidden = false;
@@ -3568,12 +3570,26 @@ function flipClip(a) {
 /* Colar: a prévia fica centralizada no ponto apontado, apoiada nele */
 function pasteOrigin(t) {
   var c = t && t.place; if (!c || !clip) return null;
-  return [c[0] - Math.floor(clip.w / 2), c[1], c[2] - Math.floor(clip.l / 2)];
+  return [c[0] - Math.floor(clip.w / 2) + pasteOff[0], c[1] + pasteOff[1], c[2] - Math.floor(clip.l / 2) + pasteOff[2]];
+}
+/* Setas no modo colar: a prévia anda um bloco (m: u, d, l, r, f, b; frente e lados seguem a câmera, como ao mover a seleção); '0' zera */
+function pasteNudge(m) {
+  if (m === '0') pasteOff = [0, 0, 0];
+  else { var d = moveDir(m); for (var i = 0; i < 3; i++) pasteOff[i] += d[i]; }
+  updateSelChip(); updatePreview();
+}
+function pasteOffTxt() {
+  var o = pasteOff; if (!o[0] && !o[1] && !o[2]) return '';
+  var p = [];
+  if (o[1]) p.push(Math.abs(o[1]) + (o[1] > 0 ? ' acima' : ' abaixo'));
+  if (o[0]) p.push(Math.abs(o[0]) + (o[0] > 0 ? ' a leste' : ' a oeste'));
+  if (o[2]) p.push(Math.abs(o[2]) + (o[2] > 0 ? ' ao sul' : ' ao norte'));
+  return ' <span class="mixl">Deslocada: ' + p.join(', ') + '.</span>';
 }
 function startPaste() {
   if (!clip) { toast('Nada copiado ainda: selecione uma área e use Copiar (Ctrl+C).'); return; }
-  pasting = true; anchor = null; updateAnchorChip(); selRefresh();
-  toast('Clique onde quer colar. R gira 90°, Esc cancela.');
+  pasting = true; pasteOff = [0, 0, 0]; anchor = null; updateAnchorChip(); selRefresh();
+  toast('Clique onde quer colar. As setas sobem, descem e levam para os lados (Shift + ↑ ↓: frente e trás); R gira 90°, Esc cancela.', 6000);
 }
 function commitPaste(t) {
   var o = pasteOrigin(t); if (!o) return;
@@ -3723,6 +3739,7 @@ function openReplace(o) {
 }
 
 $('selBtns').addEventListener('click', function (e) {
+  var pmv = e.target.closest('[data-pm]'); if (pmv) { pasteNudge(pmv.getAttribute('data-pm')); return; }
   var mv = e.target.closest('[data-m]'); if (mv) { moveSel(moveDir(mv.getAttribute('data-m')), e.shiftKey ? 5 : 1); return; }
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
@@ -3738,6 +3755,10 @@ function selectionKey(e, k) {
   if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
   if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
   if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
+  // setas no modo colar: ↑ ↓ sobem e descem, ← → para os lados, Shift + ↑ ↓ frente e trás (Page Up e Page Down também sobem e descem)
+  var pm = pasting && !ctrl ? { arrowup: e.shiftKey ? 'f' : 'u', arrowdown: e.shiftKey ? 'b' : 'd', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k] : null;
+  if (pm) { e.preventDefault(); pasteNudge(pm); return true; }
+  if (pasting && k === 'enter' && !ctrl && hoverT) { e.preventDefault(); commitPaste(hoverT); updatePreview(); updateStatus(); return true; }
   if (pasting && k === 'f' && !ctrl) { flipClip(e.shiftKey ? 2 : 0); return true; }
   // com a ferramenta Selecionar e uma área marcada, as setas e Page Up/Down movem os blocos (Shift: 5 de cada vez)
   var mk = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k];
@@ -12488,7 +12509,7 @@ function openHelp() {
     '<span>Pincel grosso (<kbd>B</kbd>)</span><span><kbd>-</kbd> e <kbd>+</kbd> (ou o aviso do canto) mudam o tamanho do Pincel: 1 bloco, ou um cubo ou uma esfera de 3, 5, 7… até 21 blocos, encostado na face clicada e só nos espaços vazios. Arrastar pinta vários; <kbd>Shift</kbd> apaga o mesmo volume.</span>' +
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
-    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e o botão Substituir… troca um bloco por outro (ou por uma mistura com porcentagens, a do pincel de mistura) na área; Assentar no terreno… põe fundação até o chão, acerta o terreno em volta na altura da porta, abre um caminho e planta a vegetação do bioma. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
+    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e colando, as setas movem a prévia (↑ ↓ sobem e descem, ← → lados, Shift + ↑ ↓ frente e trás) e Enter cola onde ela está; o botão Substituir… troca um bloco por outro (ou por uma mistura com porcentagens, a do pincel de mistura) na área; Assentar no terreno… põe fundação até o chão, acerta o terreno em volta na altura da porta, abre um caminho e planta a vegetação do bioma. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
     '<span>Biblioteca</span><span>Com uma área selecionada, <b>Salvar na biblioteca</b> guarda a construção com nome neste navegador. Projeto → Biblioteca de construções lista tudo para colar em qualquer projeto ou mundo, baixar como arquivo e importar.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +

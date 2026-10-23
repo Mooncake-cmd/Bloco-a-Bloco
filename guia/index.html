@@ -525,6 +525,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Copiar</td><td>Copiar</td><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Guarda os blocos da área, com direção e estado (porta aberta, escada virada, laje em cima…).</td></tr>
       <tr><td>Recortar</td><td>Recortar</td><td><kbd>Ctrl</kbd>+<kbd>X</kbd></td><td>Copia e apaga a área.</td></tr>
       <tr><td>Colar</td><td>Colar</td><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Uma prévia azul da cópia segue o mouse, centrada no ponto apontado e apoiada nele. Cada clique cola uma cópia; <kbd>Esc</kbd>, Cancelar ou um clique simples com o botão direito terminam.</td></tr>
+      <tr><td>Mover a cópia</td><td>▲ ▼ ← → ↑ ↓, Zerar</td><td>Setas (colando)</td><td>Leva a prévia um bloco, sem sair do colar: <kbd>↑</kbd> e <kbd>↓</kbd> sobem e descem, <kbd>←</kbd> e <kbd>→</kbd> vão para os lados, <kbd>Shift</kbd> + <kbd>↑</kbd> e <kbd>↓</kbd> para a frente e para trás (os lados e a frente seguem a câmera); <kbd>Page Up</kbd> e <kbd>Page Down</kbd> também sobem e descem. O deslocamento acompanha o ponteiro e vale para as próximas colagens; <kbd>Enter</kbd> cola onde a prévia está, e Zerar volta ao ponto apontado. Quem não mexe nas setas cola como antes.</td></tr>
       <tr><td>Girar a cópia</td><td>Girar 90°</td><td><kbd>R</kbd> (colando)</td><td>Gira a cópia 90° no sentido horário, visto de cima. Os blocos giram junto: escadas, portas, troncos deitados, trilhos, placas.</td></tr>
       <tr><td>Guardar com nome</td><td>Salvar na biblioteca</td><td>—</td><td>Guarda a construção da área na biblioteca deste navegador, para colar depois em qualquer projeto ou mundo (veja abaixo).</td></tr>
       <tr><td>Espelhar a cópia</td><td>Espelhar ↔ / Espelhar ↕</td><td><kbd>F</kbd> / <kbd>Shift</kbd>+<kbd>F</kbd> (colando)</td><td>Vira a cópia como num espelho: ↔ troca leste e oeste, ↕ troca norte e sul. Os blocos viram junto (escadas, portas com a dobradiça do outro lado), pela mesma regra da simetria. Combine com Girar 90° para qualquer posição.</td></tr>
@@ -534,6 +535,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Limpar</td><td>Limpar</td><td><kbd>Esc</kbd></td><td>Tira a seleção. A cópia continua guardada.</td></tr>
     </tbody>
   </table></div>
+  <figure><img src="img/colar-mover.jpg" alt="A prévia azul de uma cópia da árvore flutuando três blocos acima do chão, ao lado da casa; no aviso do canto, Colar 5 × 6 × 5, Deslocada: 3 acima, 1 a oeste, e os botões de mover, Zerar, Girar, Espelhar e Cancelar" width="972" height="718" loading="lazy"><figcaption>Colando com a prévia deslocada pelas setas: três acima e um para o lado. O aviso diz quanto ela andou.</figcaption></figure>
   <ul class="plain">
     <li>O ar copiado não apaga nada: ao colar, só os blocos da cópia entram, o que já existe nos espaços vazios fica.</li>
     <li>O que sairia do espaço não é colado, e o aviso diz quantos blocos ficaram de fora e por onde: acima do teto, abaixo do fundo ou pelos lados. Num mundo do jogo, o teto e o fundo são os do mundo (no Bedrock, Y 319 e Y −64). A prévia já avisa quando a cópia passa da altura, antes de colar.</li>
@@ -1249,6 +1251,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>M</kbd></td><td>Pincel de troca (<kbd>Shift</kbd> + clique escolhe a máscara; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio)</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>Copiar, recortar e colar a seleção</td></tr>
         <tr><td><kbd>Delete</kbd></td><td>Apagar a seleção</td></tr>
+        <tr><td>Setas, <kbd>Shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Enter</kbd> (colando)</td><td>Mover a prévia da cópia (↑ ↓ sobem e descem, ← → lados, Shift: frente e trás) e colar onde ela está</td></tr>
         <tr><td><kbd>R</kbd> (colando)</td><td>Girar a cópia 90°</td></tr>
         <tr><td><kbd>F</kbd> / <kbd>Shift</kbd>+<kbd>F</kbd> (colando)</td><td>Espelhar a cópia (leste e oeste / norte e sul)</td></tr>
         <tr><td><kbd>C</kbd></td><td>Mais formas: cilindro, cone, pirâmide, cúpula, arco e arestas</td></tr>
