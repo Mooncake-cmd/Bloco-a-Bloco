@@ -228,30 +228,60 @@ function pasteOutTxt(out, up, down) {
   if (out - up - down) p.push((out - up - down).toLocaleString('pt-BR') + ' fora pelos lados' + (D ? ' (fora da área carregada)' : ''));
   return 'Atenção: ' + out.toLocaleString('pt-BR') + ' blocos ficaram de fora: ' + p.join(', ') + '. ';
 }
-/* Quantos blocos da cópia ficariam de fora com a origem o (para o aviso da prévia) */
+/* Quantos blocos da cópia ficariam acima do teto e abaixo do fundo com a origem o (para o aviso da prévia): pela contagem
+   de blocos de cada camada da cópia, feita uma vez por cópia ([total, acima, abaixo]) */
+var pasteLayOf = null, pasteLay = null;
 function pasteOutCount(o) {
-  var r = [0, 0, 0];
-  if (o[1] >= 0 && o[1] + clip.h <= SY && o[0] >= 0 && o[2] >= 0 && o[0] + clip.w <= SX && o[2] + clip.l <= SZ) return r;
-  for (var y = 0; y < clip.h; y++) for (var z = 0; z < clip.l; z++) for (var x = 0; x < clip.w; x++) {
-    if (!clip.cells[(y * clip.l + z) * clip.w + x]) continue;
-    var X = o[0] + x, Y = o[1] + y, Z = o[2] + z; if (inB(X, Y, Z)) continue;
-    r[0]++; if (Y >= SY) r[1]++; else if (Y < 0) r[2]++;
+  if (pasteLayOf !== clip) {
+    pasteLay = new Int32Array(clip.h); var a = clip.w * clip.l;
+    for (var y = 0; y < clip.h; y++) { var n = 0, b = y * a; for (var q = 0; q < a; q++) if (clip.cells[b + q]) n++; pasteLay[y] = n; }
+    pasteLayOf = clip;
   }
-  return r;
+  var up = 0, down = 0;
+  for (var yy = 0; yy < clip.h; yy++) { var Y = o[1] + yy; if (Y >= SY) up += pasteLay[yy]; else if (Y < 0) down += pasteLay[yy]; }
+  return [up + down, up, down];
 }
 var pasteWarnAt = '';
+/* Pontos da prévia, calculados uma vez por cópia: todos os blocos se couberem; senão, só a casca (blocos com um lado
+   vazio) e, se ainda passar, uma amostra espalhada dela (a prévia nunca mostra só as camadas de baixo) */
+var pastePtsOf = null, pastePtsArr = null;
+function pastePts() {
+  if (pastePtsOf === clip && pastePtsArr) return pastePtsArr;
+  var cap = previewInst.instanceMatrix.count, w = clip.w, h = clip.h, l = clip.l, c = clip.cells, out = [];
+  var at = function (x, y, z) { return x >= 0 && y >= 0 && z >= 0 && x < w && y < h && z < l && c[(y * l + z) * w + x]; };
+  var shell = clip.n > cap;
+  for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
+    if (!c[(y * l + z) * w + x]) continue;
+    if (shell && at(x + 1, y, z) && at(x - 1, y, z) && at(x, y + 1, z) && at(x, y - 1, z) && at(x, y, z + 1) && at(x, y, z - 1)) continue;
+    out.push(x, y, z);
+  }
+  var nn = out.length / 3;
+  if (nn > cap) { var step = nn / cap, sm = []; for (var i = 0; i < cap; i++) { var q = Math.floor(i * step) * 3; sm.push(out[q], out[q + 1], out[q + 2]); } out = sm; }
+  pastePtsOf = clip; pastePtsArr = out;
+  return out;
+}
+/* Caixa de contorno da cópia no modo colar (como a da seleção, por cima dos blocos) */
+var pasteBox = null;
+function pasteBoxAt(o) {
+  if (!pasteBox || pasteBox.userData.k !== clip.w + ',' + clip.h + ',' + clip.l) {
+    if (pasteBox) { scene.remove(pasteBox); pasteBox.geometry.dispose(); }
+    pasteBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(clip.w + 0.06, clip.h + 0.06, clip.l + 0.06)),
+      new THREE.LineBasicMaterial({ color: new THREE.Color(cssColor('--info')), depthTest: false, transparent: true }));
+    pasteBox.renderOrder = 8; pasteBox.userData.k = clip.w + ',' + clip.h + ',' + clip.l; scene.add(pasteBox);
+  }
+  pasteBox.position.set(o[0] + clip.w / 2, o[1] + clip.h / 2, o[2] + clip.l / 2); pasteBox.visible = true;
+}
+function pasteBoxHide() { if (pasteBox && pasteBox.visible) { pasteBox.visible = false; requestRender(); } }
 function pastePreview(t) {
   var o = pasteOrigin(t); if (!o) return;
   // aviso quando a cópia passa do teto ou do fundo (uma vez por posição de altura)
   var oc = pasteOutCount(o), wk = o[1] + ':' + oc[1] + ':' + oc[2];
   if ((oc[1] || oc[2]) && wk !== pasteWarnAt) { pasteWarnAt = wk; toast(pasteOutTxt(oc[0], oc[1], oc[2]) + 'Cole mais ' + (oc[1] ? 'para baixo' : 'para cima') + ' para caber.', 6000); }
   if (!oc[1] && !oc[2]) pasteWarnAt = '';
-  var m = new THREE.Matrix4(), k = 0, info = new THREE.Color(cssColor('--info'));
-  for (var y = 0; y < clip.h && k < 40000; y++) for (var z = 0; z < clip.l && k < 40000; z++) for (var x = 0; x < clip.w && k < 40000; x++) {
-    if (!clip.cells[(y * clip.l + z) * clip.w + x]) continue;
-    m.setPosition(o[0] + x + 0.5, o[1] + y + 0.5, o[2] + z + 0.5); previewInst.setMatrixAt(k++, m);
-  }
-  previewInst.count = k; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(info);
+  var m = new THREE.Matrix4(), info = new THREE.Color(cssColor('--info')), P = pastePts(), cap = previewInst.instanceMatrix.count, n = Math.min(P.length / 3, cap);
+  for (var k = 0; k < n; k++) { m.setPosition(o[0] + P[k * 3] + 0.5, o[1] + P[k * 3 + 1] + 0.5, o[2] + P[k * 3 + 2] + 0.5); previewInst.setMatrixAt(k, m); }
+  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(info);
+  pasteBoxAt(o); // o contorno da cópia, sempre visível, anda junto com o ponteiro e as setas
   ghostEdges.visible = false;
 }
 

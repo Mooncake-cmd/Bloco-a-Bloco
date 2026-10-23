@@ -1191,6 +1191,7 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
+  if (typeof pasteBoxHide === 'function' && (!pasting || !hoverT)) pasteBoxHide(); // o contorno da cópia só no modo colar
   mixPreviewReset(); updateEraseChip(); updateBrushChip(); updateTubeChip(); updateFieldChip(); updateProjChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
