@@ -479,6 +479,14 @@ function wmFootDraw(g) {
   // a frente (o lado norte da estrutura como foi salva) marcada, para saber para onde ela olha depois de girar
   var fx = [[p[0], p[1], p[0] + w, p[1]], [p[0] + w, p[1], p[0] + w, p[1] + h], [p[0] + w, p[1] + h, p[0], p[1] + h], [p[0], p[1] + h, p[0], p[1]]][f.rot | 0];
   g.lineWidth = 3 * dpr; g.strokeStyle = ac; g.beginPath(); g.moveTo(fx[0], fx[1]); g.lineTo(fx[2], fx[3]); g.stroke();
+  if (!wmFootArea(f)) { // maior que uma área: as divisas das partes, numeradas
+    g.lineWidth = 1.5 * dpr; g.strokeStyle = 'rgba(255,255,255,.8)'; g.setLineDash([3 * dpr, 4 * dpr]); g.fillStyle = '#fff'; g.font = '600 ' + (12 * dpr) + 'px sans-serif';
+    wmFootParts(f).forEach(function (r, i) {
+      var a = wmToPx(r[0], r[1]), b = wmToPx(r[2], r[3]); g.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+      g.fillText(String(i + 1), a[0] + 5 * dpr, a[1] + 16 * dpr);
+    });
+    g.setLineDash([]);
+  }
   g.font = '600 ' + (12 * dpr) + 'px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
   var lab = f.name + ' · ' + s[0] + ' × ' + s[1], tw = g.measureText(lab).width;
   g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(p[0], p[1] - 18 * dpr, tw + 10 * dpr, 17 * dpr);
@@ -492,6 +500,7 @@ function wmFootInfo() {
   var ok = f.y >= D.min && y1 <= top;
   el.innerHTML = '<b>' + esc(f.name) + '</b><span>' + s[0] + ' × ' + f.h + ' × ' + s[1] + ' · X <b>' + f.x + '</b> a ' + (f.x + s[0] - 1) + ', Z <b>' + f.z + '</b> a ' + (f.z + s[1] - 1) + (f.dim !== wm.dim ? ' (em ' + WIO_DIMS[f.dim].name + ')' : '') + '</span>' +
     '<label class="wmfy">Y da base <input type="number" id="wmfY" value="' + f.y + '" step="1"></label>' +
+    (wmFootArea(f) ? '' : '<span class="mixl">Maior que uma área (' + WIO_MAX + ' de lado): Colar aqui cola em ' + wmFootParts(f).length + ' partes.</span>') +
     '<span class="' + (ok ? 'mixl' : 'err') + '">' + (ok ? 'cabe na altura (até Y ' + y1 + '; o teto é Y ' + top + ')' : y1 > top ? (y1 - top) + ' camadas passam do teto (Y ' + top + '): baixe para Y ' + (top - f.h + 1) + ' ou menos' : (D.min - f.y) + ' camadas abaixo do fundo (Y ' + D.min + ')') + '</span>' +
     '<span class="mbtns"><button id="wmfRot" title="R">Girar 90°</button><button id="wmfHere" title="Põe a estrutura no meio da tela">Trazer para o meio</button><button id="wmfLoad" title="Carrega no editor a área da estrutura, com 16 blocos de folga em volta">Carregar área aqui</button>' + (f.src && f.src.k !== 'hand' ? '<button id="wmfPaste" title="Carrega a área e põe a estrutura no lugar do retângulo, para ajustar a altura, girar e colar">Colar aqui</button>' : '') + '<button id="wmfCopy" title="O canto de baixo (menor X, Y e Z): onde colar no jogo">Copiar o canto</button><button id="wmfOff">Tirar</button></span>';
   $('wmfY').onchange = function () { f.y = Math.round(+this.value || 0); wmFootInfo(); };
@@ -503,10 +512,10 @@ function wmFootInfo() {
   $('wmfOff').onclick = function () { wmFoot = null; wmFootInfo(); wmDraw(); };
 }
 /* Área do editor para a estrutura: o retângulo com 16 blocos de folga (menos, se passar do máximo), alinhada aos chunks */
-function wmFootArea(f) {
-  var s = wmFootSize();
+function wmFootArea(f) { var s = wmFootSize(); return wmRectArea(f.x, f.z, s[0], s[1]); }
+function wmRectArea(x, z, w, d) {
   for (var m = 16; m >= 0; m -= 8) {
-    var x0 = Math.floor((f.x - m) / 16) * 16, z0 = Math.floor((f.z - m) / 16) * 16, x1 = Math.ceil((f.x + s[0] + m) / 16) * 16, z1 = Math.ceil((f.z + s[1] + m) / 16) * 16;
+    var x0 = Math.floor((x - m) / 16) * 16, z0 = Math.floor((z - m) / 16) * 16, x1 = Math.ceil((x + w + m) / 16) * 16, z1 = Math.ceil((z + d + m) / 16) * 16;
     if (x1 - x0 <= WIO_MAX && z1 - z0 <= WIO_MAX) return [x0, z0, x1 - x0, z1 - z0];
   }
   return null;
@@ -516,7 +525,7 @@ function wmFootArea(f) {
 async function wmFootLoad(paste) {
   var f = wmFoot; if (!f) return;
   var a = wmFootArea(f);
-  if (!a) { toast('A estrutura passa de ' + WIO_MAX + ' blocos de lado: grande demais para uma área só do editor.', 7000); return; }
+  if (!a && !paste) { toast('A estrutura passa de ' + WIO_MAX + ' blocos de lado: não cabe numa área só do editor. Colar aqui cola em ' + wmFootParts(f).length + ' partes, uma área por vez.', 8000); return; }
   var c = null;
   if (paste) {
     try {
@@ -526,6 +535,7 @@ async function wmFootLoad(paste) {
     } catch (e) { toast(e.message || String(e), 7000); return; }
     if (!c || !c.n) { toast('Não há blocos para colar.', 5000); return; }
   }
+  if (!a) { wmPartsStart(f, c); return; } // maior que uma área: em partes
   var d = f.dim; closeWorldMap();
   var ok = await wioGoArea(d, a[0], a[1], a[2], a[3], !!paste);
   if (!ok || !paste) return;
@@ -536,6 +546,66 @@ async function wmFootLoad(paste) {
   Object.assign(cam, { tx: pasteFixed[0] + clip.w / 2, ty: pasteFixed[1] + clip.h / 3, tz: pasteFixed[2] + clip.l / 2, dist: Math.max(40, Math.max(clip.w, clip.h, clip.l) * 2.5), pitch: 0.55 }); updateCamera();
   selRefresh();
   toast('A estrutura está no lugar marcado no mapa (canto X ' + f.x + ', Y ' + f.y + ', Z ' + f.z + '). As setas sobem, descem e empurram; R gira; Enter (ou um clique) cola. Esc cancela.', 9000);
+}
+/* ---------- Colar em partes: estrutura maior que uma área (512 de lado) ---------- */
+/* O retângulo é dividido em partes de até 448 × 448 (com a folga de 16 e o encaixe nos chunks, a área de cada uma
+   fica com até 512). Cada parte carrega a sua área e cola só a faixa dela, com a cópia inteira presa no mesmo canto:
+   as partes encaixam. A altura pode mudar até a primeira parte ser colada; depois, o lugar fica fixo. As áreas já
+   coladas ficam guardadas como as outras (Trocar área) e vão todas juntas em Exportar mundo. */
+var WM_PART = 448, wmParts = null;
+function wmPartRects(x, z, w, d) {
+  var nx = Math.ceil(w / WM_PART), nz = Math.ceil(d / WM_PART), sx = Math.ceil(w / nx), sz = Math.ceil(d / nz), r = [];
+  for (var j = 0; j < nz; j++) for (var i = 0; i < nx; i++) r.push([x + i * sx, z + j * sz, Math.min(x + w, x + (i + 1) * sx), Math.min(z + d, z + (j + 1) * sz)]);
+  return r;
+}
+function wmFootParts(f) { var s = wmFootSize(); return wmPartRects(f.x, f.z, s[0], s[1]); }
+function wmPartsStart(f, c) {
+  clip = c;
+  for (var q = 0; q < (f.rot & 3); q++) rotateClip(); // o mesmo giro do retângulo
+  wmParts = { clip: clip, name: f.name, dim: f.dim, org: [f.x, f.y, f.z], rects: wmPartRects(f.x, f.z, clip.w, clip.l), done: [], cur: 0, locked: false };
+  wmPartGo(0);
+}
+async function wmPartGo(i) {
+  var P = wmParts; if (!P) return;
+  var r = P.rects[i], a = wmRectArea(r[0], r[1], r[2] - r[0], r[3] - r[1]);
+  if (typeof wm !== 'undefined' && wm) closeWorldMap();
+  var ok = await wioGoArea(P.dim, a[0], a[1], a[2], a[3], true);
+  if (!ok || wmParts !== P) return;
+  P.cur = i; clip = P.clip;
+  var D = wioDim(P.dim), A = wio.area;
+  startPaste(); pasteFixed = [P.org[0] - A.x0, P.org[1] - D.min, P.org[2] - A.z0]; pasteLimit = [r[0] - A.x0, r[1] - A.z0, r[2] - A.x0, r[3] - A.z0];
+  Object.assign(cam, { tx: (pasteLimit[0] + pasteLimit[2]) / 2, ty: pasteFixed[1] + clip.h / 3, tz: (pasteLimit[1] + pasteLimit[3]) / 2, dist: Math.max(60, Math.max(r[2] - r[0], r[3] - r[1], clip.h) * 1.4), pitch: 0.6 }); updateCamera(); updateView(true);
+  selRefresh(); wmPartsUI();
+  toast('Parte ' + (i + 1) + ' de ' + P.rects.length + ' de “' + P.name + '” (X ' + r[0] + ' a ' + (r[2] - 1) + ', Z ' + r[1] + ' a ' + (r[3] - 1) + '). ' + (P.locked ? 'Ela fica no mesmo lugar das partes já coladas.' : 'As setas ↑ ↓ ajustam a altura (vale para todas as partes).') + ' Enter (ou um clique) cola.', 9000);
+}
+/* Chamado ao colar uma parte: guarda o lugar (a primeira fixa as outras) e diz o que falta */
+function wmPartDone(o) {
+  var P = wmParts, A = wio.area, D = wioDim(P.dim);
+  if (!P.locked) { P.org = [o[0] + A.x0, o[1] + D.min, o[2] + A.z0]; P.locked = true; }
+  P.done[P.cur] = true;
+  var n = P.rects.length, left = 0; for (var i = 0; i < n; i++) if (!P.done[i]) left++;
+  wmPartsUI();
+  return left ? 'Parte ' + (P.cur + 1) + ' de ' + n + ' colada (canto X ' + P.org[0] + ', Y ' + P.org[1] + ', Z ' + P.org[2] + '). ' + (left === 1 ? 'Falta 1' : 'Faltam ' + left) + ': Próxima parte, no aviso do canto.' :
+    'As ' + n + ' partes estão coladas. Exportar mundo leva todas para o jogo.';
+}
+function wmPartsUI() {
+  var c = $('partsChip'); if (!c) return;
+  var P = wmParts; c.hidden = !P; if (!P) return;
+  var n = P.rects.length, ok = 0, nx = -1;
+  for (var i = 0; i < n; i++) { if (P.done[i]) ok++; else if (nx < 0) nx = i; }
+  $('partsTxt').innerHTML = '<b>Colar em partes</b> ' + esc(P.name) + ': ' + ok + ' de ' + n + ' coladas';
+  $('partsBtns').innerHTML = (nx >= 0 ? '<button data-part="' + nx + '" class="on">Próxima parte (' + (nx + 1) + ')</button>' : '') +
+    P.rects.map(function (r, i) { return '<button data-part="' + i + '" title="X ' + r[0] + ' a ' + (r[2] - 1) + ', Z ' + r[1] + ' a ' + (r[3] - 1) + (P.done[i] ? ' (colada; colar de novo)' : '') + '">' + (P.done[i] ? '✓ ' : '') + (i + 1) + '</button>'; }).join('') +
+    '<button data-part="x" title="Fecha este aviso (as partes coladas ficam)">' + (nx < 0 ? 'Fechar' : 'Parar') + '</button>';
+}
+function wmPartsBind() {
+  var c = $('partsBtns'); if (!c) return;
+  c.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-part]'); if (!b) return;
+    var v = b.getAttribute('data-part');
+    if (v === 'x') { wmParts = null; if (pasting && pasteLimit) { pasting = false; pasteLimit = null; pasteFixed = null; selRefresh(); } wmPartsUI(); return; }
+    wmPartGo(+v);
+  });
 }
 function wmFootRot() { var f = wmFoot; if (!f) return; var s = wmFootSize(), cx = f.x + s[0] / 2, cz = f.z + s[1] / 2; f.rot = (f.rot + 1) & 3; var s2 = wmFootSize(); f.x = Math.round(cx - s2[0] / 2); f.z = Math.round(cz - s2[1] / 2); wmFootInfo(); wmDraw(); }
 /* Só o tamanho de um arquivo de estrutura */

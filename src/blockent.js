@@ -231,11 +231,11 @@ function bentClipMap(be, w, h, l, fn) {
   be.forEach(function (e, k) { var x = k % w, z = Math.floor(k / w) % l, y = Math.floor(k / (w * l)); m.set(fn(x, y, z), e); });
   return m;
 }
-function bentPasteAt(be, w, l, o) {
+function bentPasteAt(be, w, l, o, L) { // L (opcional): só a faixa [x0, z0, x1, z1) (colar em partes)
   if (!be) return 0; var n = 0;
   be.forEach(function (e, k) {
     var x = o[0] + k % w, z = o[2] + Math.floor(k / w) % l, y = o[1] + Math.floor(k / (w * l));
-    if (!inB(x, y, z)) return; bentSet(idx(x, y, z), JSON.parse(JSON.stringify(e)), true); n++;
+    if (!inB(x, y, z) || (L && (x < L[0] || z < L[1] || x >= L[2] || z >= L[3]))) return; bentSet(idx(x, y, z), JSON.parse(JSON.stringify(e)), true); n++;
   });
   return n;
 }

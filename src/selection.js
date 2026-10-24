@@ -6,6 +6,7 @@ var sel = null;           // { a: [x,y,z] mínimo, b: [x,y,z] máximo }
 var clip = null;          // { w, h, l, cells: Uint32Array, n: blocos }
 var pasting = false;      // modo colar: a prévia segue o mouse e o clique cola
 var pasteOff = [0, 0, 0]; // deslocamento da prévia pelas setas (soma ao ponto apontado; volta a zero ao começar a colar)
+var pasteLimit = null;    // colar em partes (src/worldmap.js): só a faixa [x0, z0, x1, z1) da área atual é colada
 var pasteFixed = null;    // canto da cópia preso num lugar (Colar aqui, no mapa do mundo): a prévia não segue o mouse
 var selBox = null;
 
@@ -27,8 +28,10 @@ function updateSelChip() {
   var c = $('selChip');
   if (pasting && clip) {
     c.hidden = false;
-    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). ' + (pasteFixed ? 'No lugar marcado no mapa: as setas sobem, descem e empurram, R gira; Enter (ou um clique) cola.' : 'Clique (ou Enter) para colar.') + pasteOffTxt() + (pasteFixed && wio && wio.area ? ' <span class="mixl">Canto: X ' + (pasteFixed[0] + pasteOff[0] + wio.area.x0) + ', Y ' + (pasteFixed[1] + pasteOff[1] + wioDim(wio.area.dim).min) + ', Z ' + (pasteFixed[2] + pasteOff[2] + wio.area.z0) + '.</span>' : '');
-    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + (pasteFixed ? '<button data-pm="go" title="Enter">Colar aqui</button><button data-pm="free" title="A prévia volta a seguir o mouse">Seguir o mouse</button>' : '') + '</span>' +
+    var pp = pasteLimit && wmParts;
+    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). ' + (pp ? '<b>Parte ' + (wmParts.cur + 1) + ' de ' + wmParts.rects.length + '</b> (' + (pasteLimit[2] - pasteLimit[0]) + ' × ' + (pasteLimit[3] - pasteLimit[1]) + '): ' + (wmParts.locked ? 'no mesmo lugar das partes já coladas; Enter (ou um clique) cola.' : 'as setas ↑ ↓ ajustam a altura de todas as partes; Enter (ou um clique) cola.') : pasteFixed ? 'No lugar marcado no mapa: as setas sobem, descem e empurram, R gira; Enter (ou um clique) cola.' : 'Clique (ou Enter) para colar.') + pasteOffTxt() + (pasteFixed && wio && wio.area ? ' <span class="mixl">Canto: X ' + (pasteFixed[0] + pasteOff[0] + wio.area.x0) + ', Y ' + (pasteFixed[1] + pasteOff[1] + wioDim(wio.area.dim).min) + ', Z ' + (pasteFixed[2] + pasteOff[2] + wio.area.z0) + '.</span>' : '');
+    if (pp) $('selBtns').innerHTML = '<span class="mvb">' + (wmParts.locked ? '' : '<b>Altura</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button>' + (pasteOff[1] ? '<button data-pm="0">Zerar</button>' : '')) + '<button data-pm="go" title="Enter">Colar esta parte</button></span><button data-s="cancel">Cancelar</button>';
+    else $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + (pasteFixed ? '<button data-pm="go" title="Enter">Colar aqui</button><button data-pm="free" title="A prévia volta a seguir o mouse">Seguir o mouse</button>' : '') + '</span>' +
       '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="flipx" title="Espelhar: leste e oeste trocam de lado (F)">Espelhar ↔</button><button data-s="flipz" title="Espelhar: norte e sul trocam de lado (Shift+F)">Espelhar ↕</button><button data-s="cancel">Cancelar</button>';
   } else if (sel) {
     var d = selSize(sel);
@@ -158,6 +161,7 @@ function rotateCell(v) {
 }
 function rotateClip() {
   if (!clip) return;
+  if (pasting && pasteLimit) { toast('Colando em partes, o giro é o do retângulo no mapa (Girar 90° lá, antes de Colar aqui).', 6000); return; }
   var w = clip.w, h = clip.h, l = clip.l, out = new Uint32Array(clip.cells.length);
   for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
     var nx = l - 1 - z, nz = x; // norte vira leste
@@ -172,6 +176,7 @@ function rotateClip() {
    do outro lado) pela mesma regra da simetria */
 function flipClip(a) {
   if (!clip) return;
+  if (pasting && pasteLimit) { toast('Colando em partes, não dá para espelhar: as partes precisam encaixar.', 6000); return; }
   var w = clip.w, h = clip.h, l = clip.l, out = new Uint32Array(clip.cells.length);
   for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
     var nx = a === 0 ? w - 1 - x : x, nz = a === 2 ? l - 1 - z : z;
@@ -190,6 +195,7 @@ function pasteOrigin(t) {
 }
 /* Setas no modo colar: a prévia anda um bloco (m: u, d, l, r, f, b; frente e lados seguem a câmera, como ao mover a seleção); '0' zera */
 function pasteNudge(m) {
+  if (pasting && pasteLimit && m !== 'go' && (wmParts && wmParts.locked || !/^[ud0]$/.test(m))) { toast(wmParts && wmParts.locked ? 'As outras partes já foram coladas: esta fica no mesmo lugar, para encaixar nelas.' : 'Colando em partes, só a altura muda aqui (vale para todas as partes). Para mudar o lugar ou o giro, use o retângulo no mapa.', 6000); return; }
   if (m === 'go') { commitPaste(null); return; }
   if (m === 'free') { pasteFixed = null; pasteOff = [0, 0, 0]; updateSelChip(); updatePreview(); return; }
   if (m === '0') pasteOff = [0, 0, 0];
@@ -206,21 +212,23 @@ function pasteOffTxt() {
 }
 function startPaste() {
   if (!clip) { toast('Nada copiado ainda: selecione uma área e use Copiar (Ctrl+C).'); return; }
-  pasting = true; pasteOff = [0, 0, 0]; pasteFixed = null; anchor = null; updateAnchorChip(); selRefresh();
+  pasting = true; pasteOff = [0, 0, 0]; pasteFixed = null; pasteLimit = null; anchor = null; updateAnchorChip(); selRefresh();
   toast('Clique onde quer colar. As setas sobem, descem e levam para os lados (Shift + ↑ ↓: frente e trás); R gira 90°, Esc cancela.', 6000);
 }
 function commitPaste(t) {
   var o = pasteOrigin(t); if (!o) return;
-  var n = 0, out = 0, up = 0, down = 0;
+  var n = 0, out = 0, up = 0, down = 0, L = pasteLimit;
   beginBatch('Colar');
   for (var y = 0; y < clip.h; y++) for (var z = 0; z < clip.l; z++) for (var x = 0; x < clip.w; x++) {
     var v = clip.cells[(y * clip.l + z) * clip.w + x]; if (!v) continue; // o ar copiado não apaga o que já existe
     var X = o[0] + x, Y = o[1] + y, Z = o[2] + z;
+    if (L && (X < L[0] || Z < L[1] || X >= L[2] || Z >= L[3])) continue; // em partes: o resto é de outra parte
     if (!inB(X, Y, Z)) { out++; if (Y >= SY) up++; else if (Y < 0) down++; continue; }
     editSet(X, Y, Z, v); n++;
   }
-  var nbe = bentPasteAt(clip.be, clip.w, clip.l, o); // itens e texto (src/blockent.js)
+  var nbe = bentPasteAt(clip.be, clip.w, clip.l, o, L); // itens e texto (src/blockent.js)
   endBatch();
+  if (L && wmParts) { pasting = false; pasteFixed = null; pasteLimit = null; selRefresh(); toast('Colados ' + n + ' blocos' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + wmPartDone(o), 12000); return; }
   if (pasteFixed) { pasting = false; pasteFixed = null; selRefresh(); toast('Colados ' + n + ' blocos no lugar marcado' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Ctrl+Z desfaz.', out ? 12000 : 6000); return; }
   toast('Colados ' + n + ' blocos' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Clique de novo para colar outra cópia, Esc para terminar.', out ? 12000 : 5000);
 }
@@ -286,8 +294,14 @@ function pastePreview(t) {
   if ((oc[1] || oc[2]) && wk !== pasteWarnAt) { pasteWarnAt = wk; toast(pasteOutTxt(oc[0], oc[1], oc[2]) + 'Cole mais ' + (oc[1] ? 'para baixo' : 'para cima') + ' para caber.', 6000); }
   if (!oc[1] && !oc[2]) pasteWarnAt = '';
   var m = new THREE.Matrix4(), info = new THREE.Color(cssColor('--info')), P = pastePts(), cap = previewInst.instanceMatrix.count, n = Math.min(P.length / 3, cap);
-  for (var k = 0; k < n; k++) { m.setPosition(o[0] + P[k * 3] + 0.5, o[1] + P[k * 3 + 1] + 0.5, o[2] + P[k * 3 + 2] + 0.5); previewInst.setMatrixAt(k, m); }
-  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
+  var L = pasteLimit, j = 0, keep = L ? [] : null; // em partes: só os pontos desta parte
+  for (var k = 0; k < n; k++) {
+    var X = o[0] + P[k * 3], Z = o[2] + P[k * 3 + 2];
+    if (L) { if (X < L[0] || Z < L[1] || X >= L[2] || Z >= L[3]) continue; keep.push(P[k * 3], P[k * 3 + 1], P[k * 3 + 2]); }
+    m.setPosition(X + 0.5, o[1] + P[k * 3 + 1] + 0.5, Z + 0.5); previewInst.setMatrixAt(j++, m);
+  }
+  if (L) P = keep;
+  n = j; previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
   if (oc[0]) { // o que passa do teto ou do fundo do mundo fica vermelho (essas camadas não são coladas)
     if (!previewInst.instanceColor) { previewInst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3); previewInst.material.needsUpdate = true; }
     var ca = previewInst.instanceColor.array, red = PASTE_OUT_RED || (PASTE_OUT_RED = new THREE.Color(0xe5322d));
