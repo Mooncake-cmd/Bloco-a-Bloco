@@ -248,6 +248,7 @@ function pasteOutCount(o) {
   return [up + down, up, down];
 }
 var pasteWarnAt = '';
+var PASTE_OUT_RED = null;
 /* Pontos da prévia, calculados uma vez por cópia: todos os blocos se couberem; senão, só a casca (blocos com um lado
    vazio) e, se ainda passar, uma amostra espalhada dela (a prévia nunca mostra só as camadas de baixo) */
 var pastePtsOf = null, pastePtsArr = null;
@@ -286,7 +287,13 @@ function pastePreview(t) {
   if (!oc[1] && !oc[2]) pasteWarnAt = '';
   var m = new THREE.Matrix4(), info = new THREE.Color(cssColor('--info')), P = pastePts(), cap = previewInst.instanceMatrix.count, n = Math.min(P.length / 3, cap);
   for (var k = 0; k < n; k++) { m.setPosition(o[0] + P[k * 3] + 0.5, o[1] + P[k * 3 + 1] + 0.5, o[2] + P[k * 3 + 2] + 0.5); previewInst.setMatrixAt(k, m); }
-  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(info);
+  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
+  if (oc[0]) { // o que passa do teto ou do fundo do mundo fica vermelho (essas camadas não são coladas)
+    if (!previewInst.instanceColor) { previewInst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3); previewInst.material.needsUpdate = true; }
+    var ca = previewInst.instanceColor.array, red = PASTE_OUT_RED || (PASTE_OUT_RED = new THREE.Color(0xe5322d));
+    for (k = 0; k < n; k++) { var Y = o[1] + P[k * 3 + 1], q = Y >= SY || Y < 0 ? red : info; ca[k * 3] = q.r; ca[k * 3 + 1] = q.g; ca[k * 3 + 2] = q.b; }
+    previewInst.instanceColor.needsUpdate = true; previewInst.material.color.setRGB(1, 1, 1); mixPrevCol = true;
+  } else { mixPreviewReset(); previewInst.material.color.copy(info); }
   pasteBoxAt(o); // o contorno da cópia, sempre visível, anda junto com o ponteiro e as setas
   ghostEdges.visible = false;
 }

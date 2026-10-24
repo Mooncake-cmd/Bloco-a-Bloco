@@ -1,4 +1,4 @@
-// Captura da colagem com a prévia deslocada pelas setas: node scripts/guia/colar.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
+// Capturas da colagem com a prévia deslocada pelas setas e da prévia passando do teto (em vermelho): node scripts/guia/colar.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const fs = require('fs'), path = require('path');
 const [URL, PACK, OUT] = process.argv.slice(2);
@@ -21,6 +21,11 @@ eval(fs.readFileSync(__dirname + '/demo.inc', 'utf8'));
   for (const k of ['ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowLeft']) await p.keyboard.press(k);
   await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(800);
   await p.screenshot({ path: path.join(OUT, 'colar-mover.jpg'), type: 'jpeg', quality: 84, clip: { x: 0, y: 54, width: 972, height: 718 } });
+  // a mesma cópia subida até passar do teto do espaço: o que fica de fora aparece em vermelho
+  for (let k = 0; k < 40 && !(await ev('pasteOutCount(pasteOrigin(hoverT))[1] >= 40')); k++) await p.keyboard.press('ArrowUp');
+  await ev('Object.assign(cam, { yaw: 0.55, pitch: 0.3, dist: 40, tx: 11, ty: 10, tz: 12 }); updateCamera(); pastePreview(hoverT); requestRender();');
+  await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(800);
+  await p.screenshot({ path: path.join(OUT, 'colar-teto.jpg'), type: 'jpeg', quality: 84, clip: { x: 0, y: 54, width: 972, height: 718 } });
   console.log('ok colar', await ev("document.getElementById('selTxt').textContent"), errs);
   await b.close();
 })();

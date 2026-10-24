@@ -467,7 +467,7 @@ function wmBind() {
    ou do tamanho escrito à mão. Arrastar o retângulo move (de bloco em bloco); R gira 90°; as setas empurram 1 bloco
    (Shift: 16). Com o Y da base, o site diz se a altura cabe entre o fundo e o teto do mundo. Fica até a página fechar. */
 var wmFoot = null;
-function wmFootSize() { var f = wmFoot; return f.rot ? [f.l, f.w] : [f.w, f.l]; }
+function wmFootSize() { var f = wmFoot; return f.rot & 1 ? [f.l, f.w] : [f.w, f.l]; } // 90° e 270° trocam os lados; 180° não
 function wmFootDim(d) { return wio.java ? JW_DIMS[d] : wioDim(d); }
 function wmFootHit(x, z) { if (!wmFoot || wmFoot.dim !== wm.dim) return false; var s = wmFootSize(); return x >= wmFoot.x && z >= wmFoot.z && x < wmFoot.x + s[0] && z < wmFoot.z + s[1]; }
 function wmFootDraw(g) {

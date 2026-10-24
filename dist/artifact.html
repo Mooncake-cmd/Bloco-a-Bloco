@@ -381,7 +381,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldUnder" aria-pressed="false" title="Desenhar também o que está debaixo da terra (cavernas, minas). Por padrão, só a superfície: o terreno e 3 camadas abaixo dele">Subsolo: escondido</button><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
@@ -1040,6 +1040,7 @@ var saveTimer = 0;
 
 var lastDirty = '';
 function markDirty(x, y, z) {
+  if (surfTop) surfTouch(x, y, z);
   // a célula e, se ela estiver na borda do pedaço, os pedaços vizinhos (faces e sombras dependem dos vizinhos)
   var lx = x & 15, ly = y & 15, lz = z & 15;
   if (lx > 0 && lx < 15 && ly > 0 && ly < 15 && lz > 0 && lz < 15) {
@@ -1550,11 +1551,12 @@ function buildChunk(cx, cy, cz) {
   var O = newBuf(), G = newBuf(), C = newBuf(), BUFS = [O, C, G];
   built.add(key);
   var wc = W.get(ckey(cx, cy, cz)); if (!wc) return; // chunk vazio: só some com a malha antiga
+  var sf = surfFloor; if (sf && y1 <= surfChunkMin(cx, cz)) return; // todo debaixo da superfície (src/surface.js)
   // faces por direção: chave numérica (0 = sem face) em [f][camada][16 x 16]
   var faceKeys = [null, null, null, null, null, null];
   for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
     var v = wc.d ? wc.pal[wc.d[((y & 15) << 8) | ((z & 15) << 4) | (x & 15)]] : wc.u;
-    if (!v) continue;
+    if (!v || (sf && y < sf[z * SX + x])) continue;
     var bi = cellBlock(v), b = BLOCKS[bi], buf = b.glass ? 2 : b.solid ? 0 : 1;
     if (b.shape) { emitShape(b, cellOri(v), x, y, z, O, C, G); continue; }
     var fm = b.ori ? b.ori.o[cellOri(v)] && b.ori.o[cellOri(v)][2] : 0;
@@ -1671,6 +1673,7 @@ function updateView(force) {
   requestRender();
 }
 function rebuildDirty() {
+  surfFlush();
   if (!dirty.size) return;
   var t0 = performance.now();
   for (var k of dirty) {
@@ -1681,6 +1684,7 @@ function rebuildDirty() {
   }
 }
 function dirtyAll() {
+  surfStale = true;
   W.forEach(function (ch) { dirty.add(ckeyStr(ch)); });
   chunks.forEach(function (ms, k) { dirty.add(k); });
 }
@@ -1746,7 +1750,7 @@ function rayFrom(cx, cy) {
 }
 var stroke = null;
 function solidForRay(x, y, z) {
-  if (!inB(x, y, z) || y > layerMax()) return 0;
+  if (!inB(x, y, z) || y > layerMax() || (surfFloor && y < surfFloor[z * SX + x])) return 0; // o subsolo escondido não é acertado
   var i = idx(x, y, z);
   if (stroke && stroke.cells.has(i)) return stroke.mode === 'erase' ? 1 : 0;
   return gget(x, y, z);
@@ -3732,6 +3736,7 @@ function pasteOutCount(o) {
   return [up + down, up, down];
 }
 var pasteWarnAt = '';
+var PASTE_OUT_RED = null;
 /* Pontos da prévia, calculados uma vez por cópia: todos os blocos se couberem; senão, só a casca (blocos com um lado
    vazio) e, se ainda passar, uma amostra espalhada dela (a prévia nunca mostra só as camadas de baixo) */
 var pastePtsOf = null, pastePtsArr = null;
@@ -3770,7 +3775,13 @@ function pastePreview(t) {
   if (!oc[1] && !oc[2]) pasteWarnAt = '';
   var m = new THREE.Matrix4(), info = new THREE.Color(cssColor('--info')), P = pastePts(), cap = previewInst.instanceMatrix.count, n = Math.min(P.length / 3, cap);
   for (var k = 0; k < n; k++) { m.setPosition(o[0] + P[k * 3] + 0.5, o[1] + P[k * 3 + 1] + 0.5, o[2] + P[k * 3 + 2] + 0.5); previewInst.setMatrixAt(k, m); }
-  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(info);
+  previewInst.count = n; previewInst.instanceMatrix.needsUpdate = true;
+  if (oc[0]) { // o que passa do teto ou do fundo do mundo fica vermelho (essas camadas não são coladas)
+    if (!previewInst.instanceColor) { previewInst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3); previewInst.material.needsUpdate = true; }
+    var ca = previewInst.instanceColor.array, red = PASTE_OUT_RED || (PASTE_OUT_RED = new THREE.Color(0xe5322d));
+    for (k = 0; k < n; k++) { var Y = o[1] + P[k * 3 + 1], q = Y >= SY || Y < 0 ? red : info; ca[k * 3] = q.r; ca[k * 3 + 1] = q.g; ca[k * 3 + 2] = q.b; }
+    previewInst.instanceColor.needsUpdate = true; previewInst.material.color.setRGB(1, 1, 1); mixPrevCol = true;
+  } else { mixPreviewReset(); previewInst.material.color.copy(info); }
   pasteBoxAt(o); // o contorno da cópia, sempre visível, anda junto com o ponteiro e as setas
   ghostEdges.visible = false;
 }
@@ -5877,7 +5888,7 @@ function wmBind() {
    ou do tamanho escrito à mão. Arrastar o retângulo move (de bloco em bloco); R gira 90°; as setas empurram 1 bloco
    (Shift: 16). Com o Y da base, o site diz se a altura cabe entre o fundo e o teto do mundo. Fica até a página fechar. */
 var wmFoot = null;
-function wmFootSize() { var f = wmFoot; return f.rot ? [f.l, f.w] : [f.w, f.l]; }
+function wmFootSize() { var f = wmFoot; return f.rot & 1 ? [f.l, f.w] : [f.w, f.l]; } // 90° e 270° trocam os lados; 180° não
 function wmFootDim(d) { return wio.java ? JW_DIMS[d] : wioDim(d); }
 function wmFootHit(x, z) { if (!wmFoot || wmFoot.dim !== wm.dim) return false; var s = wmFootSize(); return x >= wmFoot.x && z >= wmFoot.z && x < wmFoot.x + s[0] && z < wmFoot.z + s[1]; }
 function wmFootDraw(g) {
@@ -9461,6 +9472,100 @@ function openSign(c, b) {
   });
 }
 
+/* ---------- Só a superfície: numa área de mundo do jogo, o subsolo não é desenhado ---------- */
+/* Uma área de 512 × 512 tem dezenas de milhões de blocos, quase todos pedra debaixo da terra. Por padrão, só se desenha
+   a casca de cima: em cada coluna, o terreno natural mais alto (pedra, terra, grama, areia, cascalho, minérios...;
+   água, folhas e o que foi construído ficam de fora da conta) e 3 camadas para baixo, descendo até o nível da coluna
+   vizinha mais baixa (o lado de um barranco aparece inteiro). Tudo o que está acima disso aparece: árvores, casas,
+   a água do mar e o fundo dele. O que fica abaixo continua na memória (exportar, redstone, ferramentas usam tudo);
+   só não vira malha nem é acertado pelo clique. O botão Subsolo do aviso do mundo mostra tudo. No Nether (teto de
+   rocha-mãe) a área é sempre desenhada inteira. */
+var SURF_KEY = 'bloco-a-bloco-subsolo', SURF_DEPTH = 3;
+var surfUnder = false;
+try { surfUnder = localStorage.getItem(SURF_KEY) === '1'; } catch (e) {}
+var surfTop = null, surfFloor = null, surfStale = true, surfCols = new Set(), SURF_NAT = null;
+var SURF_RE = /^(stone|granite|diorite|andesite|deepslate|tuff|calcite|dripstone_block|dirt|coarse_dirt|rooted_dirt|grass_block|podzol|mycelium|mud|clay|sand|red_sand|suspicious_sand|suspicious_gravel|gravel|[a-z_]*terracotta|hardened_clay|stained_hardened_clay|snow|snow_block|powder_snow|ice|packed_ice|blue_ice|moss_block|netherrack|soul_sand|soul_soil|basalt|smooth_basalt|blackstone|crimson_nylium|warped_nylium|magma_block|end_stone|bedrock|amethyst_block|budding_amethyst|infested_[a-z_]+|[a-z_]*_ore|raw_(iron|copper|gold)_block)$/;
+function surfActive() { return !surfUnder && !!(wio && wio.area) && wio.area.dim !== 1; }
+function surfNat() {
+  if (!SURF_NAT || SURF_NAT.length !== BLOCKS.length) {
+    SURF_NAT = new Uint8Array(BLOCKS.length);
+    BLOCKS.forEach(function (b, i) { if (b.java && !b.shape && SURF_RE.test(b.java) && !/glazed/.test(b.java)) SURF_NAT[i] = 1; });
+  }
+  return SURF_NAT;
+}
+/* O terreno natural mais alto da coluna (-1: nenhum) */
+function surfColTop(x, z) {
+  var N = surfNat(), o = ((z & 15) << 4) | (x & 15);
+  for (var cy = (SY - 1) >> 4; cy >= 0; cy--) {
+    var ch = W.get(ckey(x >> 4, cy, z >> 4)); if (!ch) continue;
+    if (!ch.d) { if (ch.u && N[cellBlock(ch.u)]) return Math.min(SY - 1, cy * 16 + 15); continue; }
+    for (var ly = 15; ly >= 0; ly--) { var v = ch.pal[ch.d[(ly << 8) | o]]; if (v && N[cellBlock(v)]) return cy * 16 + ly; }
+  }
+  return -1;
+}
+/* Primeira camada desenhada da coluna: 3 abaixo do terreno dela e das 8 vizinhas (as vizinhas sem terreno, como um
+   chunk que o jogo nunca gerou, não contam). Coluna sem terreno natural nenhum: tudo dela aparece. */
+function surfFloorAt(x, z) {
+  if (surfTop[z * SX + x] < 0) return 0;
+  var m = Infinity;
+  for (var dz = -1; dz <= 1; dz++) for (var dx = -1; dx <= 1; dx++) {
+    var nx = x + dx, nz = z + dz; if (nx < 0 || nz < 0 || nx >= SX || nz >= SZ) continue;
+    var t = surfTop[nz * SX + nx]; if (t >= 0 && t < m) m = t;
+  }
+  return Math.max(0, m - SURF_DEPTH + 1);
+}
+function surfCompute() {
+  surfStale = false; surfCols.clear();
+  if (!surfActive()) { surfTop = surfFloor = null; return; }
+  var n = SX * SZ; surfTop = new Int16Array(n); surfFloor = new Int16Array(n);
+  for (var z = 0; z < SZ; z++) for (var x = 0; x < SX; x++) surfTop[z * SX + x] = surfColTop(x, z);
+  for (z = 0; z < SZ; z++) for (x = 0; x < SX; x++) surfFloor[z * SX + x] = surfFloorAt(x, z);
+}
+/* Uma edição no topo do terreno (ou acima) pode mudar a coluna: fica na fila para o próximo quadro */
+function surfTouch(x, y, z) {
+  var i = z * SX + x;
+  if (i >= 0 && i < surfTop.length && y >= surfTop[i]) surfCols.add(i);
+}
+/* Refaz as colunas da fila; onde o fundo desenhado mudou, os pedaços daquela faixa são montados de novo */
+function surfFlush() {
+  if (surfStale) { surfCompute(); return; }
+  if (!surfCols.size || !surfTop) return;
+  var near = new Set();
+  surfCols.forEach(function (i) {
+    var x = i % SX, z = (i - x) / SX, t = surfColTop(x, z);
+    if (t === surfTop[i]) return;
+    surfTop[i] = t;
+    for (var dz = -1; dz <= 1; dz++) for (var dx = -1; dx <= 1; dx++) { var nx = x + dx, nz = z + dz; if (nx >= 0 && nz >= 0 && nx < SX && nz < SZ) near.add(nz * SX + nx); }
+  });
+  surfCols.clear();
+  near.forEach(function (i) {
+    var x = i % SX, z = (i - x) / SX, f0 = surfFloor[i], f1 = surfFloorAt(x, z);
+    if (f0 === f1) return;
+    surfFloor[i] = f1;
+    for (var cy = Math.min(f0, f1) >> 4; cy <= (Math.max(f0, f1) - 1) >> 4; cy++) dirty.add((x >> 4) + ',' + cy + ',' + (z >> 4));
+  });
+}
+/* A célula está escondida (debaixo da casca)? */
+function surfHid(x, y, z) { return surfFloor !== null && y < surfFloor[z * SX + x]; }
+/* O menor fundo do pedaço de 16 × 16 (o pedaço inteiro abaixo dele nem é percorrido) */
+function surfChunkMin(cx, cz) {
+  var m = SY, x0 = cx * 16, z0 = cz * 16, x1 = Math.min(x0 + 16, SX), z1 = Math.min(z0 + 16, SZ);
+  for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { var f = surfFloor[z * SX + x]; if (f < m) m = f; }
+  return m;
+}
+function surfSet(under) {
+  surfUnder = !!under;
+  try { localStorage.setItem(SURF_KEY, surfUnder ? '1' : '0'); } catch (e) {}
+  surfUI(); dirtyAll(); requestRender();
+  if (wio && wio.area) toast(surfUnder ? 'Subsolo à mostra: a área inteira é desenhada (cavernas, minas, o que está debaixo da terra). Fica mais pesado.' :
+    wio.area.dim === 1 ? 'No Nether a área é sempre desenhada inteira (o teto de rocha-mãe esconderia tudo).' : 'Só a superfície: o terreno e 3 camadas abaixo dele. O subsolo continua lá, só não é desenhado.', 6000);
+}
+function surfUI() {
+  var b = $('worldUnder'); if (!b) return;
+  b.setAttribute('aria-pressed', surfUnder ? 'true' : 'false');
+  b.textContent = surfUnder ? 'Subsolo: à mostra' : 'Subsolo: escondido';
+}
+
 /* ---------- Lançar: flecha, flecha em chamas, tridente, bola de neve e ovo ---------- */
 /* A ferramenta Lançar (W) atira do ponto de vista da câmera na direção do ponteiro; em primeira pessoa, Q atira na
    direção da mira. A física é a do jogo (Java, por tique, 20 por segundo):
@@ -12765,6 +12870,8 @@ $('worldBtn').addEventListener('click', function () { $('menu').open = false; $(
 $('wmapBtn').addEventListener('click', function () { $('menu').open = false; openWorldMap(); });
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });
+$('worldUnder').addEventListener('click', function () { surfSet(!surfUnder); });
+surfUI();
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
   var f = e.target.files && e.target.files[0]; if (!f) return;
