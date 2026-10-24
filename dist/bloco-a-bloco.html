@@ -1743,13 +1743,14 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  if (typeof pasteBoxHide === 'function' && (!pasting || !hoverT)) pasteBoxHide(); // o contorno da cópia só no modo colar
+  if (typeof pasteBoxHide === 'function' && (!pasting || (!hoverT && !pasteFixed))) pasteBoxHide(); // o contorno da cópia só no modo colar
   mixPreviewReset(); updateEraseChip(); updateBrushChip(); updateTubeChip(); updateFieldChip(); updateProjChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
 function updatePreview1(t) {
   if (selA) drawSelBox();
+  if (pasting && pasteFixed) { pastePreview(null); requestRender(); return; } // colar no lugar marcado no mapa: a prévia não depende do ponteiro
   // no passo da altura, a altura vem da posição do ponteiro na tela, não do bloco apontado: a prévia continua mesmo
   // com o ponteiro fora do espaço (acima da caixa, no céu)
   var hstep = anchor && anchor2 && isShape(effTool(lastShift)) && hasHeightStep(effTool(lastShift)) && hoverXY;
@@ -3299,7 +3300,33 @@ function cellFromJava(key) {
 }
 
 /* Monta o mundo: dims e get(x, y, z) -> célula (0 = vazio); desconhecidos contados por nome */
+/* Importar para a cópia (Colar aqui, no mapa do mundo): com impToClip, os importadores montam uma cópia (impClipOut)
+   em vez de trocar a construção aberta */
+var impToClip = false, impClipOut = null;
+function impJ(x, y, z) {
+  if (!impToClip) { if (!inB(x, y, z)) return null; return beJ(idx(x, y, z)); }
+  var c = impClipOut; if (x < 0 || y < 0 || z < 0 || x >= c.w || y >= c.h || z >= c.l) return null;
+  var v = c.cells[(y * c.l + z) * c.w + x]; return v && cellBlock(v) !== PRES_BI ? BLOCKS[cellBlock(v)].java : null;
+}
+function impBe(x, y, z, be) { if (impToClip) impClipOut.be.set((y * impClipOut.l + z) * impClipOut.w + x, be); else bentSet(idx(x, y, z), be, false); }
+async function clipFromFile(file) {
+  var u8 = new Uint8Array(await file.arrayBuffer()), n = file.name;
+  impToClip = true; impClipOut = null;
+  try {
+    if (/\.mcstructure$/i.test(n)) importMcstructure(u8); else if (/\.litematic$/i.test(n)) await importLitematic(u8); else importSchem(await gunzipMaybe(u8));
+  } finally { impToClip = false; }
+  var c = impClipOut; impClipOut = null;
+  if (!c || !c.n) throw new Error('O arquivo não tem blocos que o editor conheça.');
+  if (!c.be.size) c.be = null;
+  return c;
+}
 function fillWorld(w, h, l, get) {
+  if (impToClip) { // só a cópia: o espaço e a construção ficam como estão
+    var cells = new Uint32Array(w * h * l), n = 0;
+    for (var yy = 0; yy < h; yy++) for (var zz = 0; zz < l; zz++) for (var xx = 0; xx < w; xx++) { var vv = get(xx, yy, zz); if (vv) { cells[(yy * l + zz) * w + xx] = vv; n++; } }
+    impClipOut = { w: w, h: h, l: l, cells: cells, n: n, be: new Map() };
+    return false;
+  }
   // o espaço passa a ter o tamanho da estrutura (no mínimo 8 por lado), sem cortar
   var sx = Math.max(8, w), sy = Math.max(8, h), sz = Math.max(8, l);
   var se = sizeError(sx, sy, sz); if (se) throw new Error('Estrutura grande demais para abrir: ' + se);
@@ -3311,6 +3338,7 @@ function fillWorld(w, h, l, get) {
   return false;
 }
 function importReport(kind, cut, unknown, nbe) {
+  if (impToClip) return;
   var names = Object.keys(unknown), n = names.reduce(function (a, k) { return a + unknown[k]; }, 0);
   var msg = kind + ' importado: ' + blockCount + ' blocos' + (nbe ? ', ' + nbe + (nbe > 1 ? ' com conteúdo ou texto (baús, placas...)' : ' com conteúdo ou texto') : '') + '.';
   msg += ' Espaço: ' + SX + ' × ' + SY + ' × ' + SZ + '.';
@@ -3345,8 +3373,8 @@ function importMcstructure(u8) {
   var nbe = 0;
   Object.keys(pos).forEach(function (k) {
     var d = pos[k] && pos[k].block_entity_data; if (!d) return;
-    var i0 = +k, x = Math.floor(i0 / (H * L)), y = Math.floor(i0 / L) % H, z = i0 % L; if (!inB(x, y, z)) return;
-    var i = idx(x, y, z), j = beJ(i), be = j && beFromBedrock(d, j); if (be) { bentSet(i, be, false); nbe++; }
+    var i0 = +k, x = Math.floor(i0 / (H * L)), y = Math.floor(i0 / L) % H, z = i0 % L;
+    var j = impJ(x, y, z), be = j && beFromBedrock(d, j); if (be) { impBe(x, y, z, be); nbe++; }
   });
   importReport('.mcstructure', cut, unknown, nbe);
 }
@@ -3381,8 +3409,8 @@ function importSchem(u8) {
   // itens dos contêineres e texto das placas: v3 em Blocks.BlockEntities ({Pos, Id, Data}); v2 na raiz (os dados soltos)
   var bes = (s.Blocks && s.Blocks.BlockEntities) || s.BlockEntities || [], nbe = 0;
   bes.forEach(function (e) {
-    var P = e.Pos; if (!P || !inB(P[0], P[1], P[2])) return;
-    var i = idx(P[0], P[1], P[2]), j = beJ(i), be = j && beFromJava(e.Data || e, j); if (be) { bentSet(i, be, false); nbe++; }
+    var P = e.Pos; if (!P) return;
+    var j = impJ(P[0], P[1], P[2]), be = j && beFromJava(e.Data || e, j); if (be) { impBe(P[0], P[1], P[2], be); nbe++; }
   });
   importReport('.schem', cut, unknown, nbe);
 }
@@ -3395,6 +3423,7 @@ var sel = null;           // { a: [x,y,z] mínimo, b: [x,y,z] máximo }
 var clip = null;          // { w, h, l, cells: Uint32Array, n: blocos }
 var pasting = false;      // modo colar: a prévia segue o mouse e o clique cola
 var pasteOff = [0, 0, 0]; // deslocamento da prévia pelas setas (soma ao ponto apontado; volta a zero ao começar a colar)
+var pasteFixed = null;    // canto da cópia preso num lugar (Colar aqui, no mapa do mundo): a prévia não segue o mouse
 var selBox = null;
 
 function selSize(s) { return [s.b[0] - s.a[0] + 1, s.b[1] - s.a[1] + 1, s.b[2] - s.a[2] + 1]; }
@@ -3415,8 +3444,8 @@ function updateSelChip() {
   var c = $('selChip');
   if (pasting && clip) {
     c.hidden = false;
-    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). Clique (ou Enter) para colar.' + pasteOffTxt();
-    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + '</span>' +
+    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). ' + (pasteFixed ? 'No lugar marcado no mapa: as setas sobem, descem e empurram, R gira; Enter (ou um clique) cola.' : 'Clique (ou Enter) para colar.') + pasteOffTxt() + (pasteFixed && wio && wio.area ? ' <span class="mixl">Canto: X ' + (pasteFixed[0] + pasteOff[0] + wio.area.x0) + ', Y ' + (pasteFixed[1] + pasteOff[1] + wioDim(wio.area.dim).min) + ', Z ' + (pasteFixed[2] + pasteOff[2] + wio.area.z0) + '.</span>' : '');
+    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + (pasteFixed ? '<button data-pm="go" title="Enter">Colar aqui</button><button data-pm="free" title="A prévia volta a seguir o mouse">Seguir o mouse</button>' : '') + '</span>' +
       '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="flipx" title="Espelhar: leste e oeste trocam de lado (F)">Espelhar ↔</button><button data-s="flipz" title="Espelhar: norte e sul trocam de lado (Shift+F)">Espelhar ↕</button><button data-s="cancel">Cancelar</button>';
   } else if (sel) {
     var d = selSize(sel);
@@ -3551,6 +3580,7 @@ function rotateClip() {
     var nx = l - 1 - z, nz = x; // norte vira leste
     out[(y * w + nz) * l + nx] = rotateCell(clip.cells[(y * l + z) * w + x]);
   }
+  if (pasteFixed) { var fc = [pasteFixed[0] + w / 2, pasteFixed[2] + l / 2]; pasteFixed = [Math.round(fc[0] - l / 2), pasteFixed[1], Math.round(fc[1] - w / 2)]; } // gira em volta do centro
   clip = { w: l, h: h, l: w, cells: out, n: clip.n, be: bentClipMap(clip.be, w, h, l, function (x, y, z) { return (y * w + x) * l + (l - 1 - z); }) };
   updateSelChip(); updatePreview();
 }
@@ -3571,11 +3601,14 @@ function flipClip(a) {
 
 /* Colar: a prévia fica centralizada no ponto apontado, apoiada nele */
 function pasteOrigin(t) {
+  if (pasteFixed && clip) return [pasteFixed[0] + pasteOff[0], pasteFixed[1] + pasteOff[1], pasteFixed[2] + pasteOff[2]];
   var c = t && t.place; if (!c || !clip) return null;
   return [c[0] - Math.floor(clip.w / 2) + pasteOff[0], c[1] + pasteOff[1], c[2] - Math.floor(clip.l / 2) + pasteOff[2]];
 }
 /* Setas no modo colar: a prévia anda um bloco (m: u, d, l, r, f, b; frente e lados seguem a câmera, como ao mover a seleção); '0' zera */
 function pasteNudge(m) {
+  if (m === 'go') { commitPaste(null); return; }
+  if (m === 'free') { pasteFixed = null; pasteOff = [0, 0, 0]; updateSelChip(); updatePreview(); return; }
   if (m === '0') pasteOff = [0, 0, 0];
   else { var d = moveDir(m); for (var i = 0; i < 3; i++) pasteOff[i] += d[i]; }
   updateSelChip(); updatePreview();
@@ -3590,7 +3623,7 @@ function pasteOffTxt() {
 }
 function startPaste() {
   if (!clip) { toast('Nada copiado ainda: selecione uma área e use Copiar (Ctrl+C).'); return; }
-  pasting = true; pasteOff = [0, 0, 0]; anchor = null; updateAnchorChip(); selRefresh();
+  pasting = true; pasteOff = [0, 0, 0]; pasteFixed = null; anchor = null; updateAnchorChip(); selRefresh();
   toast('Clique onde quer colar. As setas sobem, descem e levam para os lados (Shift + ↑ ↓: frente e trás); R gira 90°, Esc cancela.', 6000);
 }
 function commitPaste(t) {
@@ -3605,6 +3638,7 @@ function commitPaste(t) {
   }
   var nbe = bentPasteAt(clip.be, clip.w, clip.l, o); // itens e texto (src/blockent.js)
   endBatch();
+  if (pasteFixed) { pasting = false; pasteFixed = null; selRefresh(); toast('Colados ' + n + ' blocos no lugar marcado' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Ctrl+Z desfaz.', out ? 12000 : 6000); return; }
   toast('Colados ' + n + ' blocos' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Clique de novo para colar outra cópia, Esc para terminar.', out ? 12000 : 5000);
 }
 /* Blocos da cópia que não cabem: acima do teto, abaixo do chão ou fora pelos lados (num mundo do jogo, os limites de altura são os do mundo) */
@@ -3790,7 +3824,7 @@ function selectionKey(e, k) {
   // setas no modo colar: ↑ ↓ sobem e descem, ← → para os lados, Shift + ↑ ↓ frente e trás (Page Up e Page Down também sobem e descem)
   var pm = pasting && !ctrl ? { arrowup: e.shiftKey ? 'f' : 'u', arrowdown: e.shiftKey ? 'b' : 'd', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k] : null;
   if (pm) { e.preventDefault(); pasteNudge(pm); return true; }
-  if (pasting && k === 'enter' && !ctrl && hoverT) { e.preventDefault(); commitPaste(hoverT); updatePreview(); updateStatus(); return true; }
+  if (pasting && k === 'enter' && !ctrl && (hoverT || pasteFixed)) { e.preventDefault(); commitPaste(hoverT); updatePreview(); updateStatus(); return true; }
   if (pasting && k === 'f' && !ctrl) { flipClip(e.shiftKey ? 2 : 0); return true; }
   // com a ferramenta Selecionar e uma área marcada, as setas e Page Up/Down movem os blocos (Shift: 5 de cada vez)
   var mk = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k];
@@ -5771,7 +5805,7 @@ function wmBind() {
 }
 
 /* ---------- Estrutura no mapa: um retângulo tracejado do tamanho de uma estrutura, para ver o espaço que ela ocupa ---------- */
-/* Vem da cópia (Ctrl+C), de um item da biblioteca, de um arquivo (.mcstructure, .schem, .litematic: só o tamanho é lido)
+/* Vem da cópia (Ctrl+C), de um item da biblioteca, de um arquivo (.mcstructure, .schem, .litematic: o tamanho; para colar, inteiro)
    ou do tamanho escrito à mão. Arrastar o retângulo move (de bloco em bloco); R gira 90°; as setas empurram 1 bloco
    (Shift: 16). Com o Y da base, o site diz se a altura cabe entre o fundo e o teto do mundo. Fica até a página fechar. */
 var wmFoot = null;
@@ -5801,13 +5835,49 @@ function wmFootInfo() {
   el.innerHTML = '<b>' + esc(f.name) + '</b><span>' + s[0] + ' × ' + f.h + ' × ' + s[1] + ' · X <b>' + f.x + '</b> a ' + (f.x + s[0] - 1) + ', Z <b>' + f.z + '</b> a ' + (f.z + s[1] - 1) + (f.dim !== wm.dim ? ' (em ' + WIO_DIMS[f.dim].name + ')' : '') + '</span>' +
     '<label class="wmfy">Y da base <input type="number" id="wmfY" value="' + f.y + '" step="1"></label>' +
     '<span class="' + (ok ? 'mixl' : 'err') + '">' + (ok ? 'cabe na altura (até Y ' + y1 + '; o teto é Y ' + top + ')' : y1 > top ? (y1 - top) + ' camadas passam do teto (Y ' + top + '): baixe para Y ' + (top - f.h + 1) + ' ou menos' : (D.min - f.y) + ' camadas abaixo do fundo (Y ' + D.min + ')') + '</span>' +
-    '<span class="mbtns"><button id="wmfRot" title="R">Girar 90°</button><button id="wmfHere" title="Põe a estrutura no meio da tela">Trazer para o meio</button><button id="wmfLoad" title="Abrir a janela de área com o centro na estrutura">Carregar área aqui</button><button id="wmfCopy" title="O canto de baixo (menor X, Y e Z): onde colar no jogo">Copiar o canto</button><button id="wmfOff">Tirar</button></span>';
+    '<span class="mbtns"><button id="wmfRot" title="R">Girar 90°</button><button id="wmfHere" title="Põe a estrutura no meio da tela">Trazer para o meio</button><button id="wmfLoad" title="Carrega no editor a área da estrutura, com 16 blocos de folga em volta">Carregar área aqui</button>' + (f.src && f.src.k !== 'hand' ? '<button id="wmfPaste" title="Carrega a área e põe a estrutura no lugar do retângulo, para ajustar a altura, girar e colar">Colar aqui</button>' : '') + '<button id="wmfCopy" title="O canto de baixo (menor X, Y e Z): onde colar no jogo">Copiar o canto</button><button id="wmfOff">Tirar</button></span>';
   $('wmfY').onchange = function () { f.y = Math.round(+this.value || 0); wmFootInfo(); };
   $('wmfRot').onclick = wmFootRot;
   $('wmfHere').onclick = function () { var s2 = wmFootSize(); f.dim = wm.dim; f.x = Math.round(wm.cx - s2[0] / 2); f.z = Math.round(wm.cz - s2[1] / 2); wmFootInfo(); wmDraw(); };
-  $('wmfLoad').onclick = function () { var s2 = wmFootSize(), d = f.dim; closeWorldMap(); wioArea.at = { dim: d, x: f.x + (s2[0] >> 1), z: f.z + (s2[1] >> 1) }; wioArea(); };
+  $('wmfLoad').onclick = function () { wmFootLoad(false); };
+  if ($('wmfPaste')) $('wmfPaste').onclick = function () { wmFootLoad(true); };
   $('wmfCopy').onclick = function () { var t = f.x + ' ' + f.y + ' ' + f.z; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copiado: ' + t); }, function () { toast(t); }); };
   $('wmfOff').onclick = function () { wmFoot = null; wmFootInfo(); wmDraw(); };
+}
+/* Área do editor para a estrutura: o retângulo com 16 blocos de folga (menos, se passar do máximo), alinhada aos chunks */
+function wmFootArea(f) {
+  var s = wmFootSize();
+  for (var m = 16; m >= 0; m -= 8) {
+    var x0 = Math.floor((f.x - m) / 16) * 16, z0 = Math.floor((f.z - m) / 16) * 16, x1 = Math.ceil((f.x + s[0] + m) / 16) * 16, z1 = Math.ceil((f.z + s[1] + m) / 16) * 16;
+    if (x1 - x0 <= WIO_MAX && z1 - z0 <= WIO_MAX) return [x0, z0, x1 - x0, z1 - z0];
+  }
+  return null;
+}
+/* Carregar área aqui / Colar aqui: carrega a área da estrutura; colando, a cópia entra no modo colar presa no lugar do
+   retângulo (X, Z, Y da base e o giro), para ajustar com as setas e o R antes de confirmar */
+async function wmFootLoad(paste) {
+  var f = wmFoot; if (!f) return;
+  var a = wmFootArea(f);
+  if (!a) { toast('A estrutura passa de ' + WIO_MAX + ' blocos de lado: grande demais para uma área só do editor.', 7000); return; }
+  var c = null;
+  if (paste) {
+    try {
+      if (f.src.k === 'clip') c = clip;
+      else if (f.src.k === 'lib') { var r = libToClip(f.src.it); c = r.clip; }
+      else if (f.src.k === 'file') { busy('Lendo ' + f.src.file.name + '…', null); try { c = await clipFromFile(f.src.file); } finally { busyEnd(); } }
+    } catch (e) { toast(e.message || String(e), 7000); return; }
+    if (!c || !c.n) { toast('Não há blocos para colar.', 5000); return; }
+  }
+  var d = f.dim; closeWorldMap();
+  var ok = await wioGoArea(d, a[0], a[1], a[2], a[3], !!paste);
+  if (!ok || !paste) return;
+  clip = c;
+  for (var q = 0; q < (f.rot & 3); q++) rotateClip(); // o mesmo giro do retângulo
+  var D = wioDim(d), A = wio.area;
+  startPaste(); pasteFixed = [f.x - A.x0, f.y - D.min, f.z - A.z0];
+  Object.assign(cam, { tx: pasteFixed[0] + clip.w / 2, ty: pasteFixed[1] + clip.h / 3, tz: pasteFixed[2] + clip.l / 2, dist: Math.max(40, Math.max(clip.w, clip.h, clip.l) * 2.5), pitch: 0.55 }); updateCamera();
+  selRefresh();
+  toast('A estrutura está no lugar marcado no mapa (canto X ' + f.x + ', Y ' + f.y + ', Z ' + f.z + '). As setas sobem, descem e empurram; R gira; Enter (ou um clique) cola. Esc cancela.', 9000);
 }
 function wmFootRot() { var f = wmFoot; if (!f) return; var s = wmFootSize(), cx = f.x + s[0] / 2, cz = f.z + s[1] / 2; f.rot = (f.rot + 1) & 3; var s2 = wmFootSize(); f.x = Math.round(cx - s2[0] / 2); f.z = Math.round(cz - s2[1] / 2); wmFootInfo(); wmDraw(); }
 /* Só o tamanho de um arquivo de estrutura */
@@ -5822,7 +5892,7 @@ async function wmFootPick() {
   var lib = await libAll().catch(function () { return []; });
   var opts = (clip ? '<label class="check"><input type="radio" name="wmfS" value="clip" checked><span>A cópia (Ctrl+C): ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + '</span></label>' : '') +
     lib.map(function (it, i) { return '<label class="check"><input type="radio" name="wmfS" value="lib' + i + '"' + (!clip && !i ? ' checked' : '') + '><span>Biblioteca: ' + esc(it.name) + ' (' + it.w + ' × ' + it.h + ' × ' + it.l + ')</span></label>'; }).join('') +
-    '<label class="check"><input type="radio" name="wmfS" value="file"' + (!clip && !lib.length ? ' checked' : '') + '><span>Um arquivo (.mcstructure, .schem, .litematic): só o tamanho é lido</span></label>' +
+    '<label class="check"><input type="radio" name="wmfS" value="file"' + (!clip && !lib.length ? ' checked' : '') + '><span>Um arquivo (.mcstructure, .schem, .litematic): para colar, ele é lido inteiro na hora</span></label>' +
     '<input type="file" id="wmfF" accept=".mcstructure,.schem,.litematic">' +
     '<label class="check"><input type="radio" name="wmfS" value="hand"><span>Tamanho escrito</span></label>' +
     '<div class="row"><label>Largura (X)<input type="number" id="wmfW" min="1" value="32"></label><label>Altura (Y)<input type="number" id="wmfH" min="1" value="32"></label><label>Comprimento (Z)<input type="number" id="wmfL" min="1" value="32"></label></div>';
@@ -5832,16 +5902,16 @@ async function wmFootPick() {
     $('wmfF').onchange = function () { var r = overlayRoot.querySelector('[name=wmfS][value=file]'); if (r) r.checked = true; };
     ['wmfW', 'wmfH', 'wmfL'].forEach(function (id) { $(id).oninput = function () { overlayRoot.querySelector('[name=wmfS][value=hand]').checked = true; }; });
     $('wmfOk').onclick = async function () {
-      var v = (overlayRoot.querySelector('[name=wmfS]:checked') || {}).value, sz, nm;
+      var v = (overlayRoot.querySelector('[name=wmfS]:checked') || {}).value, sz, nm, src;
       try {
-        if (v === 'clip') { sz = [clip.w, clip.h, clip.l]; nm = 'A cópia'; }
-        else if (v && v.indexOf('lib') === 0) { var it = lib[+v.slice(3)]; sz = [it.w, it.h, it.l]; nm = it.name; }
-        else if (v === 'file') { var fl = $('wmfF').files[0]; if (!fl) throw new Error('Escolha o arquivo.'); sz = await wmFileSize(fl); nm = fl.name.replace(/\.[^.]+$/, ''); }
-        else { sz = [+$('wmfW').value | 0, +$('wmfH').value | 0, +$('wmfL').value | 0]; nm = 'Estrutura'; if (!(sz[0] > 0 && sz[1] > 0 && sz[2] > 0)) throw new Error('Escreva o tamanho.'); }
+        if (v === 'clip') { sz = [clip.w, clip.h, clip.l]; nm = 'A cópia'; src = { k: 'clip' }; }
+        else if (v && v.indexOf('lib') === 0) { var it = lib[+v.slice(3)]; sz = [it.w, it.h, it.l]; nm = it.name; src = { k: 'lib', it: it }; }
+        else if (v === 'file') { var fl = $('wmfF').files[0]; if (!fl) throw new Error('Escolha o arquivo.'); sz = await wmFileSize(fl); nm = fl.name.replace(/\.[^.]+$/, ''); src = { k: 'file', file: fl }; }
+        else { sz = [+$('wmfW').value | 0, +$('wmfH').value | 0, +$('wmfL').value | 0]; nm = 'Estrutura'; src = { k: 'hand' }; if (!(sz[0] > 0 && sz[1] > 0 && sz[2] > 0)) throw new Error('Escreva o tamanho.'); }
       } catch (e) { $('wmfErr').hidden = false; $('wmfErr').textContent = e.message || String(e); return; }
       closeDialog();
       var a = wmAt(wm.cx, wm.cz), y = a.h != null ? a.h + 1 : 64;
-      wmFoot = { name: nm, w: sz[0], h: sz[1], l: sz[2], rot: 0, dim: wm.dim, x: Math.round(wm.cx - sz[0] / 2), z: Math.round(wm.cz - sz[2] / 2), y: y };
+      wmFoot = { name: nm, src: src, w: sz[0], h: sz[1], l: sz[2], rot: 0, dim: wm.dim, x: Math.round(wm.cx - sz[0] / 2), z: Math.round(wm.cz - sz[2] / 2), y: y };
       wm.s = Math.max(wm.s, Math.min(8 * wm.dpr, Math.min(wm.W, wm.H) * 0.5 / Math.max(sz[0], sz[2])));
       wmFootInfo(); wmDraw();
       toast('Estrutura no mapa: arraste o retângulo para mover, R gira 90°, as setas empurram (Shift: 16 blocos).', 6000);
@@ -11564,27 +11634,29 @@ function wioArea() {
       };
       ['wmFx0', 'wmFz0', 'wmFx1', 'wmFz1'].forEach(function (id) { $(id).oninput = function () { st.free = { dim: st.dim, x0: +$('wmFx0').value || 0, z0: +$('wmFz0').value || 0, x1: +$('wmFx1').value || 0, z1: +$('wmFz1').value || 0 }; draw(); info(); }; });
       $('wmMe').onclick = function () { var h = home(st.dim); if (wio.player && wio.player.dim === st.dim) h = [wio.player.x, wio.player.z]; st.cx = h[0]; st.cz = h[1]; freeTo(); if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
-      $('wmGo').onclick = async function () {
-        var a = area(); closeDialog();
-        try {
-          var r0 = await wioCommitAll();
-          busy('Carregando a área…', 0);
-          var r = await wioLoadArea(st.dim, a[0], a[1], a[2], a[3], function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
-          await idbDo('readwrite', function (s) { s.delete(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () {});
-          worldClear = false; worldDirty.clear();
-          await wioSaveSession(false);
-          resetCamera(); changed(); updateStatus(); renderList(); wioChip();
-          var unk = Object.keys(wio.unknown);
-          toast('Área carregada: ' + blockCount.toLocaleString('pt-BR') + ' blocos.' + (r.miss ? ' ' + r.miss + ' chunks ainda não gerados ficaram vazios.' : '') +
-            (unk.length ? ' Blocos que o editor não conhece aparecem em roxo e voltam iguais para o mundo (' + unk.slice(0, 4).join(', ') + (unk.length > 4 ? '…' : '') + ').' : '') +
-            (wio.legacy ? ' ' + wio.legacy + ' pedaços num formato antigo do jogo ficaram de fora (abra o mundo no jogo uma vez e exporte de novo).' : '') +
-            (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : ''), 10000);
-        } catch (e) { toast(e.message || 'Não foi possível carregar a área.', 9000); }
-        finally { busyEnd(); }
-      };
+      $('wmGo').onclick = async function () { var a = area(); closeDialog(); await wioGoArea(st.dim, a[0], a[1], a[2], a[3]); };
       window.addEventListener('resize', function rz() { if (!overlayRoot.contains(cv)) { window.removeEventListener('resize', rz); return; } fit(); draw(); });
       loadDim();
     });
+}
+/* Grava o que mudou na área atual e carrega outra (canto x0, z0 e tamanho w × d, alinhados aos chunks); devolve true se deu certo */
+async function wioGoArea(dim, x0, z0, w, d, quiet) {
+  try {
+    var r0 = await wioCommitAll();
+    busy('Carregando a área…', 0);
+    var r = await wioLoadArea(dim, x0, z0, w, d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
+    await idbDo('readwrite', function (s) { s.delete(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () {});
+    worldClear = false; worldDirty.clear();
+    await wioSaveSession(false);
+    resetCamera(); changed(); updateStatus(); renderList(); wioChip();
+    var unk = Object.keys(wio.unknown);
+    if (!quiet) toast('Área carregada: ' + blockCount.toLocaleString('pt-BR') + ' blocos.' + (r.miss ? ' ' + r.miss + ' chunks ainda não gerados ficaram vazios.' : '') +
+      (unk.length ? ' Blocos que o editor não conhece aparecem em roxo e voltam iguais para o mundo (' + unk.slice(0, 4).join(', ') + (unk.length > 4 ? '…' : '') + ').' : '') +
+      (wio.legacy ? ' ' + wio.legacy + ' pedaços num formato antigo do jogo ficaram de fora (abra o mundo no jogo uma vez e exporte de novo).' : '') +
+      (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : ''), 10000);
+    return true;
+  } catch (e) { toast(e.message || 'Não foi possível carregar a área.', 9000); return false; }
+  finally { busyEnd(); }
 }
 async function wioExport() {
   if (!wio) return;
@@ -12221,8 +12293,8 @@ async function importLitematic(u8) {
   // itens dos contêineres e texto das placas (posição relativa ao canto de baixo da região)
   var nbe = 0;
   boxes.forEach(function (B) { B.te.forEach(function (c) {
-    var o = nbtTreeObj(c, 10), x = B.lo[0] - mn[0] + (o.x | 0), y = B.lo[1] - mn[1] + (o.y | 0), z = B.lo[2] - mn[2] + (o.z | 0); if (!inB(x, y, z)) return;
-    var i = idx(x, y, z), j = beJ(i), be = j && beFromJava(o, j); if (be) { bentSet(i, be, false); nbe++; }
+    var o = nbtTreeObj(c, 10), x = B.lo[0] - mn[0] + (o.x | 0), y = B.lo[1] - mn[1] + (o.y | 0), z = B.lo[2] - mn[2] + (o.z | 0);
+    var j = impJ(x, y, z), be = j && beFromJava(o, j); if (be) { impBe(x, y, z, be); nbe++; }
   }); });
   importReport('.litematic' + (regs.length > 1 ? ' (' + regs.length + ' regiões juntas)' : ''), cut, unknown, nbe);
 }
@@ -12588,7 +12660,7 @@ function openHelp() {
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span>' +
     '<span>Conteúdo dos blocos</span><span>Usar (<kbd>U</kbd>) num baú, ejetor, funil ou outro contêiner mostra os itens espaço por espaço; numa placa, o texto da frente e do verso (para ler e mudar). Vem de .litematic, .schem, .mcstructure e mundos do jogo e vai junto ao exportar, copiar, colar e guardar na biblioteca.</span>' +
-    '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo.</span>' +
+    '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo. Carregar área aqui carrega a área do tamanho dela (com folga); Colar aqui carrega e põe a estrutura no lugar marcado, para ajustar a altura com as setas, girar com R e colar com Enter.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +

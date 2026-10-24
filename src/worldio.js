@@ -877,27 +877,29 @@ function wioArea() {
       };
       ['wmFx0', 'wmFz0', 'wmFx1', 'wmFz1'].forEach(function (id) { $(id).oninput = function () { st.free = { dim: st.dim, x0: +$('wmFx0').value || 0, z0: +$('wmFz0').value || 0, x1: +$('wmFx1').value || 0, z1: +$('wmFz1').value || 0 }; draw(); info(); }; });
       $('wmMe').onclick = function () { var h = home(st.dim); if (wio.player && wio.player.dim === st.dim) h = [wio.player.x, wio.player.z]; st.cx = h[0]; st.cz = h[1]; freeTo(); if (st.view) { st.view.cx = st.cx; st.view.cz = st.cz; } draw(); info(); };
-      $('wmGo').onclick = async function () {
-        var a = area(); closeDialog();
-        try {
-          var r0 = await wioCommitAll();
-          busy('Carregando a área…', 0);
-          var r = await wioLoadArea(st.dim, a[0], a[1], a[2], a[3], function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
-          await idbDo('readwrite', function (s) { s.delete(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () {});
-          worldClear = false; worldDirty.clear();
-          await wioSaveSession(false);
-          resetCamera(); changed(); updateStatus(); renderList(); wioChip();
-          var unk = Object.keys(wio.unknown);
-          toast('Área carregada: ' + blockCount.toLocaleString('pt-BR') + ' blocos.' + (r.miss ? ' ' + r.miss + ' chunks ainda não gerados ficaram vazios.' : '') +
-            (unk.length ? ' Blocos que o editor não conhece aparecem em roxo e voltam iguais para o mundo (' + unk.slice(0, 4).join(', ') + (unk.length > 4 ? '…' : '') + ').' : '') +
-            (wio.legacy ? ' ' + wio.legacy + ' pedaços num formato antigo do jogo ficaram de fora (abra o mundo no jogo uma vez e exporte de novo).' : '') +
-            (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : ''), 10000);
-        } catch (e) { toast(e.message || 'Não foi possível carregar a área.', 9000); }
-        finally { busyEnd(); }
-      };
+      $('wmGo').onclick = async function () { var a = area(); closeDialog(); await wioGoArea(st.dim, a[0], a[1], a[2], a[3]); };
       window.addEventListener('resize', function rz() { if (!overlayRoot.contains(cv)) { window.removeEventListener('resize', rz); return; } fit(); draw(); });
       loadDim();
     });
+}
+/* Grava o que mudou na área atual e carrega outra (canto x0, z0 e tamanho w × d, alinhados aos chunks); devolve true se deu certo */
+async function wioGoArea(dim, x0, z0, w, d, quiet) {
+  try {
+    var r0 = await wioCommitAll();
+    busy('Carregando a área…', 0);
+    var r = await wioLoadArea(dim, x0, z0, w, d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
+    await idbDo('readwrite', function (s) { s.delete(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () {});
+    worldClear = false; worldDirty.clear();
+    await wioSaveSession(false);
+    resetCamera(); changed(); updateStatus(); renderList(); wioChip();
+    var unk = Object.keys(wio.unknown);
+    if (!quiet) toast('Área carregada: ' + blockCount.toLocaleString('pt-BR') + ' blocos.' + (r.miss ? ' ' + r.miss + ' chunks ainda não gerados ficaram vazios.' : '') +
+      (unk.length ? ' Blocos que o editor não conhece aparecem em roxo e voltam iguais para o mundo (' + unk.slice(0, 4).join(', ') + (unk.length > 4 ? '…' : '') + ').' : '') +
+      (wio.legacy ? ' ' + wio.legacy + ' pedaços num formato antigo do jogo ficaram de fora (abra o mundo no jogo uma vez e exporte de novo).' : '') +
+      (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : ''), 10000);
+    return true;
+  } catch (e) { toast(e.message || 'Não foi possível carregar a área.', 9000); return false; }
+  finally { busyEnd(); }
 }
 async function wioExport() {
   if (!wio) return;

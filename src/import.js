@@ -86,7 +86,33 @@ function cellFromJava(key) {
 }
 
 /* Monta o mundo: dims e get(x, y, z) -> célula (0 = vazio); desconhecidos contados por nome */
+/* Importar para a cópia (Colar aqui, no mapa do mundo): com impToClip, os importadores montam uma cópia (impClipOut)
+   em vez de trocar a construção aberta */
+var impToClip = false, impClipOut = null;
+function impJ(x, y, z) {
+  if (!impToClip) { if (!inB(x, y, z)) return null; return beJ(idx(x, y, z)); }
+  var c = impClipOut; if (x < 0 || y < 0 || z < 0 || x >= c.w || y >= c.h || z >= c.l) return null;
+  var v = c.cells[(y * c.l + z) * c.w + x]; return v && cellBlock(v) !== PRES_BI ? BLOCKS[cellBlock(v)].java : null;
+}
+function impBe(x, y, z, be) { if (impToClip) impClipOut.be.set((y * impClipOut.l + z) * impClipOut.w + x, be); else bentSet(idx(x, y, z), be, false); }
+async function clipFromFile(file) {
+  var u8 = new Uint8Array(await file.arrayBuffer()), n = file.name;
+  impToClip = true; impClipOut = null;
+  try {
+    if (/\.mcstructure$/i.test(n)) importMcstructure(u8); else if (/\.litematic$/i.test(n)) await importLitematic(u8); else importSchem(await gunzipMaybe(u8));
+  } finally { impToClip = false; }
+  var c = impClipOut; impClipOut = null;
+  if (!c || !c.n) throw new Error('O arquivo não tem blocos que o editor conheça.');
+  if (!c.be.size) c.be = null;
+  return c;
+}
 function fillWorld(w, h, l, get) {
+  if (impToClip) { // só a cópia: o espaço e a construção ficam como estão
+    var cells = new Uint32Array(w * h * l), n = 0;
+    for (var yy = 0; yy < h; yy++) for (var zz = 0; zz < l; zz++) for (var xx = 0; xx < w; xx++) { var vv = get(xx, yy, zz); if (vv) { cells[(yy * l + zz) * w + xx] = vv; n++; } }
+    impClipOut = { w: w, h: h, l: l, cells: cells, n: n, be: new Map() };
+    return false;
+  }
   // o espaço passa a ter o tamanho da estrutura (no mínimo 8 por lado), sem cortar
   var sx = Math.max(8, w), sy = Math.max(8, h), sz = Math.max(8, l);
   var se = sizeError(sx, sy, sz); if (se) throw new Error('Estrutura grande demais para abrir: ' + se);
@@ -98,6 +124,7 @@ function fillWorld(w, h, l, get) {
   return false;
 }
 function importReport(kind, cut, unknown, nbe) {
+  if (impToClip) return;
   var names = Object.keys(unknown), n = names.reduce(function (a, k) { return a + unknown[k]; }, 0);
   var msg = kind + ' importado: ' + blockCount + ' blocos' + (nbe ? ', ' + nbe + (nbe > 1 ? ' com conteúdo ou texto (baús, placas...)' : ' com conteúdo ou texto') : '') + '.';
   msg += ' Espaço: ' + SX + ' × ' + SY + ' × ' + SZ + '.';
@@ -132,8 +159,8 @@ function importMcstructure(u8) {
   var nbe = 0;
   Object.keys(pos).forEach(function (k) {
     var d = pos[k] && pos[k].block_entity_data; if (!d) return;
-    var i0 = +k, x = Math.floor(i0 / (H * L)), y = Math.floor(i0 / L) % H, z = i0 % L; if (!inB(x, y, z)) return;
-    var i = idx(x, y, z), j = beJ(i), be = j && beFromBedrock(d, j); if (be) { bentSet(i, be, false); nbe++; }
+    var i0 = +k, x = Math.floor(i0 / (H * L)), y = Math.floor(i0 / L) % H, z = i0 % L;
+    var j = impJ(x, y, z), be = j && beFromBedrock(d, j); if (be) { impBe(x, y, z, be); nbe++; }
   });
   importReport('.mcstructure', cut, unknown, nbe);
 }
@@ -168,8 +195,8 @@ function importSchem(u8) {
   // itens dos contêineres e texto das placas: v3 em Blocks.BlockEntities ({Pos, Id, Data}); v2 na raiz (os dados soltos)
   var bes = (s.Blocks && s.Blocks.BlockEntities) || s.BlockEntities || [], nbe = 0;
   bes.forEach(function (e) {
-    var P = e.Pos; if (!P || !inB(P[0], P[1], P[2])) return;
-    var i = idx(P[0], P[1], P[2]), j = beJ(i), be = j && beFromJava(e.Data || e, j); if (be) { bentSet(i, be, false); nbe++; }
+    var P = e.Pos; if (!P) return;
+    var j = impJ(P[0], P[1], P[2]), be = j && beFromJava(e.Data || e, j); if (be) { impBe(P[0], P[1], P[2], be); nbe++; }
   });
   importReport('.schem', cut, unknown, nbe);
 }

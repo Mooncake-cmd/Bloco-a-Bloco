@@ -1191,13 +1191,14 @@ function effTool(shift) { return tool === 'place' && (shift || curBlock() === AI
 var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
-  if (typeof pasteBoxHide === 'function' && (!pasting || !hoverT)) pasteBoxHide(); // o contorno da cópia só no modo colar
+  if (typeof pasteBoxHide === 'function' && (!pasting || (!hoverT && !pasteFixed))) pasteBoxHide(); // o contorno da cópia só no modo colar
   mixPreviewReset(); updateEraseChip(); updateBrushChip(); updateTubeChip(); updateFieldChip(); updateProjChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
 function updatePreview1(t) {
   if (selA) drawSelBox();
+  if (pasting && pasteFixed) { pastePreview(null); requestRender(); return; } // colar no lugar marcado no mapa: a prévia não depende do ponteiro
   // no passo da altura, a altura vem da posição do ponteiro na tela, não do bloco apontado: a prévia continua mesmo
   // com o ponteiro fora do espaço (acima da caixa, no céu)
   var hstep = anchor && anchor2 && isShape(effTool(lastShift)) && hasHeightStep(effTool(lastShift)) && hoverXY;
@@ -2538,7 +2539,7 @@ function openHelp() {
     '<span>Fantasma (Camada)</span><span>Com a Camada ligada, o aviso Fantasma mostra em azul translúcido os blocos de uma camada de baixo na altura atual, para alinhar o andar de cima com o de baixo. − e + escolhem qual camada.</span>' +
     '<span><kbd>G</kbd></span><span>Grade</span>' +
     '<span>Conteúdo dos blocos</span><span>Usar (<kbd>U</kbd>) num baú, ejetor, funil ou outro contêiner mostra os itens espaço por espaço; numa placa, o texto da frente e do verso (para ler e mudar). Vem de .litematic, .schem, .mcstructure e mundos do jogo e vai junto ao exportar, copiar, colar e guardar na biblioteca.</span>' +
-    '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo.</span>' +
+    '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo. Carregar área aqui carrega a área do tamanho dela (com folga); Colar aqui carrega e põe a estrutura no lugar marcado, para ajustar a altura com as setas, girar com R e colar com Enter.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +

@@ -479,8 +479,8 @@ async function importLitematic(u8) {
   // itens dos contêineres e texto das placas (posição relativa ao canto de baixo da região)
   var nbe = 0;
   boxes.forEach(function (B) { B.te.forEach(function (c) {
-    var o = nbtTreeObj(c, 10), x = B.lo[0] - mn[0] + (o.x | 0), y = B.lo[1] - mn[1] + (o.y | 0), z = B.lo[2] - mn[2] + (o.z | 0); if (!inB(x, y, z)) return;
-    var i = idx(x, y, z), j = beJ(i), be = j && beFromJava(o, j); if (be) { bentSet(i, be, false); nbe++; }
+    var o = nbtTreeObj(c, 10), x = B.lo[0] - mn[0] + (o.x | 0), y = B.lo[1] - mn[1] + (o.y | 0), z = B.lo[2] - mn[2] + (o.z | 0);
+    var j = impJ(x, y, z), be = j && beFromJava(o, j); if (be) { impBe(x, y, z, be); nbe++; }
   }); });
   importReport('.litematic' + (regs.length > 1 ? ' (' + regs.length + ' regiões juntas)' : ''), cut, unknown, nbe);
 }

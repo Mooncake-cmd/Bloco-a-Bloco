@@ -462,7 +462,7 @@ function wmBind() {
 }
 
 /* ---------- Estrutura no mapa: um retângulo tracejado do tamanho de uma estrutura, para ver o espaço que ela ocupa ---------- */
-/* Vem da cópia (Ctrl+C), de um item da biblioteca, de um arquivo (.mcstructure, .schem, .litematic: só o tamanho é lido)
+/* Vem da cópia (Ctrl+C), de um item da biblioteca, de um arquivo (.mcstructure, .schem, .litematic: o tamanho; para colar, inteiro)
    ou do tamanho escrito à mão. Arrastar o retângulo move (de bloco em bloco); R gira 90°; as setas empurram 1 bloco
    (Shift: 16). Com o Y da base, o site diz se a altura cabe entre o fundo e o teto do mundo. Fica até a página fechar. */
 var wmFoot = null;
@@ -492,13 +492,49 @@ function wmFootInfo() {
   el.innerHTML = '<b>' + esc(f.name) + '</b><span>' + s[0] + ' × ' + f.h + ' × ' + s[1] + ' · X <b>' + f.x + '</b> a ' + (f.x + s[0] - 1) + ', Z <b>' + f.z + '</b> a ' + (f.z + s[1] - 1) + (f.dim !== wm.dim ? ' (em ' + WIO_DIMS[f.dim].name + ')' : '') + '</span>' +
     '<label class="wmfy">Y da base <input type="number" id="wmfY" value="' + f.y + '" step="1"></label>' +
     '<span class="' + (ok ? 'mixl' : 'err') + '">' + (ok ? 'cabe na altura (até Y ' + y1 + '; o teto é Y ' + top + ')' : y1 > top ? (y1 - top) + ' camadas passam do teto (Y ' + top + '): baixe para Y ' + (top - f.h + 1) + ' ou menos' : (D.min - f.y) + ' camadas abaixo do fundo (Y ' + D.min + ')') + '</span>' +
-    '<span class="mbtns"><button id="wmfRot" title="R">Girar 90°</button><button id="wmfHere" title="Põe a estrutura no meio da tela">Trazer para o meio</button><button id="wmfLoad" title="Abrir a janela de área com o centro na estrutura">Carregar área aqui</button><button id="wmfCopy" title="O canto de baixo (menor X, Y e Z): onde colar no jogo">Copiar o canto</button><button id="wmfOff">Tirar</button></span>';
+    '<span class="mbtns"><button id="wmfRot" title="R">Girar 90°</button><button id="wmfHere" title="Põe a estrutura no meio da tela">Trazer para o meio</button><button id="wmfLoad" title="Carrega no editor a área da estrutura, com 16 blocos de folga em volta">Carregar área aqui</button>' + (f.src && f.src.k !== 'hand' ? '<button id="wmfPaste" title="Carrega a área e põe a estrutura no lugar do retângulo, para ajustar a altura, girar e colar">Colar aqui</button>' : '') + '<button id="wmfCopy" title="O canto de baixo (menor X, Y e Z): onde colar no jogo">Copiar o canto</button><button id="wmfOff">Tirar</button></span>';
   $('wmfY').onchange = function () { f.y = Math.round(+this.value || 0); wmFootInfo(); };
   $('wmfRot').onclick = wmFootRot;
   $('wmfHere').onclick = function () { var s2 = wmFootSize(); f.dim = wm.dim; f.x = Math.round(wm.cx - s2[0] / 2); f.z = Math.round(wm.cz - s2[1] / 2); wmFootInfo(); wmDraw(); };
-  $('wmfLoad').onclick = function () { var s2 = wmFootSize(), d = f.dim; closeWorldMap(); wioArea.at = { dim: d, x: f.x + (s2[0] >> 1), z: f.z + (s2[1] >> 1) }; wioArea(); };
+  $('wmfLoad').onclick = function () { wmFootLoad(false); };
+  if ($('wmfPaste')) $('wmfPaste').onclick = function () { wmFootLoad(true); };
   $('wmfCopy').onclick = function () { var t = f.x + ' ' + f.y + ' ' + f.z; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copiado: ' + t); }, function () { toast(t); }); };
   $('wmfOff').onclick = function () { wmFoot = null; wmFootInfo(); wmDraw(); };
+}
+/* Área do editor para a estrutura: o retângulo com 16 blocos de folga (menos, se passar do máximo), alinhada aos chunks */
+function wmFootArea(f) {
+  var s = wmFootSize();
+  for (var m = 16; m >= 0; m -= 8) {
+    var x0 = Math.floor((f.x - m) / 16) * 16, z0 = Math.floor((f.z - m) / 16) * 16, x1 = Math.ceil((f.x + s[0] + m) / 16) * 16, z1 = Math.ceil((f.z + s[1] + m) / 16) * 16;
+    if (x1 - x0 <= WIO_MAX && z1 - z0 <= WIO_MAX) return [x0, z0, x1 - x0, z1 - z0];
+  }
+  return null;
+}
+/* Carregar área aqui / Colar aqui: carrega a área da estrutura; colando, a cópia entra no modo colar presa no lugar do
+   retângulo (X, Z, Y da base e o giro), para ajustar com as setas e o R antes de confirmar */
+async function wmFootLoad(paste) {
+  var f = wmFoot; if (!f) return;
+  var a = wmFootArea(f);
+  if (!a) { toast('A estrutura passa de ' + WIO_MAX + ' blocos de lado: grande demais para uma área só do editor.', 7000); return; }
+  var c = null;
+  if (paste) {
+    try {
+      if (f.src.k === 'clip') c = clip;
+      else if (f.src.k === 'lib') { var r = libToClip(f.src.it); c = r.clip; }
+      else if (f.src.k === 'file') { busy('Lendo ' + f.src.file.name + '…', null); try { c = await clipFromFile(f.src.file); } finally { busyEnd(); } }
+    } catch (e) { toast(e.message || String(e), 7000); return; }
+    if (!c || !c.n) { toast('Não há blocos para colar.', 5000); return; }
+  }
+  var d = f.dim; closeWorldMap();
+  var ok = await wioGoArea(d, a[0], a[1], a[2], a[3], !!paste);
+  if (!ok || !paste) return;
+  clip = c;
+  for (var q = 0; q < (f.rot & 3); q++) rotateClip(); // o mesmo giro do retângulo
+  var D = wioDim(d), A = wio.area;
+  startPaste(); pasteFixed = [f.x - A.x0, f.y - D.min, f.z - A.z0];
+  Object.assign(cam, { tx: pasteFixed[0] + clip.w / 2, ty: pasteFixed[1] + clip.h / 3, tz: pasteFixed[2] + clip.l / 2, dist: Math.max(40, Math.max(clip.w, clip.h, clip.l) * 2.5), pitch: 0.55 }); updateCamera();
+  selRefresh();
+  toast('A estrutura está no lugar marcado no mapa (canto X ' + f.x + ', Y ' + f.y + ', Z ' + f.z + '). As setas sobem, descem e empurram; R gira; Enter (ou um clique) cola. Esc cancela.', 9000);
 }
 function wmFootRot() { var f = wmFoot; if (!f) return; var s = wmFootSize(), cx = f.x + s[0] / 2, cz = f.z + s[1] / 2; f.rot = (f.rot + 1) & 3; var s2 = wmFootSize(); f.x = Math.round(cx - s2[0] / 2); f.z = Math.round(cz - s2[1] / 2); wmFootInfo(); wmDraw(); }
 /* Só o tamanho de um arquivo de estrutura */
@@ -513,7 +549,7 @@ async function wmFootPick() {
   var lib = await libAll().catch(function () { return []; });
   var opts = (clip ? '<label class="check"><input type="radio" name="wmfS" value="clip" checked><span>A cópia (Ctrl+C): ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + '</span></label>' : '') +
     lib.map(function (it, i) { return '<label class="check"><input type="radio" name="wmfS" value="lib' + i + '"' + (!clip && !i ? ' checked' : '') + '><span>Biblioteca: ' + esc(it.name) + ' (' + it.w + ' × ' + it.h + ' × ' + it.l + ')</span></label>'; }).join('') +
-    '<label class="check"><input type="radio" name="wmfS" value="file"' + (!clip && !lib.length ? ' checked' : '') + '><span>Um arquivo (.mcstructure, .schem, .litematic): só o tamanho é lido</span></label>' +
+    '<label class="check"><input type="radio" name="wmfS" value="file"' + (!clip && !lib.length ? ' checked' : '') + '><span>Um arquivo (.mcstructure, .schem, .litematic): para colar, ele é lido inteiro na hora</span></label>' +
     '<input type="file" id="wmfF" accept=".mcstructure,.schem,.litematic">' +
     '<label class="check"><input type="radio" name="wmfS" value="hand"><span>Tamanho escrito</span></label>' +
     '<div class="row"><label>Largura (X)<input type="number" id="wmfW" min="1" value="32"></label><label>Altura (Y)<input type="number" id="wmfH" min="1" value="32"></label><label>Comprimento (Z)<input type="number" id="wmfL" min="1" value="32"></label></div>';
@@ -523,16 +559,16 @@ async function wmFootPick() {
     $('wmfF').onchange = function () { var r = overlayRoot.querySelector('[name=wmfS][value=file]'); if (r) r.checked = true; };
     ['wmfW', 'wmfH', 'wmfL'].forEach(function (id) { $(id).oninput = function () { overlayRoot.querySelector('[name=wmfS][value=hand]').checked = true; }; });
     $('wmfOk').onclick = async function () {
-      var v = (overlayRoot.querySelector('[name=wmfS]:checked') || {}).value, sz, nm;
+      var v = (overlayRoot.querySelector('[name=wmfS]:checked') || {}).value, sz, nm, src;
       try {
-        if (v === 'clip') { sz = [clip.w, clip.h, clip.l]; nm = 'A cópia'; }
-        else if (v && v.indexOf('lib') === 0) { var it = lib[+v.slice(3)]; sz = [it.w, it.h, it.l]; nm = it.name; }
-        else if (v === 'file') { var fl = $('wmfF').files[0]; if (!fl) throw new Error('Escolha o arquivo.'); sz = await wmFileSize(fl); nm = fl.name.replace(/\.[^.]+$/, ''); }
-        else { sz = [+$('wmfW').value | 0, +$('wmfH').value | 0, +$('wmfL').value | 0]; nm = 'Estrutura'; if (!(sz[0] > 0 && sz[1] > 0 && sz[2] > 0)) throw new Error('Escreva o tamanho.'); }
+        if (v === 'clip') { sz = [clip.w, clip.h, clip.l]; nm = 'A cópia'; src = { k: 'clip' }; }
+        else if (v && v.indexOf('lib') === 0) { var it = lib[+v.slice(3)]; sz = [it.w, it.h, it.l]; nm = it.name; src = { k: 'lib', it: it }; }
+        else if (v === 'file') { var fl = $('wmfF').files[0]; if (!fl) throw new Error('Escolha o arquivo.'); sz = await wmFileSize(fl); nm = fl.name.replace(/\.[^.]+$/, ''); src = { k: 'file', file: fl }; }
+        else { sz = [+$('wmfW').value | 0, +$('wmfH').value | 0, +$('wmfL').value | 0]; nm = 'Estrutura'; src = { k: 'hand' }; if (!(sz[0] > 0 && sz[1] > 0 && sz[2] > 0)) throw new Error('Escreva o tamanho.'); }
       } catch (e) { $('wmfErr').hidden = false; $('wmfErr').textContent = e.message || String(e); return; }
       closeDialog();
       var a = wmAt(wm.cx, wm.cz), y = a.h != null ? a.h + 1 : 64;
-      wmFoot = { name: nm, w: sz[0], h: sz[1], l: sz[2], rot: 0, dim: wm.dim, x: Math.round(wm.cx - sz[0] / 2), z: Math.round(wm.cz - sz[2] / 2), y: y };
+      wmFoot = { name: nm, src: src, w: sz[0], h: sz[1], l: sz[2], rot: 0, dim: wm.dim, x: Math.round(wm.cx - sz[0] / 2), z: Math.round(wm.cz - sz[2] / 2), y: y };
       wm.s = Math.max(wm.s, Math.min(8 * wm.dpr, Math.min(wm.W, wm.H) * 0.5 / Math.max(sz[0], sz[2])));
       wmFootInfo(); wmDraw();
       toast('Estrutura no mapa: arraste o retângulo para mover, R gira 90°, as setas empurram (Shift: 16 blocos).', 6000);

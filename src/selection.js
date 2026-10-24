@@ -6,6 +6,7 @@ var sel = null;           // { a: [x,y,z] mínimo, b: [x,y,z] máximo }
 var clip = null;          // { w, h, l, cells: Uint32Array, n: blocos }
 var pasting = false;      // modo colar: a prévia segue o mouse e o clique cola
 var pasteOff = [0, 0, 0]; // deslocamento da prévia pelas setas (soma ao ponto apontado; volta a zero ao começar a colar)
+var pasteFixed = null;    // canto da cópia preso num lugar (Colar aqui, no mapa do mundo): a prévia não segue o mouse
 var selBox = null;
 
 function selSize(s) { return [s.b[0] - s.a[0] + 1, s.b[1] - s.a[1] + 1, s.b[2] - s.a[2] + 1]; }
@@ -26,8 +27,8 @@ function updateSelChip() {
   var c = $('selChip');
   if (pasting && clip) {
     c.hidden = false;
-    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). Clique (ou Enter) para colar.' + pasteOffTxt();
-    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + '</span>' +
+    $('selTxt').innerHTML = '<b>Colar</b> ' + clip.w + ' × ' + clip.h + ' × ' + clip.l + ' (' + clip.n + ' blocos). ' + (pasteFixed ? 'No lugar marcado no mapa: as setas sobem, descem e empurram, R gira; Enter (ou um clique) cola.' : 'Clique (ou Enter) para colar.') + pasteOffTxt() + (pasteFixed && wio && wio.area ? ' <span class="mixl">Canto: X ' + (pasteFixed[0] + pasteOff[0] + wio.area.x0) + ', Y ' + (pasteFixed[1] + pasteOff[1] + wioDim(wio.area.dim).min) + ', Z ' + (pasteFixed[2] + pasteOff[2] + wio.area.z0) + '.</span>' : '');
+    $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-pm="u" title="Subir (seta ↑)">▲</button><button data-pm="d" title="Descer (seta ↓)">▼</button><button data-pm="l" title="Para a esquerda (seta ←)">←</button><button data-pm="r" title="Para a direita (seta →)">→</button><button data-pm="f" title="Para frente (Shift + seta ↑)">↑</button><button data-pm="b" title="Para trás (Shift + seta ↓)">↓</button>' + (pasteOff[0] || pasteOff[1] || pasteOff[2] ? '<button data-pm="0" title="Volta a prévia para o ponto apontado">Zerar</button>' : '') + (pasteFixed ? '<button data-pm="go" title="Enter">Colar aqui</button><button data-pm="free" title="A prévia volta a seguir o mouse">Seguir o mouse</button>' : '') + '</span>' +
       '<button data-s="rot" title="Girar 90° (R)">Girar 90°</button><button data-s="flipx" title="Espelhar: leste e oeste trocam de lado (F)">Espelhar ↔</button><button data-s="flipz" title="Espelhar: norte e sul trocam de lado (Shift+F)">Espelhar ↕</button><button data-s="cancel">Cancelar</button>';
   } else if (sel) {
     var d = selSize(sel);
@@ -162,6 +163,7 @@ function rotateClip() {
     var nx = l - 1 - z, nz = x; // norte vira leste
     out[(y * w + nz) * l + nx] = rotateCell(clip.cells[(y * l + z) * w + x]);
   }
+  if (pasteFixed) { var fc = [pasteFixed[0] + w / 2, pasteFixed[2] + l / 2]; pasteFixed = [Math.round(fc[0] - l / 2), pasteFixed[1], Math.round(fc[1] - w / 2)]; } // gira em volta do centro
   clip = { w: l, h: h, l: w, cells: out, n: clip.n, be: bentClipMap(clip.be, w, h, l, function (x, y, z) { return (y * w + x) * l + (l - 1 - z); }) };
   updateSelChip(); updatePreview();
 }
@@ -182,11 +184,14 @@ function flipClip(a) {
 
 /* Colar: a prévia fica centralizada no ponto apontado, apoiada nele */
 function pasteOrigin(t) {
+  if (pasteFixed && clip) return [pasteFixed[0] + pasteOff[0], pasteFixed[1] + pasteOff[1], pasteFixed[2] + pasteOff[2]];
   var c = t && t.place; if (!c || !clip) return null;
   return [c[0] - Math.floor(clip.w / 2) + pasteOff[0], c[1] + pasteOff[1], c[2] - Math.floor(clip.l / 2) + pasteOff[2]];
 }
 /* Setas no modo colar: a prévia anda um bloco (m: u, d, l, r, f, b; frente e lados seguem a câmera, como ao mover a seleção); '0' zera */
 function pasteNudge(m) {
+  if (m === 'go') { commitPaste(null); return; }
+  if (m === 'free') { pasteFixed = null; pasteOff = [0, 0, 0]; updateSelChip(); updatePreview(); return; }
   if (m === '0') pasteOff = [0, 0, 0];
   else { var d = moveDir(m); for (var i = 0; i < 3; i++) pasteOff[i] += d[i]; }
   updateSelChip(); updatePreview();
@@ -201,7 +206,7 @@ function pasteOffTxt() {
 }
 function startPaste() {
   if (!clip) { toast('Nada copiado ainda: selecione uma área e use Copiar (Ctrl+C).'); return; }
-  pasting = true; pasteOff = [0, 0, 0]; anchor = null; updateAnchorChip(); selRefresh();
+  pasting = true; pasteOff = [0, 0, 0]; pasteFixed = null; anchor = null; updateAnchorChip(); selRefresh();
   toast('Clique onde quer colar. As setas sobem, descem e levam para os lados (Shift + ↑ ↓: frente e trás); R gira 90°, Esc cancela.', 6000);
 }
 function commitPaste(t) {
@@ -216,6 +221,7 @@ function commitPaste(t) {
   }
   var nbe = bentPasteAt(clip.be, clip.w, clip.l, o); // itens e texto (src/blockent.js)
   endBatch();
+  if (pasteFixed) { pasting = false; pasteFixed = null; selRefresh(); toast('Colados ' + n + ' blocos no lugar marcado' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Ctrl+Z desfaz.', out ? 12000 : 6000); return; }
   toast('Colados ' + n + ' blocos' + (nbe ? ' (' + nbe + ' com conteúdo ou texto)' : '') + '. ' + pasteOutTxt(out, up, down) + 'Clique de novo para colar outra cópia, Esc para terminar.', out ? 12000 : 5000);
 }
 /* Blocos da cópia que não cabem: acima do teto, abaixo do chão ou fora pelos lados (num mundo do jogo, os limites de altura são os do mundo) */
@@ -401,7 +407,7 @@ function selectionKey(e, k) {
   // setas no modo colar: ↑ ↓ sobem e descem, ← → para os lados, Shift + ↑ ↓ frente e trás (Page Up e Page Down também sobem e descem)
   var pm = pasting && !ctrl ? { arrowup: e.shiftKey ? 'f' : 'u', arrowdown: e.shiftKey ? 'b' : 'd', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k] : null;
   if (pm) { e.preventDefault(); pasteNudge(pm); return true; }
-  if (pasting && k === 'enter' && !ctrl && hoverT) { e.preventDefault(); commitPaste(hoverT); updatePreview(); updateStatus(); return true; }
+  if (pasting && k === 'enter' && !ctrl && (hoverT || pasteFixed)) { e.preventDefault(); commitPaste(hoverT); updatePreview(); updateStatus(); return true; }
   if (pasting && k === 'f' && !ctrl) { flipClip(e.shiftKey ? 2 : 0); return true; }
   // com a ferramenta Selecionar e uma área marcada, as setas e Page Up/Down movem os blocos (Shift: 5 de cada vez)
   var mk = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k];

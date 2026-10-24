@@ -32,7 +32,10 @@ const [URL, PACK, WORLD, OUT] = process.argv.slice(2);
   await ev('openSign([14,1,10], BLOCKS[BY_JAVA.oak_sign])'); await p.waitForTimeout(300);
   d = await p.$('#overlayRoot .dialog'); await d.screenshot({ path: path.join(OUT, 'conteudo-placa.jpg'), type: 'jpeg', quality: 86 }); await ev('closeDialog()');
   // o mapa do mundo com uma estrutura posicionada (a cópia da construção)
-  await ev('(function(){ sel = selFrom([0,0,0],[SX-1,SY-1,SZ-1]); copySel(false); sel = null; selRefresh(); clip = { w: 120, h: 96, l: 80, cells: new Uint32Array(1), n: 1 }; })()');
+  // a cópia: uma torre oca de tijolos de pedra (40 × 30 × 28) com um piso
+  await ev(`(function(){ var w = 40, h = 30, l = 28, c = new Uint32Array(w * h * l), v = cellFromName('stone_bricks'), f = cellFromName('spruce_planks'), n = 0;
+    for (var y = 0; y < h; y++) for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) { var e = x === 0 || z === 0 || x === w - 1 || z === l - 1; if (e || y === 0 || y === 12) { c[(y * l + z) * w + x] = e ? v : f; n++; } }
+    clip = { w: w, h: h, l: l, cells: c, n: n }; })()`);
   await p.setInputFiles('#worldIn', WORLD); await p.waitForSelector('#wmGo');
   await p.waitForFunction(() => !/Desenhando/.test((document.getElementById('wmInfo') || {}).textContent || ''));
   await p.click('#wmGo'); await p.waitForFunction(() => window.__bab.ev('!!(wio && wio.area)') && document.getElementById('busy').hidden); await hide();
@@ -45,5 +48,12 @@ const [URL, PACK, WORLD, OUT] = process.argv.slice(2);
   await ev("(function(){ wm.grid = true; wmDraw(); })()"); await hide(); await p.waitForTimeout(3000);
   await p.screenshot({ path: path.join(OUT, 'mapa-estrutura.jpg'), type: 'jpeg', quality: 84 });
   console.log('estrutura:', await ev('JSON.stringify(wmFoot)'), await ev("document.getElementById('wmvFoot').textContent"));
+  // Colar aqui: a área da estrutura é carregada e a cópia fica presa no lugar do retângulo; sobe 3 com as setas
+  await p.click('#wmfPaste'); await p.waitForFunction(() => window.__bab.ev('pasting && !!pasteFixed') && document.getElementById('busy').hidden);
+  for (const k of ['ArrowUp', 'ArrowUp', 'ArrowUp']) await p.keyboard.press(k);
+  await ev('(function(){ cam.yaw = 0.7; updateCamera(); requestRender(); })()'); await hide();
+  await p.mouse.move(5, 795); await p.waitForFunction(() => window.__bab.meshInfo().naFila === 0, null, { polling: 1000 }); await p.waitForTimeout(1500);
+  await p.screenshot({ path: path.join(OUT, 'mapa-colar.jpg'), type: 'jpeg', quality: 84, clip: { x: 0, y: 54, width: 972, height: 718 } });
+  console.log('colar aqui:', await ev("document.getElementById('selTxt').textContent"), await ev('JSON.stringify(wio.area)'));
   console.log('ok conteudo', errs); await b.close();
 })();
