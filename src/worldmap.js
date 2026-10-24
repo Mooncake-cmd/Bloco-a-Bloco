@@ -388,6 +388,7 @@ function wmBlockName(a) {
 function wmBioName(id) { var e = id !== 255 && BIO_BY_ID[id]; return e ? e.pt + ' (' + e.n + ')' : null; }
 function wmInfo() {
   var el = $('wmvInfo'); if (!el) return;
+  el.classList.toggle('on', !!wm.sel); // no celular, a dica some até marcar um ponto
   if (!wm.sel) { el.textContent = 'Clique num ponto para ver as coordenadas do jogo e as do Nether. Arraste para mover; a roda do mouse (ou dois dedos) aproxima.'; return; }
   var x = wm.sel[0], z = wm.sel[1], a = wmAt(x + 0.5, z + 0.5), D = WIO_DIMS[wm.dim], conv = '';
   if (wm.dim === 0) conv = ' · <b>no Nether</b>: X <b>' + Math.floor(x / 8) + '</b>, Z <b>' + Math.floor(z / 8) + '</b>';

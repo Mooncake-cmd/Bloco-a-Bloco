@@ -249,14 +249,67 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 #busy .bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
 #busy .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media (max-width:820px){
-  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 40%}
-  #sidebar{border-left:0;border-top:1px solid var(--line)}
-  .layer input[type=range]{width:80px}
-  .slot{width:36px;height:36px}
+/* Celular (e janelas pequenas): a cena ocupa a tela; as ferramentas numa fileira que rola para o lado; a lista de
+   blocos vira uma gaveta (botão Blocos, ou o + da hotbar) que fecha ao escolher; com o celular deitado, as ferramentas
+   ficam numa coluna à esquerda e a gaveta abre do lado direito */
+.mobonly{display:none}
+#sideBack{display:none}
+@media (max-width:820px), (max-height:520px){
+  .mobonly{display:inline-flex}
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  #sidebar{position:fixed;z-index:42;left:0;right:0;bottom:0;height:min(72dvh,600px);border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.3);transform:translateY(105%);transition:transform .2s ease;visibility:hidden}
+  body.blocks-open #sidebar{transform:none;visibility:visible}
+  #sideBack{position:fixed;inset:0;z-index:41;background:rgba(0,0,0,.35)}
+  body.blocks-open #sideBack{display:block}
+  #sidebar .brand{display:none}
+  #sidebar .head{position:relative}
+  #sideClose{position:absolute;right:10px;top:8px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);font-size:20px;line-height:1;align-items:center;justify-content:center}
+  #tabbar{min-height:28px;padding-top:2px}
+  #tabbar .tab{min-width:70px;font-size:11px}
+  #toolbar{gap:4px;padding:4px 6px}
+  #tools{flex:1 0 100%;order:-1;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;justify-content:flex-start}
+  #tools::-webkit-scrollbar{display:none}
+  #tools .tbtn{min-width:38px;height:38px;flex:none}
+  #tools .tbtn svg{width:21px;height:21px}
+  .tbtn{height:36px}
+  .layer input[type=range]{width:70px}
+  #status{flex-wrap:nowrap;overflow:hidden;white-space:nowrap;gap:12px;padding:3px 10px;font-size:11px}
+  details.menu .pop{position:fixed;left:8px;right:8px;top:72px;min-width:0;max-height:calc(100dvh - 84px)}
+  details.menu .pop button,details.menu .pop a{height:40px}
+  #hotbar{bottom:8px;padding:4px;gap:3px}
+  .slot{width:34px;height:34px}
+  .slot.slotmore{font-size:22px;line-height:1;align-items:center;justify-content:center;color:var(--fg);border:2px dashed var(--line);background:var(--panel)}
+  #hud-tl{left:6px;top:6px;max-width:calc(100% - 12px)}
+  .chip{font-size:11px;padding:4px 7px;gap:6px}
+  .overlay{padding:8px}
+  .dialog{padding:14px;max-height:calc(100dvh - 16px)}
+  .dialog .row{flex-wrap:wrap}
+  .dialog select,.dialog input{max-width:100%;min-width:0}
+  .dialog label{min-width:0;max-width:100%}
+  .dialog label select{width:100%}
+  .mxrow{flex-wrap:wrap;row-gap:4px}
+  .mxrow [data-mn]{flex:1 1 calc(100% - 40px)}
+  .mxrow [data-mr]{flex:1 1 90px}
+  #wmView .wmvbar{gap:4px 6px;padding:4px 6px;font-size:12px}
+  #wmView .wmvbar b{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #wmView .wmvinfo{padding:4px 8px;font-size:12px;gap:4px}
+  #wmView #wmvInfo:not(.on){display:none}
+  #wmView .wmvbar .tbtn{height:28px;padding:0 6px}
+  #wmvZoom{min-width:84px}
+}
+@media (max-height:520px){
+  #tabbar{min-height:26px}
+  #toolbar{flex-wrap:nowrap;height:44px;overflow:hidden}
+  #tools{position:fixed;z-index:6;left:0;top:72px;bottom:0;width:46px;flex-direction:column;overflow-x:hidden;overflow-y:auto;border-radius:0;padding:3px;gap:2px;background:var(--panel);border-right:1px solid var(--line)}
+  #tools .tbtn{min-width:38px;width:38px}
+  #viewport{margin-left:46px}
+  #status{display:none}
+  #sidebar{left:auto;top:0;width:min(360px,62vw);height:auto;border-top:0;border-left:1px solid var(--line);border-radius:14px 0 0 14px;transform:translateX(105%)}
+  details.menu .pop{top:48px;max-height:calc(100dvh - 56px);left:auto;width:min(360px,70vw)}
 }
 /* Tela limpa (Tab): só a cena 3D, a hotbar e os avisos das ferramentas; as teclas continuam valendo */
-body.clean #tabbar,body.clean #toolbar,body.clean #sidebar,body.clean #status{display:none}
+body.clean #tabbar,body.clean #toolbar,body.clean #sidebar,body.clean #status,body.clean #sideBack{display:none}
+body.clean #viewport{margin-left:0}
 body.clean #app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
 #cleanChip{position:absolute;right:12px;top:12px;display:none;align-items:center;gap:8px;padding:5px 6px 5px 10px;background:var(--hud);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px);font-size:12px;color:var(--muted);z-index:5}
 body.clean #cleanChip{display:flex}
@@ -287,6 +340,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
         <output id="layerOut">–</output>
       </div>
       <div class="spacer"></div>
+      <button class="tbtn txt mobonly" id="blocksBtn" title="Lista de blocos" aria-label="Lista de blocos"><svg viewBox="0 0 20 20"><path class="f" d="M3 3h6v6H3zM11 11h6v6h-6z"/><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/></svg>Blocos</button>
       <button class="tbtn" id="matBtn" title="Materiais: lista de blocos usados" aria-label="Materiais"><svg viewBox="0 0 20 20"><path class="f" d="M4 3h12v14H4z"/><path d="M4 3h12v14H4zM7 7h6M7 10h6M7 13h4"/></svg></button>
       <button class="tbtn txt primary" id="exportBtn" title="Exportar .schem / .mcstructure">Exportar</button>
       <details class="menu" id="menu">
@@ -341,9 +395,11 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
       <span>Blocos <b id="stCount">0</b></span>
     </div>
   </div>
+  <div id="sideBack"></div>
   <aside id="sidebar" aria-label="Blocos do Minecraft">
     <div class="head">
       <div class="brand">Bloco a Bloco</div>
+      <button class="mobonly" id="sideClose" aria-label="Fechar a lista de blocos">×</button>
       <h2>Blocos</h2>
       <input id="search" type="search" placeholder="Buscar bloco (ex.: oak, glass)" autocomplete="off" aria-label="Buscar bloco">
       <div id="chips"></div>
@@ -1121,7 +1177,7 @@ function renderHotbar() {
   $('hotbar').innerHTML = hotbar.map(function (bi, s) {
     var b = BLOCKS[bi];
     return '<button type="button" class="slot" data-slot="' + s + '" aria-pressed="' + (s === slot) + '" title="' + b.name + ' (' + (s + 1) + ')"><span class="n">' + (s + 1) + '</span><span class="sw" style="' + swatch(b) + '"></span></button>';
-  }).join('');
+  }).join('') + '<button type="button" class="slot slotmore mobonly" title="Escolher outro bloco (lista de blocos)" aria-label="Lista de blocos">+</button>';
 }
 function selectSlot(s) { slot = s; renderHotbar(); markSel(); updateStatus(); updateMaskChip(); requestRender(); }
 function markSel() {
@@ -1145,15 +1201,34 @@ $('list').addEventListener('click', function (e) {
     if (activeCat === 'fav') renderList();
     e.stopPropagation(); return;
   }
-  var it = e.target.closest('[data-i]'); if (it) chooseBlock(+it.getAttribute('data-i'));
+  var it = e.target.closest('[data-i]'); if (it) { chooseBlock(+it.getAttribute('data-i')); if (document.body.classList.contains('blocks-open')) { openBlocks(false); toast(BLOCKS[curBlock()].name + ' no espaço ' + (slot + 1) + ' da hotbar.', 1800); } }
 });
+/* Celular: a lista de blocos é uma gaveta */
+function isMob() { return window.matchMedia('(max-width:820px), (max-height:520px)').matches; }
+function openBlocks(on) {
+  document.body.classList.toggle('blocks-open', !!on);
+  if (on) setTimeout(function () { var q = $('list').querySelector('.sel'); if (q) q.scrollIntoView({ block: 'center' }); }, 60);
+}
+// celular: o menu Projeto abre logo abaixo da barra de ferramentas (sem cobrir o botão que o fecha)
+$('menu').addEventListener('toggle', function () {
+  var pop = $('menu').querySelector('.pop');
+  if (!$('menu').open || !isMob()) { pop.style.top = ''; pop.style.maxHeight = ''; return; }
+  var b = $('toolbar').getBoundingClientRect().bottom + 4; pop.style.top = b + 'px'; pop.style.maxHeight = 'calc(100dvh - ' + (b + 8) + 'px)';
+});
+$('blocksBtn').addEventListener('click', function () { openBlocks(!document.body.classList.contains('blocks-open')); });
+$('sideClose').addEventListener('click', function () { openBlocks(false); });
+$('sideBack').addEventListener('click', function () { openBlocks(false); });
 $('list').addEventListener('keydown', function (e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   var it = e.target.closest && e.target.closest('[data-i]');
   if (it && e.target === it) { e.preventDefault(); chooseBlock(+it.getAttribute('data-i')); }
 });
 $('hotbar').addEventListener('click', function (e) {
-  var s = e.target.closest('[data-slot]'); if (s) selectSlot(+s.getAttribute('data-slot'));
+  if (e.target.closest('.slotmore')) { openBlocks(true); return; } // celular: o + abre a lista de blocos
+  var s = e.target.closest('[data-slot]'); if (!s) return;
+  var k = +s.getAttribute('data-slot');
+  if (k === slot && isMob()) { openBlocks(true); return; } // no celular, tocar no espaço já escolhido abre a lista
+  selectSlot(k);
 });
 
 /* ---------- Ferramentas ---------- */
@@ -5723,6 +5798,7 @@ function wmBlockName(a) {
 function wmBioName(id) { var e = id !== 255 && BIO_BY_ID[id]; return e ? e.pt + ' (' + e.n + ')' : null; }
 function wmInfo() {
   var el = $('wmvInfo'); if (!el) return;
+  el.classList.toggle('on', !!wm.sel); // no celular, a dica some até marcar um ponto
   if (!wm.sel) { el.textContent = 'Clique num ponto para ver as coordenadas do jogo e as do Nether. Arraste para mover; a roda do mouse (ou dois dedos) aproxima.'; return; }
   var x = wm.sel[0], z = wm.sel[1], a = wmAt(x + 0.5, z + 0.5), D = WIO_DIMS[wm.dim], conv = '';
   if (wm.dim === 0) conv = ' · <b>no Nether</b>: X <b>' + Math.floor(x / 8) + '</b>, Z <b>' + Math.floor(z / 8) + '</b>';
@@ -12833,7 +12909,7 @@ if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEven
 window.addEventListener('keydown', function (e) {
   var tg = e.target, typing = tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable);
   if (e.key === 'Shift') { lastShift = true; updatePreview(); }
-  if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (tool === 'tube' && tube.paths.length) tubeClear(); else if (tool === 'field' && fcur) fieldCancel(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerAny()) rulerClear(); $('menu').open = false; return; }
+  if (e.key === 'Escape') { if (document.body.classList.contains('blocks-open')) { openBlocks(false); return; } if (overlayRoot.firstChild) closeDialog(); else if (tool === 'tube' && tube.paths.length) tubeClear(); else if (tool === 'field' && fcur) fieldCancel(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerAny()) rulerClear(); $('menu').open = false; return; }
   if (typing || overlayRoot.firstChild || !camera) return;
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
   var k = e.key.toLowerCase();
