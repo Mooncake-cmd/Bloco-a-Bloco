@@ -951,8 +951,10 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Quando os dois blocos estão na mesma linha (só X, só Y ou só Z muda), o número conta os blocos <b>incluindo os dois das pontas</b>, como contar blocos no jogo: de x = 8 a x = 30 dá 23. A cota vai de face a face.</li>
     <li>Em diagonal, o número é a distância em linha reta entre os <b>centros</b> dos blocos, com uma casa decimal (ex.: 29,5).</li>
     <li>O aviso no canto lista cada trecho (A→B, B→C...) com o eixo, a diferença ΔX, ΔY e ΔZ entre o primeiro e o último ponto e o caminho total. <b>Desfazer ponto</b> tira o último; <b>Limpar</b> ou <kbd>Esc</kbd> apaga tudo.</li>
+    <li><b>Várias medidas</b>: o <b>botão do meio do mouse</b> (o clique na roda, sem arrastar), <b>Nova medida</b> no aviso ou <kbd>Shift</kbd> + clique <b>soltam</b> a medida atual, como nos tubos: ela continua desenhada e o próximo clique começa outra, sem ligar com a anterior. O aviso conta as medidas soltas e lista os trechos da que está em andamento. Sem medida em andamento, <b>Desfazer ponto</b> reabre a última solta.</li>
     <li>A régua só mede: não muda nenhum bloco nem entra no desfazer. As cotas continuam na tela ao trocar de ferramenta, mesmo com o botão Medidas desligado (ele vale só para as medidas da construção). <kbd>Esc</kbd> ou Limpar as apagam.</li>
   </ul>
+  <figure><img src="img/regua-soltas.jpg" alt="A medida do muro (23, 19 e 29,5) solta e, ao lado, uma segunda medida de 6 blocos na altura de um pilar; no aviso, Régua 1 medida solta · A→B 6 (Y) e os botões Nova medida, Desfazer ponto e Limpar" width="972" height="772" loading="lazy"><figcaption>A medida do muro foi solta com o botão do meio; a segunda (o pilar, 6) começou no clique seguinte. As duas ficam na tela.</figcaption></figure>
 </section>
 
 <section id="projeto">
@@ -1236,7 +1238,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td><kbd>K</kbd></td><td>Esculpir terreno (<kbd>-</kbd> e <kbd>+</kbd> mudam o raio; <kbd>Shift</kbd> inverte)</td></tr>
         <tr><td><kbd>X</kbd></td><td>Liga e desliga a simetria (espelho)</td></tr>
         <tr><td><kbd>D</kbd></td><td>Mostra e esconde as medidas (X, Y e Z); o mesmo que o botão Medidas</td></tr>
-        <tr><td><kbd>N</kbd></td><td>Régua: clique no bloco A, depois B, C... (<kbd>Esc</kbd> limpa)</td></tr>
+        <tr><td><kbd>N</kbd></td><td>Régua: clique no bloco A, depois B, C... (<kbd>Esc</kbd> limpa); o botão do meio do mouse ou <kbd>Shift</kbd> + clique soltam a medida e começam outra</td></tr>
         <tr><td><kbd>W</kbd></td><td>Lançar: flecha, tridente, bola de neve, ovo (<kbd>Shift</kbd> + <kbd>1</kbd>…<kbd>5</kbd> escolhe; <kbd>-</kbd> <kbd>+</kbd> a força do arco); em primeira pessoa, <kbd>Q</kbd> lança</td></tr>
         <tr><td><kbd>J</kbd></td><td>Teleporte: a câmera vai até o bloco clicado (<kbd>Shift</kbd> + clique: primeira pessoa)</td></tr>
         <tr><td><kbd>Z</kbd></td><td>Bloco de apoio (vidro) na sua frente, no meio da tela; em primeira pessoa, embaixo dos pés</td></tr>

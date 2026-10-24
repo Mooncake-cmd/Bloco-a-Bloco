@@ -1,4 +1,4 @@
-// Captura da régua para o guia: node scripts/guia/regua.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
+// Capturas da régua para o guia (uma medida; e duas, a primeira solta com o botão do meio): node scripts/guia/regua.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
 const [URL, PACK, OUT] = process.argv.slice(2);
@@ -16,6 +16,7 @@ const [URL, PACK, OUT] = process.argv.slice(2);
     for (let x = 8; x <= 30; x++) l.push([x, 1, 10, 'stone_bricks']);
     for (let z = 10; z <= 28; z++) l.push([30, 1, z, 'stone_bricks']);
     for (let y = 1; y <= 9; y++) l.push([8, y, 10, 'oak_log']);
+    for (let y = 1; y <= 6; y++) l.push([20, y, 22, 'polished_andesite']);
     B.batchSet(l);
     Object.assign(B.cam, { yaw: 0.5, pitch: 0.75, dist: 46, tx: 20, ty: 2, tz: 18 }); B.update();
   });
@@ -27,6 +28,13 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   await p.mouse.move(o[0] + 900, o[1] + 650); await p.waitForTimeout(400);
   await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(600);
   await p.screenshot({ path: path.join(OUT, 'regua.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
+  // solta a medida (botão do meio, sem arrastar) e mede o pilar: as duas ficam na tela
+  await p.mouse.click(o[0] + 900, o[1] + 650, { button: 'middle' }); await p.waitForTimeout(200);
+  for (const w of [[20, 1, 22], [20, 6, 22]]) { const c = await find(w); if (!c) throw new Error('bloco fora da tela ' + w); await p.mouse.click(c[0], c[1]); }
+  await p.mouse.move(o[0] + 900, o[1] + 650); await p.waitForTimeout(400);
+  await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(600);
+  await p.screenshot({ path: path.join(OUT, 'regua-soltas.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 0, width: 972, height: 772 } });
+  console.log(await p.evaluate(() => document.getElementById('rulerTxt').textContent));
   console.log('ok regua', errs);
   await b.close();
 })();

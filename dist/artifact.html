@@ -327,7 +327,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
@@ -1188,7 +1188,7 @@ function renderTools() {
     return '<button type="button" class="tbtn" data-tool="' + t[0] + '" aria-pressed="' + (t[0] === tool) + '" title="' + t[1] + (t[2] ? ' (' + t[2] + ')' : '') + '" aria-label="' + t[1] + '"><svg viewBox="0 0 20 20">' + t[3] + '</svg></button>';
   }).join('');
 }
-function setTool(t) { tool = t; anchor = null; anchor2 = null; if (cleanMode) updateCleanChip(); if (t !== 'ruler' && rulerPts.length) { rulerHoverKey = null; rulerDraw(); } if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
+function setTool(t) { tool = t; anchor = null; anchor2 = null; if (cleanMode) updateCleanChip(); if (t !== 'ruler' && rulerAny()) { rulerHoverKey = null; rulerDraw(); } if (t !== 'select') selA = null; renderTools(); updateAnchorChip(); updateSelChip(); drawSelBox(); updatePreview(); updateStatus(); requestRender(); }
 $('tools').addEventListener('click', function (e) { var b = e.target.closest('[data-tool]'); if (b) setTool(b.getAttribute('data-tool')); });
 /* Tela limpa: esconde a barra de ferramentas, a lista de blocos e a barra de status; a cena ocupa a janela toda.
    Ferramentas, pincéis, hotbar (1 a 9), desfazer e os outros atalhos continuam funcionando. Um aviso no canto mostra a
@@ -2027,7 +2027,7 @@ function pressAt(cx, cy, shift) {
   var et = effTool(shift);
   if (et === 'select') selectPress(t);
   else if (et === 'sculpt') { if (t) sculptStart(t, shift); }
-  else if (et === 'ruler') { rulerAdd(t); }
+  else if (et === 'ruler') { rulerAdd(t, shift); }
   else if (et === 'tp') { if (shift && t && (t.hit || t.place)) walkStart(t.hit || [t.place[0], t.place[1] - 1, t.place[2]]); else teleportTo(t); }
   else if (et === 'fill') { fillAt(t, shift); }
   else if (et === 'tube') { tubePress(cx, cy, t, shift); }
@@ -2160,6 +2160,7 @@ function bindCanvas() {
     }
     if (mode === 'act') releaseStroke();
     if (mode === 'pan' && downInfo && downInfo.b === 1 && moved < 5 && tool === 'tube' && !walk) tubeDrop(); // botão do meio sem arrastar: larga a linha
+    else if (mode === 'pan' && downInfo && downInfo.b === 1 && moved < 5 && tool === 'ruler' && !walk) rulerDrop(); // e solta a medida da régua
     if (mode === 'orbit' && downInfo && downInfo.b === 2 && moved < 5) {
       if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); }
       else if (pasting) { pasting = false; selRefresh(); }
@@ -10599,7 +10600,10 @@ function shapeDims(kind, a, b) {
 /* Ferramenta Régua (N): cada clique marca um ponto (bloco ou chão); entre um ponto e o seguinte aparece uma cota.
    Alinhados num eixo, conta os blocos de ponta a ponta, contando os dois (como as medidas da construção); em
    diagonal, mostra a distância em linha reta entre os centros. Os pontos ficam até Limpar (ou Esc). */
-var rulerPts = [], rulerObj = null, rulerHoverKey = null;
+/* rulerPts: a medida em andamento (os pontos A, B, C...); rulerDone: as medidas soltas (botão do meio do mouse, Nova
+   medida ou Shift + clique), que continuam desenhadas enquanto a próxima começa */
+var rulerPts = [], rulerDone = [], rulerObj = null, rulerHoverKey = null;
+function rulerAny() { return rulerPts.length > 0 || rulerDone.length > 0; }
 function rulerSeg(a, b) {
   var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], nz = d.filter(function (v) { return v; }).length;
   if (nz <= 1) { var ax = d[0] ? 0 : d[1] ? 1 : 2; return { n: Math.abs(d[ax]) + 1, ax: ax, aligned: true, d: d }; }
@@ -10609,29 +10613,45 @@ function rulerFmt(sg) { return sg.aligned ? String(sg.n) : sg.n.toFixed(1).repla
 function rulerDraw(hover) {
   if (rulerObj) { scene.remove(rulerObj); rulerObj.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material && o.material !== MEAS_W && o.material !== MEAS_D) o.material.dispose(); }); rulerObj = null; }
   var pts = rulerPts.slice(); if (hover && pts.length) pts.push(hover);
-  if (!pts.length) { requestRender(); return; }
+  if (!pts.length && !rulerDone.length) { requestRender(); return; }
   if (!MEAS_W) { MEAS_W = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }); MEAS_D = new THREE.MeshBasicMaterial({ color: 0x101412, depthTest: false, transparent: true, opacity: 0.9 }); }
   var g = new THREE.Group(), zb = Math.round(Math.log2(Math.max(4, cam.dist)) * 3), size = Math.max(Math.pow(2, zb / 3) * 0.03, 0.5);
   var mark = new THREE.MeshBasicMaterial({ color: new THREE.Color(cssColor('--accent') || '#c55a11'), depthTest: false, transparent: true });
-  pts.forEach(function (p, i) {
-    var m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 1.06, 1.06), mark); m.material.opacity = i === pts.length - 1 && hover ? 0.25 : 0.4;
-    m.position.set(p[0] + 0.5, p[1] + 0.5, p[2] + 0.5); m.renderOrder = 8; g.add(m);
-    if (!i) return;
-    var a = pts[i - 1], sg = rulerSeg(a, p), A = [a[0] + 0.5, a[1] + 0.5, a[2] + 0.5], B = [p[0] + 0.5, p[1] + 0.5, p[2] + 0.5];
-    if (sg.aligned) { var s = sg.d[sg.ax] >= 0 ? 1 : -1; A[sg.ax] -= 0.5 * s; B[sg.ax] += 0.5 * s; } // de face a face: conta os dois blocos
-    if (A[0] === B[0] && A[1] === B[1] && A[2] === B[2]) return;
-    addDim(g, A, B, rulerFmt(sg), size, null);
-  });
+  var path = function (pts, hov) {
+    pts.forEach(function (p, i) {
+      var m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 1.06, 1.06), mark); m.material.opacity = i === pts.length - 1 && hov ? 0.25 : 0.4;
+      m.position.set(p[0] + 0.5, p[1] + 0.5, p[2] + 0.5); m.renderOrder = 8; g.add(m);
+      if (!i) return;
+      var a = pts[i - 1], sg = rulerSeg(a, p), A = [a[0] + 0.5, a[1] + 0.5, a[2] + 0.5], B = [p[0] + 0.5, p[1] + 0.5, p[2] + 0.5];
+      if (sg.aligned) { var s = sg.d[sg.ax] >= 0 ? 1 : -1; A[sg.ax] -= 0.5 * s; B[sg.ax] += 0.5 * s; } // de face a face: conta os dois blocos
+      if (A[0] === B[0] && A[1] === B[1] && A[2] === B[2]) return;
+      addDim(g, A, B, rulerFmt(sg), size, null);
+    });
+  };
+  rulerDone.forEach(function (q) { path(q, false); });
+  path(pts, !!hover);
   rulerObj = g; scene.add(g); requestRender();
 }
-function rulerAdd(t) {
+function rulerAdd(t, shift) {
   var c = t && (t.hit || t.place); if (!c) return;
+  if (shift && rulerPts.length) rulerDrop(true); // Shift + clique: começa outra medida
   var last = rulerPts[rulerPts.length - 1];
   if (last && last[0] === c[0] && last[1] === c[1] && last[2] === c[2]) return;
   rulerPts.push(c.slice()); rulerDraw(); updateRulerChip();
 }
-function rulerUndo() { rulerPts.pop(); rulerDraw(); updateRulerChip(); }
-function rulerClear() { rulerPts = []; rulerDraw(); updateRulerChip(); }
+/* Solta a medida em andamento: ela fica desenhada (com 2 pontos ou mais) e o próximo clique começa outra */
+function rulerDrop(quiet) {
+  if (!rulerPts.length) return;
+  if (rulerPts.length > 1) rulerDone.push(rulerPts);
+  rulerPts = []; rulerHoverKey = null; rulerDraw(); updateRulerChip();
+  if (!quiet) toast('Medida solta: o próximo clique começa outra. Esc limpa todas.', 2500);
+}
+/* Desfazer ponto: tira o último ponto; sem medida em andamento, reabre a última solta */
+function rulerUndo() {
+  if (!rulerPts.length && rulerDone.length) rulerPts = rulerDone.pop();
+  rulerPts.pop(); rulerHoverKey = null; rulerDraw(); updateRulerChip();
+}
+function rulerClear() { rulerPts = []; rulerDone = []; rulerHoverKey = null; rulerDraw(); updateRulerChip(); }
 function rulerHover(t) {
   if (tool !== 'ruler' || !rulerPts.length) return;
   var c = t && (t.hit || t.place), k = c ? c.join(',') : '';
@@ -10639,7 +10659,7 @@ function rulerHover(t) {
   rulerDraw(c);
 }
 function updateRulerChip() {
-  var c = $('rulerChip'), on = tool === 'ruler' || rulerPts.length > 0;
+  var c = $('rulerChip'), on = tool === 'ruler' || rulerAny();
   c.hidden = !on; if (!on) return;
   var segs = [], tot = 0, L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (var i = 1; i < rulerPts.length; i++) {
@@ -10647,12 +10667,14 @@ function updateRulerChip() {
     segs.push('<b>' + nm + '</b> ' + rulerFmt(sg) + (sg.aligned ? ' (' + 'XYZ'[sg.ax] + ')' : ' · ΔX ' + Math.abs(sg.d[0]) + ' ΔY ' + Math.abs(sg.d[1]) + ' ΔZ ' + Math.abs(sg.d[2])));
     tot += sg.aligned ? sg.n - 1 : sg.n;
   }
-  $('rulerTxt').innerHTML = '<b>Régua</b> ' + (rulerPts.length ? (segs.length ? segs.join(' · ') + (segs.length > 1 ? ' · <b>caminho</b> ' + (Math.round(tot * 10) / 10).toString().replace('.', ',') + ' entre centros' : '') : 'clique no próximo bloco') : 'clique no primeiro bloco');
-  $('rulerBtns').hidden = !rulerPts.length;
+  var done = rulerDone.length ? '<span class="mixl">' + rulerDone.length + (rulerDone.length > 1 ? ' medidas soltas' : ' medida solta') + ' · </span>' : '';
+  $('rulerTxt').innerHTML = '<b>Régua</b> ' + done + (rulerPts.length ? (segs.length ? segs.join(' · ') + (segs.length > 1 ? ' · <b>caminho</b> ' + (Math.round(tot * 10) / 10).toString().replace('.', ',') + ' entre centros' : '') : 'clique no próximo bloco') : (rulerDone.length ? 'clique para começar outra medida' : 'clique no primeiro bloco'));
+  $('rulerBtns').hidden = !rulerAny();
+  $('rulerNew').hidden = rulerPts.length < 2;
 }
 $('rulerChip').addEventListener('click', function (e) {
   var b = e.target.closest('button'); if (!b) return;
-  if (b.id === 'rulerUndo') rulerUndo(); else if (b.id === 'rulerClear') rulerClear();
+  if (b.id === 'rulerUndo') rulerUndo(); else if (b.id === 'rulerClear') rulerClear(); else if (b.id === 'rulerNew') rulerDrop();
 });
 
 /* ---------- Mundo do jogo (Bedrock): abrir um .mcworld, editar uma área e exportar o mundo com a construção ---------- */
@@ -12527,7 +12549,7 @@ function openHelp() {
     '<span>Balde (<kbd>F</kbd>)</span><span>Clique num bloco: enche o espaço fechado ao lado da face clicada (o piso de uma sala, por exemplo). <kbd>Shift</kbd> + clique troca a região ligada do mesmo bloco.</span>' +
     '<span>Esculpir terreno (<kbd>K</kbd>)</span><span>Segure o botão para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave; <kbd>Shift</kbd> inverte elevar/afundar; <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Medidas (<kbd>D</kbd>)</span><span>Mostra ou esconde as cotas com o número de blocos em X, Y e Z da construção (com a Camada ligada, o contorno da camada com a medida de cada lado). Também no botão ao lado de Camada.</span>' +
-    '<span>Régua (<kbd>N</kbd>)</span><span>Clique num bloco (A), depois em outro (B), depois em outro (C)…: cada trecho ganha uma cota. Alinhados, conta os blocos de ponta a ponta; em diagonal, a distância entre os centros. <kbd>Esc</kbd> limpa.</span>' +
+    '<span>Régua (<kbd>N</kbd>)</span><span>Clique num bloco (A), depois em outro (B), depois em outro (C)…: cada trecho ganha uma cota. Alinhados, conta os blocos de ponta a ponta; em diagonal, a distância entre os centros. <kbd>Esc</kbd> limpa. O botão do meio do mouse (ou Shift + clique, ou Nova medida) solta a medida: ela fica na tela e o próximo clique começa outra.</span>' +
     '<span>Simetria (<kbd>X</kbd>)</span><span>Liga o espelho: tudo o que você fizer se repete do outro lado dos planos X, Y e/ou Z. <kbd>P</kbd> põe o plano no bloco apontado (de novo: entre dois blocos).</span>' +
     '<span>Pincel grosso (<kbd>B</kbd>)</span><span><kbd>-</kbd> e <kbd>+</kbd> (ou o aviso do canto) mudam o tamanho do Pincel: 1 bloco, ou um cubo ou uma esfera de 3, 5, 7… até 21 blocos, encostado na face clicada e só nos espaços vazios. Arrastar pinta vários; <kbd>Shift</kbd> apaga o mesmo volume.</span>' +
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
@@ -12739,7 +12761,7 @@ if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEven
 window.addEventListener('keydown', function (e) {
   var tg = e.target, typing = tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable);
   if (e.key === 'Shift') { lastShift = true; updatePreview(); }
-  if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (tool === 'tube' && tube.paths.length) tubeClear(); else if (tool === 'field' && fcur) fieldCancel(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerPts.length) rulerClear(); $('menu').open = false; return; }
+  if (e.key === 'Escape') { if (overlayRoot.firstChild) closeDialog(); else if (tool === 'tube' && tube.paths.length) tubeClear(); else if (tool === 'field' && fcur) fieldCancel(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerAny()) rulerClear(); $('menu').open = false; return; }
   if (typing || overlayRoot.firstChild || !camera) return;
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
   var k = e.key.toLowerCase();
