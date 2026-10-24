@@ -125,7 +125,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
   <div class="facts">
     <div class="fact"><b>1.230</b><span>blocos na paleta: todos do Bedrock 1.26, menos os 160 da Education Edition (mais 64 variantes de parede usadas sozinhas)</span></div>
-    <div class="fact"><b>22</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
+    <div class="fact"><b>23</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>paletas de blocos prontas, editáveis, mais as que você criar</span></div>
     <div class="fact"><b>2 + 2</b><span>formatos de saída e de entrada: .mcstructure, .schem, .litematic e projeto .json, além de mundos inteiros do Bedrock (.mcworld) e do Java (.zip)</span></div>
     <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
@@ -208,11 +208,11 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 
 <section id="ferramentas">
   <h2><span class="n">03</span>Ferramentas</h2>
-  <p>A barra do topo, da esquerda para a direita. Cada ferramenta tem uma tecla (menos o pincel de campo, que não coube no teclado: só o botão); no celular basta tocar no ícone.</p>
+  <p>A barra do topo, da esquerda para a direita. Cada ferramenta tem uma tecla (menos o pincel de campo e o de erosão, que não couberam no teclado: só o botão); no celular basta tocar no ícone.</p>
   <div class="strip-wrap"><div class="strip">
     <img src="img/barra.jpg" alt="Barra de ferramentas do site" width="972" height="54">
     <div class="marks">
-      <span class="pin" style="left:2.1%">1</span><span class="pin" style="left:4.2%">2</span><span class="pin" style="left:6.4%">3</span><span class="pin" style="left:8.5%">4</span><span class="pin" style="left:10.7%">5</span><span class="pin" style="left:12.9%">6</span><span class="pin" style="left:15.0%">7</span><span class="pin" style="left:17.2%">8</span><span class="pin" style="left:19.3%">9</span><span class="pin" style="left:21.5%">10</span><span class="pin" style="left:23.7%">11</span><span class="pin" style="left:25.8%">12</span><span class="pin" style="left:28.0%">13</span><span class="pin" style="left:30.1%">14</span><span class="pin" style="left:32.3%">15</span><span class="pin" style="left:34.5%">16</span><span class="pin" style="left:36.6%">17</span><span class="pin" style="left:38.8%">18</span><span class="pin" style="left:40.9%">19</span><span class="pin" style="left:43.1%">20</span><span class="pin" style="left:45.3%">21</span><span class="pin" style="left:47.4%">22</span><span class="pin" style="left:50.7%">23</span><span class="pin" style="left:53.5%">24</span><span class="pin" style="left:56.3%">25</span><span class="pin" style="left:59.7%">26</span><span class="pin" style="left:64.3%">27</span><span class="pin" style="left:71.4%">28</span><span class="pin" style="left:82.3%">29</span>
+      <span class="pin" style="left:2.0%">1</span><span class="pin" style="left:4.1%">2</span><span class="pin" style="left:6.1%">3</span><span class="pin" style="left:8.2%">4</span><span class="pin" style="left:10.2%">5</span><span class="pin" style="left:12.3%">6</span><span class="pin" style="left:14.4%">7</span><span class="pin" style="left:16.4%">8</span><span class="pin" style="left:18.5%">9</span><span class="pin" style="left:20.5%">10</span><span class="pin" style="left:22.6%">11</span><span class="pin" style="left:24.6%">12</span><span class="pin" style="left:26.7%">13</span><span class="pin" style="left:28.8%">14</span><span class="pin" style="left:30.8%">15</span><span class="pin" style="left:32.9%">16</span><span class="pin" style="left:34.9%">17</span><span class="pin" style="left:37.0%">18</span><span class="pin" style="left:39.0%">19</span><span class="pin" style="left:41.1%">20</span><span class="pin" style="left:43.2%">21</span><span class="pin" style="left:45.2%">22</span><span class="pin" style="left:47.3%">23</span><span class="pin" style="left:50.5%">24</span><span class="pin" style="left:53.3%">25</span><span class="pin" style="left:56.1%">26</span><span class="pin" style="left:59.5%">27</span><span class="pin" style="left:64.0%">28</span><span class="pin" style="left:71.2%">29</span><span class="pin" style="left:82.3%">30</span>
     </div>
   </div></div>
   <div class="tbl"><table>
@@ -237,13 +237,14 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>17</td><td><b>Pincel de bioma</b></td><td><kbd>Y</kbd></td><td>Pinta o bioma (planície nevada, pântano, deserto…) nas colunas do chão, em círculo ou quadrado: a grama ganha a cor do bioma e, com Transformar o terreno, o chão e a vegetação mudam (areia e cactos no deserto, neve, árvores…). O bioma vai junto para o mundo exportado (veja abaixo).</td><td>Conta-gotas: pega o bioma da coluna clicada.</td></tr>
       <tr><td>18</td><td><b>Pincel de mistura</b></td><td><kbd>Q</kbd></td><td>Pinta com vários blocos de uma vez, cada um com uma porcentagem: cada voxel do pincel sorteia o seu (veja abaixo).</td><td>Põe o bloco clicado na mistura.</td></tr>
       <tr><td>19</td><td><b>Esculpir terreno</b></td><td><kbd>K</kbd></td><td>Segure para elevar, afundar, suavizar ou aplainar o chão com um pincel redondo e suave (veja abaixo).</td><td>Troca elevar por afundar (e vice-versa) durante o traço.</td></tr>
-      <tr><td>20</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
-      <tr><td>21</td><td><b>Lançar</b></td><td><kbd>W</kbd></td><td>Atira uma flecha, flecha em chamas, tridente, bola de neve ou ovo do ponto de vista da câmera na direção do ponteiro, com a física do jogo; acerta o alvo, botões e placas de madeira, a linha de armadilha e o sino (cap. 07). Em primeira pessoa, <kbd>Q</kbd>.</td><td>—</td></tr>
-      <tr><td>22</td><td><b>Teleporte</b></td><td><kbd>J</kbd></td><td>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo (cap. 04).</td><td>Entra em <b>primeira pessoa</b> em cima do bloco clicado (cap. 04).</td></tr>
-      <tr><td>23–25</td><td><b>Desfazer / Histórico / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo. O relógio abre a linha do tempo com todos os passos e ramos (veja abaixo).</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
-      <tr><td>26</td><td><b>Medidas</b></td><td><kbd>D</kbd></td><td>Liga e desliga as cotas de largura, altura e profundidade em volta da construção (cap. 08). Aceso = ligado.</td><td>—</td></tr>
-      <tr><td>27–28</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura. As setas ao lado do controle descem e sobem uma camada por clique; o controle deslizante pula direto para uma altura (cap. 05).</td><td>—</td></tr>
-      <tr><td>29</td><td><b>Materiais</b></td><td>—</td><td>Lista de blocos usados, em pilhas de 64 (cap. 13).</td><td>—</td></tr>
+      <tr><td>20</td><td><b>Pincel de erosão</b></td><td>—</td><td>Segure sobre uma construção ou um terreno: as quinas caem e envelhecem (rachado, musgo, oxidado), o que fica sem apoio desmorona e vira entulho no pé, e a água cava sulcos nas paredes. Raio, intensidade e as três etapas no aviso (veja abaixo).</td><td>—</td></tr>
+      <tr><td>21</td><td><b>Régua</b></td><td><kbd>N</kbd></td><td>Clique num bloco (A), depois em outro (B), depois em outro (C)... e o site desenha a cota de cada trecho, com setas e o número de blocos (veja abaixo).</td><td>—</td></tr>
+      <tr><td>22</td><td><b>Lançar</b></td><td><kbd>W</kbd></td><td>Atira uma flecha, flecha em chamas, tridente, bola de neve ou ovo do ponto de vista da câmera na direção do ponteiro, com a física do jogo; acerta o alvo, botões e placas de madeira, a linha de armadilha e o sino (cap. 07). Em primeira pessoa, <kbd>Q</kbd>.</td><td>—</td></tr>
+      <tr><td>23</td><td><b>Teleporte</b></td><td><kbd>J</kbd></td><td>Clique num bloco: a câmera desliza até ele e chega perto, mantendo o ângulo (cap. 04).</td><td>Entra em <b>primeira pessoa</b> em cima do bloco clicado (cap. 04).</td></tr>
+      <tr><td>24–26</td><td><b>Desfazer / Histórico / Refazer</b></td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Um traço de pincel ou uma forma inteira é um passo. O relógio abre a linha do tempo com todos os passos e ramos (veja abaixo).</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> também refaz.</td></tr>
+      <tr><td>27</td><td><b>Medidas</b></td><td><kbd>D</kbd></td><td>Liga e desliga as cotas de largura, altura e profundidade em volta da construção (cap. 08). Aceso = ligado.</td><td>—</td></tr>
+      <tr><td>28–29</td><td><b>Camada</b> e altura</td><td><kbd>[</kbd> <kbd>]</kbd></td><td>Liga o corte por altura. As setas ao lado do controle descem e sobem uma camada por clique; o controle deslizante pula direto para uma altura (cap. 05).</td><td>—</td></tr>
+      <tr><td>30</td><td><b>Materiais</b></td><td>—</td><td>Lista de blocos usados, em pilhas de 64 (cap. 13).</td><td>—</td></tr>
     </tbody>
   </table></div>
 
@@ -391,6 +392,31 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>Com <kbd>Shift</kbd>, Elevar vira Afundar (e o contrário) só naquele traço.</li>
     <li>O pincel mexe no bloco mais alto de cada coluna: se houver uma construção dentro do raio, ela também sobe ou desce. Use a Camada para limitar a altura.</li>
     <li>Um traço inteiro é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+  </ul>
+
+  <h3 id="erosao">Pincel de erosão</h3>
+  <div class="grid2">
+    <figure><img src="img/erosao-antes.jpg" alt="Um muro de tijolos de pedra com uma varanda de lajes e uma rocha arredondada de pedra, novos" width="972" height="718" loading="lazy"><figcaption>Antes: um muro com varanda e uma rocha natural.</figcaption></figure>
+    <figure><img src="img/erosao-depois.jpg" alt="O mesmo muro em ruínas: topo recortado, buracos, tijolos rachados e com musgo, a varanda com lajes faltando, pedregulho e cascalho no pé; a rocha com pedregulho e andesito" width="972" height="718" loading="lazy"><figcaption>Depois de algumas pinceladas (raio 6, intensidade 4): quinas caídas, musgo e rachaduras, a varanda desmoronando e entulho no pé.</figcaption></figure>
+    <figure><img src="img/erosao-sulcos.jpg" alt="Um paredão de pedra com terra e grama em cima, com ranhuras verticais cavadas de cima até embaixo e cascalho e areia acumulados no pé" width="972" height="718" loading="lazy"><figcaption>Só a etapa Sulcos num paredão: a água desce pela parede e cava ranhuras verticais, deixando cascalho e areia no pé.</figcaption></figure>
+    <figure><img src="img/erosao-tabela.jpg" alt="Janela Tabela da erosão com duas caixas de texto: Desgaste (stone_bricks = cracked_stone_bricks, mossy_stone_bricks...) e Entulho (stone_bricks = cobblestone, gravel...)" width="520" height="578" loading="lazy" style="max-width:420px"><figcaption>A tabela: o que cada bloco vira ao envelhecer e ao cair.</figcaption></figure>
+  </div>
+  <p>O <b>Pincel de erosão</b> (o botão da ruína na barra, logo depois do Esculpir) imita o desgaste do tempo em construções e terrenos. Segure o botão sobre o que quer gastar: a cada instante (de 140 em 140 ms) o pincel olha a esfera em volta do bloco apontado e faz três etapas, cada uma ligada ou desligada no aviso do canto:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Etapa</th><th>O que faz</th></tr></thead>
+    <tbody>
+      <tr><td>Desgaste</td><td>Conta quantas faces de cada bloco dão para o ar (a água, plantas e tochas contam como ar). Pontas soltas (4 a 6 faces) e quinas (3) caem com mais chance; quinas, arestas e faces envelhecem pela <b>tabela de desgaste</b>: tijolo de pedra fica rachado ou com musgo, pedregulho ganha musgo, pedra lisa vira pedra, o cobre oxida, a grama vira terra grossa. Parte do que cai desce como entulho.</td></tr>
+      <tr><td>Desmoronar</td><td>Um bloco sem nada embaixo e preso por no máximo um vizinho do lado (uma saliência, a ponta de uma varanda) cai; quanto mais alto na esfera, maior a chance. Ao cair, vira entulho pela <b>tabela de entulho</b> (tijolo de pedra → pedregulho ou cascalho, arenito → areia...), desce até achar apoio e escorrega para um vizinho mais baixo, formando um monte no pé da construção.</td></tr>
+      <tr><td>Sulcos</td><td>Gotas de água partem do alto da esfera, escorrem pelo chão para o lado que desce e caem pelas paredes. Descendo encostadas numa parede, cavam o bloco dela; depois que começam, seguem o mesmo sulco: ficam ranhuras verticais. No chão, de vez em quando, cavam um canal. Onde a gota para, deixa parte do que cavou como cascalho ou areia.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="plain">
+    <li><b>Raio</b> (1 a 16, também nas teclas <kbd>-</kbd> e <kbd>+</kbd>) e <b>Intensidade</b> (1 a 5) ficam no aviso, guardados no navegador. A chance de tudo cresce com a intensidade e cai do meio para a borda da esfera; segurar mais tempo gasta mais.</li>
+    <li>A prévia marca, dentro da esfera, os blocos que dão para o ar: são os que o pincel pode gastar.</li>
+    <li><b>Tabela…</b> abre as duas listas, uma regra por linha: <code>origem = destino1, destino2</code>, com os nomes do Java (os da barra de status). Com mais de um destino, cada bloco sorteia um; <code>ar</code> apaga. Escadas, lajes e muros mantêm a direção. Um bloco sem regra de desgaste só cai (não envelhece); sem regra de entulho, cai como ele mesmo. Linhas com bloco desconhecido aparecem em vermelho e ficam de fora. <b>Voltar ao padrão</b> traz a tabela original.</li>
+    <li>O que nunca é mexido: baús e outros blocos com conteúdo, placas, blocos de comando, rocha-mãe, portais e líquidos. Plantas e tochas presas em cima de um bloco que cai saem junto.</li>
+    <li>Ao soltar, o aviso conta o que aconteceu (envelhecidos, tirados, desmoronados, cavados, entulho no chão). Um traço inteiro é um passo de <kbd>Ctrl</kbd>+<kbd>Z</kbd>, que volta tudo.</li>
+    <li>Com a simetria ligada, a erosão é repetida espelhada (o mesmo desgaste dos dois lados). A Camada limita a altura: acima dela o pincel não mexe.</li>
   </ul>
 
   <h3 id="terreno">Gerar terreno</h3>
@@ -1351,6 +1377,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Cama, placa, estandarte, cabeça</td><td>Desenhados de forma simplificada (o jogo os desenha de um jeito especial): o estandarte tem o mastro, a barra e o pano inteiro da cor, mas sem padrões. O baú tem a forma real; o baú duplo mostra uma emenda no meio.</td></tr>
       <tr><td>Árvores com Usar</td><td>O formato imita o das árvores do jogo, mas não é idêntico ao gerador do Minecraft. Ninhos de abelha e o coração de rangedor não aparecem; fungos e cogumelos crescem em qualquer chão.</td></tr>
       <tr><td>Copiar e colar</td><td>A cópia do Ctrl+C vale em todas as abas do editor, mas não vai para a área de transferência do sistema e some ao recarregar a página; para guardar, use a biblioteca. Girar é só de 90° na horizontal (com o espelhar, cobre as 8 posições no chão).</td></tr>
+      <tr><td>Pincel de erosão</td><td>É aleatório: duas pinceladas iguais não dão o mesmo resultado. O entulho não rola como a areia do jogo: cai pela coluna e escorrega no máximo 4 vezes. Areia e cascalho já colocados não caem sozinhos. Raio até 16.</td></tr>
       <tr><td>Girar com precisão</td><td>Até 32 milhões de espaços na seleção. Nos ângulos quebrados, a construção fica em degraus (são blocos) e paredes finas engrossam um pouco para não ficar com frestas; detalhes de um bloco (uma tocha, um botão) podem sumir ou duplicar. Escadas, lajes e portas só giram de 90 em 90 no Y e não tombam de lado. O conteúdo de baús e o texto de placas vão junto (num ângulo quebrado, se um baú aparecer em dois lugares, os itens ficam só num).</td></tr>
       <tr><td>Esculpir e simetria</td><td>O pincel de escultura trabalha coluna por coluna (não faz cavernas nem arcos). Na simetria, a água que escorre de uma fonte espelhada segue o próprio caminho (o escorrer não é espelhado), e cópias que caem fora do espaço não são feitas.</td></tr>
       <tr><td>Gerar terreno</td><td>O terreno é só a superfície (casca de 6 blocos): embaixo fica vazio, sem cavernas nem minérios, e a borda vista de lado mostra a casca. Não reproduz o gerador do jogo (a mesma semente não dá o mesmo mundo do Minecraft). Com um mundo do jogo aberto, o terreno precisa caber na área. A imagem de relevo não fica salva (escolha de novo para gerar outra vez).</td></tr>
