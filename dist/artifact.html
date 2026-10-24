@@ -94,7 +94,8 @@ details.menu .pop button,details.menu .pop a{flex:none;justify-content:flex-star
 #eraseBtns{display:inline-flex;gap:4px}
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
-#projChip,#walkChip,#tpChip,#ghostChip,#worldChip,#partsChip,#maskChip,#mixChip,#bioChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#tiltChip input{width:64px;text-align:right}#tiltChip .tiltax small{font-weight:400;opacity:.75}
+#projChip,#walkChip,#tpChip,#ghostChip,#worldChip,#partsChip,#tiltChip,#maskChip,#mixChip,#bioChip,#shape2Chip,#sculptChip,#symChip,#rulerChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
 #crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5;background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
@@ -381,7 +382,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="partsChip" hidden><span id="partsTxt"></span><span class="mbtns" id="partsBtns"></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldUnder" aria-pressed="false" title="Desenhar também o que está debaixo da terra (cavernas, minas). Por padrão, só a superfície: o terreno e 3 camadas abaixo dele">Subsolo: escondido</button><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="tiltChip" hidden></div><div class="chip" id="partsChip" hidden><span id="partsTxt"></span><span class="mbtns" id="partsBtns"></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldUnder" aria-pressed="false" title="Desenhar também o que está debaixo da terra (cavernas, minas). Por padrão, só a superfície: o terreno e 3 camadas abaixo dele">Subsolo: escondido</button><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
@@ -1821,6 +1822,7 @@ function updatePreview() {
 }
 function updatePreview1(t) {
   if (selA) drawSelBox();
+  if (tilt) { tiltPreview(); requestRender(); return; } // girar com precisão: a prévia é o resultado do giro (src/tilt.js)
   if (pasting && pasteFixed) { pastePreview(null); requestRender(); return; } // colar no lugar marcado no mapa: a prévia não depende do ponteiro
   // no passo da altura, a altura vem da posição do ponteiro na tela, não do bloco apontado: a prévia continua mesmo
   // com o ponteiro fora do espaço (acima da caixa, no céu)
@@ -3527,7 +3529,7 @@ function updateSelChip() {
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
     $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
       '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
-      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="seat" title="Fundação até o chão, terreno acertado em volta, caminho das portas e vegetação do bioma">Assentar no terreno…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
+      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="tilt" title="Girar ou inclinar em qualquer ângulo, nos eixos X, Y e Z">Girar com precisão…</button><button data-s="seat" title="Fundação até o chão, terreno acertado em volta, caminho das portas e vegetação do bioma">Assentar no terreno…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
     c.hidden = false;
@@ -3546,7 +3548,7 @@ function selectPress(t) {
   else { sel = selFrom(selA, c); selA = null; }
   selRefresh();
 }
-function clearSel() { sel = null; selA = null; pasting = false; selRefresh(); }
+function clearSel() { sel = null; selA = null; pasting = false; if (tilt) { tilt = null; tiltUI(); } selRefresh(); }
 
 function copySel(cut) {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
@@ -3583,24 +3585,35 @@ function moveDir(m) {
 function moveSel(d, steps) {
   if (!sel) return;
   steps = steps || 1;
-  var dv = [d[0] * steps, d[1] * steps, d[2] * steps];
-  // com a simetria ligada, a área espelhada (do outro lado de cada plano) anda junto, no sentido espelhado
-  var moves = [{ a: sel.a, b: sel.b, d: dv }], skipped = 0;
-  var on = [0, 1, 2].filter(function (a) { return sym.on[a]; });
-  for (var mask = 1; mask < (1 << on.length); mask++) {
+  var dv = [d[0] * steps, d[1] * steps, d[2] * steps], AX = 'XYZ';
+  // com a simetria ligada, a área espelhada (do outro lado de cada plano) anda junto, no sentido espelhado. Por eixo:
+  // a seleção pega os dois lados por igual (simétrica): ela é o próprio espelho e anda inteira, com o plano junto;
+  // a seleção só cruza o plano: não dá para saber o que é cópia, então não move; senão, a cópia anda espelhada.
+  var self = [], apart = [], symShift = null;
+  for (var ax = 0; ax < 3; ax++) {
+    if (!sym.on[ax]) continue;
+    var p = sym.p[ax], lo = p - sel.b[ax], hi = p - sel.a[ax];
+    if (lo === sel.a[ax] && hi === sel.b[ax]) self.push(ax);
+    else if (lo <= sel.b[ax] && sel.a[ax] <= hi) { toast('Simetria ' + AX[ax] + ': a seleção cruza o plano sem pegar os dois lados por igual. Selecione só um lado (a cópia anda junto) ou a construção inteira, simétrica; ou desligue a simetria para mover sem espelho.', 9000); return; }
+    else apart.push(ax);
+  }
+  self.forEach(function (ax) { if (dv[ax]) (symShift = symShift || sym.p.slice())[ax] += 2 * dv[ax]; }); // o plano anda com a construção inteira
+  var moves = [{ a: sel.a, b: sel.b, d: dv }];
+  for (var mask = 1; mask < (1 << apart.length); mask++) {
     var a = sel.a.slice(), b = sel.b.slice(), dd = dv.slice();
-    on.forEach(function (ax, i) { if (!(mask & (1 << i))) return; var p = sym.p[ax], lo = p - b[ax], hi = p - a[ax]; a[ax] = lo; b[ax] = hi; dd[ax] = -dd[ax]; });
-    var dup = false, clash = false;
-    moves.forEach(function (m) {
-      var same = m.a.join() === a.join() && m.b.join() === b.join();
-      var meet = m.a[0] <= b[0] && a[0] <= m.b[0] && m.a[1] <= b[1] && a[1] <= m.b[1] && m.a[2] <= b[2] && a[2] <= m.b[2];
-      if (same && m.d.join() === dd.join()) dup = true; else if (meet) clash = true; // a área cruza o plano: o espelho iria para o lado oposto
-    });
-    if (dup) continue;
-    if (clash || !inB(a[0], a[1], a[2]) || !inB(b[0], b[1], b[2]) || !inB(a[0] + dd[0], a[1] + dd[1], a[2] + dd[2]) || !inB(b[0] + dd[0], b[1] + dd[1], b[2] + dd[2])) { skipped++; continue; }
+    apart.forEach(function (ax, i) { if (!(mask & (1 << i))) return; var p = sym.p[ax], lo = p - b[ax], hi = p - a[ax]; a[ax] = lo; b[ax] = hi; dd[ax] = -dd[ax]; });
     moves.push({ a: a, b: b, d: dd });
   }
-  if (!inB(sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]) || !inB(sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2])) { toast('A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+  var meet = function (a0, b0, a1, b1) { return a0[0] <= b1[0] && a1[0] <= b0[0] && a0[1] <= b1[1] && a1[1] <= b0[1] && a0[2] <= b1[2] && a1[2] <= b0[2]; };
+  var dst = moves.map(function (m) { return { a: [m.a[0] + m.d[0], m.a[1] + m.d[1], m.a[2] + m.d[2]], b: [m.b[0] + m.d[0], m.b[1] + m.d[1], m.b[2] + m.d[2]] }; });
+  for (var k = 0; k < moves.length; k++) {
+    var q = dst[k];
+    if (!inB(q.a[0], q.a[1], q.a[2]) || !inB(q.b[0], q.b[1], q.b[2])) { toast(k ? 'A cópia espelhada sairia do espaço: não dá para mover para esse lado com a simetria ligada.' : 'A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+    for (var k2 = 0; k2 < k; k2++) if (meet(q.a, q.b, dst[k2].a, dst[k2].b)) {
+      var hit = [0, 1, 2].filter(function (ax) { return apart.indexOf(ax) >= 0 && moves[k].d[ax] !== moves[k2].d[ax]; }).map(function (ax) { return AX[ax]; }).join(' e ');
+      toast('Simetria' + (hit ? ' ' + hit : '') + ': a construção encostou no plano. Mais um passo juntaria ela com a cópia espelhada (e blocos se perderiam). Para passar, desligue a simetria ou selecione as duas cópias juntas.', 9000); return;
+    }
+  }
   var lists = [], total = 0;
   moves.forEach(function (m) { var l = []; blocksInBox(m.a[0], m.a[1], m.a[2], m.b[0], m.b[1], m.b[2], function (x, y, z, v) { l.push(x, y, z, v); }); lists.push(l); total += l.length / 4; });
   if (total > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
@@ -3609,15 +3622,20 @@ function moveSel(d, steps) {
   var flow = flowOn; flowOn = false; // a água movida não escorre no meio do caminho
   try {
     // primeiro tira tudo de todas as áreas, depois põe no lugar novo (as áreas podem se cruzar no caminho)
+    // o conteúdo (baú, placa) e o nível de enchimento vão junto: guardados antes, porque tirar o bloco os apaga
+    var carry = [], beB = [], beA = [];
+    lists.forEach(function (l, i) { var q = moves[i].d; for (var k = 0; k < l.length; k += 4) { var i0 = idx(l[k], l[k + 1], l[k + 2]), be = bent.get(i0), fv = rsFill.get(i0); if (be || fv) { var i1 = idx(l[k] + q[0], l[k + 1] + q[1], l[k + 2] + q[2]); carry.push(i1, be, fv); beB.push([i0, be || null, fv || 0]); beA.push([i1, be || null, fv || 0]); } } });
     lists.forEach(function (l) { for (var k = 0; k < l.length; k += 4) editSet1(l[k], l[k + 1], l[k + 2], 0); });
     lists.forEach(function (l, i) { var q = moves[i].d; for (var k = 0; k < l.length; k += 4) editSet1(l[k] + q[0], l[k + 1] + q[1], l[k + 2] + q[2], l[k + 3]); });
+    for (var c = 0; c < carry.length; c += 3) { if (carry[c + 1]) bentSet(carry[c], carry[c + 1], true); else { rsFill.set(carry[c], carry[c + 2]); rsFillSave = true; } }
     endBatch();
   } finally { flowOn = flow; }
   var before = sel;
   sel = { a: [sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]], b: [sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2]] };
-  var last = histTop(); if (last) { last.selBefore = before; last.selAfter = sel; last.label = 'Mover seleção'; } // desfazer leva a seleção junto
+  var last = histTop(), symBefore = sym.p.slice();
+  if (symShift) { sym.p = symShift; symRefresh(); if (!moveSel.warned) { moveSel.warned = true; toast('A seleção pega os dois lados do espelho por igual: ela anda inteira, e o plano da simetria anda junto.', 7000); } }
+  if (last) { last.selBefore = before; last.selAfter = sel; last.label = 'Mover seleção'; if (symShift) { last.symBefore = symBefore; last.symAfter = sym.p.slice(); } if (beB.length) { last.beBefore = beB; last.beAfter = beA; } } // desfazer leva a seleção (e o plano) junto
   selRefresh();
-  if (skipped && !moveSel.warned) { moveSel.warned = true; toast('Simetria: a cópia espelhada não foi movida porque a seleção cruza o plano (ou o espelho sairia do espaço).', 7000); }
 }
 
 /* Girar 90° no sentido horário (visto de cima): posição e estado de cada bloco */
@@ -3902,7 +3920,7 @@ $('selBtns').addEventListener('click', function (e) {
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
-  else if (a === 'repl') openReplace(); else if (a === 'seat') openSeat(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
+  else if (a === 'repl') openReplace(); else if (a === 'tilt') tiltOpen(); else if (a === 'seat') openSeat(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
   else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
 });
 /* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */
@@ -3912,6 +3930,8 @@ function selectionKey(e, k) {
   if (ctrl && k === 'x' && sel) { e.preventDefault(); copySel(true); return true; }
   if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
   if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
+  if (tilt && k === 'enter' && !ctrl) { e.preventDefault(); tiltApply(); return true; }
+  if (tilt && /^(arrow|page)/.test(k)) { e.preventDefault(); return true; } // girando: as setas não movem a seleção
   if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
   // setas no modo colar: ↑ ↓ sobem e descem, ← → para os lados, Shift + ↑ ↓ frente e trás (Page Up e Page Down também sobem e descem)
   var pm = pasting && !ctrl ? { arrowup: e.shiftKey ? 'f' : 'u', arrowdown: e.shiftKey ? 'b' : 'd', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k] : null;
@@ -3924,6 +3944,7 @@ function selectionKey(e, k) {
   return false;
 }
 function selectionEscape() {
+  if (tilt) { tiltClose(); return true; }
   if (pasting) { pasting = false; selRefresh(); return true; }
   if (sel || selA) { clearSel(); return true; }
   return false;
@@ -6868,6 +6889,11 @@ function histPush(b) {
 function histApplyNode(n, undo) {
   applyBatch(n.b, undo);
   var s = undo ? n.b.selBefore : n.b.selAfter; if (s) { sel = s; selRefresh(); }
+  var sp = undo ? n.b.symBefore : n.b.symAfter; if (sp) { sym.p = sp.slice(); symRefresh(); }
+  // conteúdo que andou junto (mover e girar a seleção): [índice, registro, enchimento]; tira de onde estava e põe de volta
+  var bf = undo ? n.b.beAfter : n.b.beBefore, bt = undo ? n.b.beBefore : n.b.beAfter;
+  if (bf) bf.forEach(function (e) { if (bent.delete(e[0])) bentSave = true; if (rsFill.delete(e[0])) rsFillSave = true; });
+  if (bt) bt.forEach(function (e) { if (e[1]) bentSet(e[0], JSON.parse(JSON.stringify(e[1])), true); else if (e[2]) { rsFill.set(e[0], e[2]); rsFillSave = true; } });
 }
 function histUndo() {
   var n = histNode(hist.cur); if (!n || n.id === hist.root) return false;
@@ -6919,7 +6945,7 @@ function histSaveInto(st, clear) {
   var meta = { root: hist.root, cur: hist.cur, next: hist.next, size: [SX, SY, SZ], nodes: [] };
   hist.nodes.forEach(function (n) {
     meta.nodes.push({ id: n.id, p: n.p, kids: n.kids, label: n.label, t: n.t, n: n.n, last: n.last, mark: n.mark });
-    if (!n.saved && n.b) { var b = n.b, L = b.length; st.put({ i: b.i.slice(0, L), o: b.o.slice(0, L), v: b.v.slice(0, L), sb: b.selBefore, sa: b.selAfter }, 'h:b:' + n.id); }
+    if (!n.saved && n.b) { var b = n.b, L = b.length; st.put({ i: b.i.slice(0, L), o: b.o.slice(0, L), v: b.v.slice(0, L), sb: b.selBefore, sa: b.selAfter, pb: b.symBefore, pa: b.symAfter, eb: b.beBefore, ea: b.beAfter }, 'h:b:' + n.id); }
     n.saved = true;
   });
   st.put(meta, 'h:meta'); hist.dirty = false;
@@ -6931,7 +6957,7 @@ function histLoad() {
       var h = { nodes: new Map(), root: meta.root, cur: meta.cur, next: meta.next, total: 0, dirty: false, clear: false, gone: [] };
       for (var k = 0; k < meta.nodes.length; k++) {
         var m = meta.nodes[k], r = bs[k], n = { id: m.id, p: m.p, kids: m.kids, label: m.label, t: m.t, n: m.n, last: m.last, mark: m.mark, b: null, saved: true };
-        if (r) { var b = new EditLog(); b.i = r.i; b.o = r.o; b.v = r.v; b.length = r.i.length; if (r.sb) b.selBefore = r.sb; if (r.sa) b.selAfter = r.sa; n.b = b; h.total += b.length; }
+        if (r) { var b = new EditLog(); b.i = r.i; b.o = r.o; b.v = r.v; b.length = r.i.length; if (r.sb) b.selBefore = r.sb; if (r.sa) b.selAfter = r.sa; if (r.pb) b.symBefore = r.pb; if (r.pa) b.symAfter = r.pa; if (r.eb) b.beBefore = r.eb; if (r.ea) b.beAfter = r.ea; n.b = b; h.total += b.length; }
         else if (m.id !== meta.root) return false; // falta um pedaço: começa um histórico novo
         h.nodes.set(m.id, n);
       }
@@ -9648,6 +9674,171 @@ function surfUI() {
   var b = $('worldUnder'); if (!b) return;
   b.setAttribute('aria-pressed', surfUnder ? 'true' : 'false');
   b.textContent = surfUnder ? 'Subsolo: à mostra' : 'Subsolo: escondido';
+}
+
+/* ---------- Girar com precisão: a seleção gira em qualquer ângulo nos três eixos ---------- */
+/* Selecionar → Girar com precisão… abre o aviso com os ângulos de X, Y e Z (em graus, com meio grau). A prévia azul mostra
+   o resultado enquanto os números mudam; Enter aplica, Esc cancela. Cada bloco do resultado é o bloco da construção
+   original que cai naquele lugar quando se desfaz o giro (o vizinho mais perto): não ficam buracos, e a construção não
+   estica nem encolhe. A ordem é: inclina no Z (tomba para leste ou oeste), depois no X (tomba para sul ou norte) e por
+   último gira no Y (visto de cima, sentido horário), em volta do meio da seleção; no modo Centro do chão (o padrão),
+   o resultado depois desce ou sobe até o ponto mais baixo ficar na altura do chão da seleção (uma torre tombada fica
+   deitada no chão, não metade enterrada). Onde o meio de um lugar cai no vazio, os cantos dele também são testados:
+   paredes finas na diagonal ficam inteiras, sem frestas entre os blocos.
+   O estado dos blocos (escadas, troncos, portas) gira junto com o múltiplo de 90° mais perto do giro no Y; nos tombos
+   de 90° exatos, troncos, pistões, observadores e afins também deitam ou levantam. Com a simetria ligada e a seleção
+   de um lado só, a cópia espelhada gira junto (espelhada). */
+var TILT_PROBE = 0.15, tilt = null; // { sel, w, h, l, cells, a: [x, y, z], piv: 'base' | 'mid', cache }
+var TILT_DIRS = { north: [0, 0, -1], south: [0, 0, 1], east: [1, 0, 0], west: [-1, 0, 0], up: [0, 1, 0], down: [0, -1, 0] };
+function tiltMatrix(a) {
+  var r = function (d) { var t = d * Math.PI / 180, c = Math.cos(t), s = Math.sin(t); if (Math.abs(c) < 1e-12) c = 0; if (Math.abs(s) < 1e-12) s = 0; return [c, s]; };
+  var y = r(a[1]), x = r(a[0]), z = r(a[2]);
+  var Ry = [[y[0], 0, -y[1]], [0, 1, 0], [y[1], 0, y[0]]]; // norte (-Z) vai para leste (+X) com +90
+  var Rx = [[1, 0, 0], [0, x[0], -x[1]], [0, x[1], x[0]]]; // o topo tomba para o sul (+Z) com +90
+  var Rz = [[z[0], z[1], 0], [-z[1], z[0], 0], [0, 0, 1]]; // o topo tomba para leste (+X) com +90
+  var mul = function (A, B) { return A.map(function (row) { return [0, 1, 2].map(function (j) { return row[0] * B[0][j] + row[1] * B[1][j] + row[2] * B[2][j]; }); }); };
+  return mul(Ry, mul(Rx, Rz));
+}
+function tiltOpen() {
+  if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
+  var d = selSize(sel), w = d[0], h = d[1], l = d[2];
+  if (w * h * l > 32e6) { toast('Seleção grande demais para girar com precisão (o máximo é 32 milhões de espaços). Selecione uma área menor.', 7000); return; }
+  var cells = new Uint32Array(w * h * l), n = 0, be = new Map(); // be: conteúdo (baú, placa) e enchimento, pela posição na seleção
+  blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) {
+    var f = ((y - sel.a[1]) * l + (z - sel.a[2])) * w + (x - sel.a[0]), i = idx(x, y, z); cells[f] = v; n++;
+    if (bent.has(i) || rsFill.has(i)) be.set(f, [bent.get(i), rsFill.get(i)]);
+  });
+  if (!n) { toast('A seleção está vazia.'); return; }
+  pasting = false;
+  tilt = { sel: sel, w: w, h: h, l: l, cells: cells, be: be, n: n, a: tilt && tilt.sel === sel ? tilt.a : [0, 0, 0], piv: tilt ? tilt.piv : 'base', cache: null };
+  tiltUI(); updatePreview();
+}
+function tiltClose() { tilt = null; tiltUI(); updatePreview(); }
+/* O estado do bloco depois do giro */
+function tiltStateFn(R, ay) {
+  var q = R.map(function (row) { return row.map(Math.round); }), quarter = R.every(function (row, i) { return row.every(function (v, j) { return Math.abs(v - q[i][j]) < 0.02; }); });
+  var memo = new Map();
+  var yTurns = function (v, k) { for (var i = 0; i < k; i++) v = rotateCell(v); return v; };
+  if (!quarter || q[1][1] === 1) { // só gira no Y (ou não é um múltiplo de 90°): pelos passos de 90° no Y
+    var k = quarter ? ({ '1,0': 0, '0,1': 1, '-1,0': 2, '0,-1': 3 })[q[0][0] + ',' + q[2][0]] : ((Math.round(ay / 90) % 4) + 4) % 4;
+    return function (v) { if (!k || !v) return v; var r = memo.get(v); if (r === undefined) { r = yTurns(v, k); memo.set(v, r); } return r; };
+  }
+  // tombo de 90°: a direção (facing) e o eixo (axis) dos blocos passam pela mesma rotação
+  var dirOf = function (p) { for (var nm in TILT_DIRS) { var t = TILT_DIRS[nm]; if (t[0] === p[0] && t[1] === p[1] && t[2] === p[2]) return nm; } return null; };
+  var rotDir = function (nm) { var t = TILT_DIRS[nm]; return dirOf([0, 1, 2].map(function (i) { return q[i][0] * t[0] + q[i][1] * t[1] + q[i][2] * t[2]; })); };
+  var rotAxis = function (ax) { var t = ax === 'x' ? [1, 0, 0] : ax === 'y' ? [0, 1, 0] : [0, 0, 1], r = [0, 1, 2].map(function (i) { return Math.abs(q[i][0] * t[0] + q[i][1] * t[1] + q[i][2] * t[2]); }); return r[0] ? 'x' : r[1] ? 'y' : 'z'; };
+  var fix = function (k, val, vals) {
+    var nv = k === 'axis' ? rotAxis(val) : (k === 'facing' && TILT_DIRS[val]) ? rotDir(val) : val;
+    return nv && vals.indexOf(nv) >= 0 ? nv : val; // uma escada não deita: fica como estava
+  };
+  return function (v) {
+    if (!v) return v; var r = memo.get(v); if (r !== undefined) return r;
+    var bi = cellBlock(v), b = BLOCKS[bi], s = cellOri(v); r = v;
+    if (b.shape) { var o = stateProps(b, s), p = {}; b.sp.forEach(function (sp) { p[sp[0]] = fix(sp[0], o[sp[0]], sp[1]); }); r = mkCell(bi, stateIndex(b, p)); }
+    else if (b.ori && (b.ori.k === 'axis' || b.ori.k === 'facing')) { var vals = b.ori.o.map(function (e) { return e[0]; }), want = fix(b.ori.k, b.ori.o[s][0], vals), i = vals.indexOf(want); if (i >= 0) r = mkCell(bi, i); }
+    memo.set(v, r); return r;
+  };
+}
+/* O resultado: [x, y, z, v, ...] nas posições novas, a caixa em volta e quantos sairiam do espaço */
+function tiltCompute() {
+  var T = tilt, key = T.a.join() + T.piv; if (T.cache && T.cache.key === key) return T.cache;
+  var R = tiltMatrix(T.a), A = T.sel.a, w = T.w, h = T.h, l = T.l, C = T.cells;
+  // gira em volta do meio de um bloco (o do meio da seleção): nos múltiplos de 90° cada bloco cai bem no meio de um
+  // lugar, sem sobrar nem faltar; no modo chão, depois desce ou sobe até apoiar
+  var c = [A[0] + Math.floor(w / 2) + 0.5, A[1] + Math.floor(h / 2) + 0.5, A[2] + Math.floor(l / 2) + 0.5];
+  var lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (var k = 0; k < 8; k++) {
+    var p = [(k & 1 ? w : 0) + A[0] - c[0], (k & 2 ? h : 0) + A[1] - c[1], (k & 4 ? l : 0) + A[2] - c[2]];
+    for (var i = 0; i < 3; i++) { var v = R[i][0] * p[0] + R[i][1] * p[1] + R[i][2] * p[2] + c[i]; if (v < lo[i]) lo[i] = v; if (v > hi[i]) hi[i] = v; }
+  }
+  var x0 = Math.floor(lo[0] + 1e-6), y0 = Math.floor(lo[1] + 1e-6), z0 = Math.floor(lo[2] + 1e-6), x1 = Math.ceil(hi[0] - 1e-6), y1 = Math.ceil(hi[1] - 1e-6), z1 = Math.ceil(hi[2] - 1e-6);
+  var lift = T.piv === 'mid' ? 0 : A[1] - y0; // centro do chão: o ponto mais baixo fica na altura do chão da seleção
+  var st = tiltStateFn(R, T.a[1]), out = [], srcOf = [], from = -1, lost = 0, bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  // de volta à construção original (a inversa de uma rotação é a transposta): o bloco em que o ponto cai, ou 0
+  var at = function (dx, dy, dz) {
+    var sx = Math.floor(R[0][0] * dx + R[1][0] * dy + R[2][0] * dz + c[0] + 1e-6) - A[0], sy = Math.floor(R[0][1] * dx + R[1][1] * dy + R[2][1] * dz + c[1] + 1e-6) - A[1], sz = Math.floor(R[0][2] * dx + R[1][2] * dy + R[2][2] * dz + c[2] + 1e-6) - A[2];
+    if (sx < 0 || sy < 0 || sz < 0 || sx >= w || sy >= h || sz >= l) return 0;
+    from = (sy * l + sz) * w + sx; return C[from];
+  };
+  for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
+    var dx = x + 0.5 - c[0], dy = y + 0.5 - c[1], dz = z + 0.5 - c[2];
+    // o meio do lugar; se cair no vazio, os cantos (a 0,15 do meio): paredes finas na diagonal ficam sem frestas
+    var cv = at(dx, dy, dz);
+    for (var q = 0; !cv && q < 8; q++) cv = at(dx + (q & 1 ? TILT_PROBE : -TILT_PROBE), dy + (q & 2 ? TILT_PROBE : -TILT_PROBE), dz + (q & 4 ? TILT_PROBE : -TILT_PROBE));
+    if (!cv) continue;
+    var Y = y + lift;
+    if (!inB(x, Y, z)) { lost++; continue; }
+    out.push(x, Y, z, st(cv)); srcOf.push(from);
+    if (x < bb[0]) bb[0] = x; if (Y < bb[1]) bb[1] = Y; if (z < bb[2]) bb[2] = z; if (x > bb[3]) bb[3] = x; if (Y > bb[4]) bb[4] = Y; if (z > bb[5]) bb[5] = z;
+  }
+  T.cache = { key: key, out: out, src: srcOf, lost: lost, bb: out.length ? bb : null };
+  return T.cache;
+}
+function tiltPreview() {
+  if (!tilt || tilt.sel !== sel) { if (tilt) tiltClose(); return; }
+  var r = tiltCompute(), o = r.out, n = o.length / 4, cap = previewInst.instanceMatrix.count, step = Math.max(1, Math.ceil(n / cap)), m = new THREE.Matrix4(), j = 0;
+  for (var k = 0; k < n && j < cap; k += step) { m.setPosition(o[k * 4] + 0.5, o[k * 4 + 1] + 0.5, o[k * 4 + 2] + 0.5); previewInst.setMatrixAt(j++, m); }
+  previewInst.count = j; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(new THREE.Color(cssColor('--info')));
+  var info = $('tiltInfo');
+  if (info) info.textContent = r.bb ? (r.bb[3] - r.bb[0] + 1) + ' × ' + (r.bb[4] - r.bb[1] + 1) + ' × ' + (r.bb[5] - r.bb[2] + 1) + ', ' + n + ' blocos (eram ' + tilt.n + ')' + (r.lost ? '; ' + r.lost + ' ficariam fora do espaço' : '') : 'nada ficaria no espaço';
+}
+function tiltApply() {
+  if (!tilt) return;
+  var r = tiltCompute(); if (!r.out.length) { toast('Nada ficaria dentro do espaço com esses ângulos.'); return; }
+  var T = tilt, A = T.sel.a, o = r.out, cross = false;
+  // simetria: com a seleção de um lado só, editSet gira a cópia espelhada junto; se ela cruza um plano, gira só a seleção
+  for (var ax = 0; ax < 3; ax++) if (sym.on[ax] && sym.p[ax] - T.sel.b[ax] <= T.sel.b[ax] && T.sel.a[ax] <= sym.p[ax] - T.sel.a[ax]) cross = true;
+  var saved = symBusy; if (cross) symBusy = true;
+  fluidStop(); beginBatch('Girar com precisão');
+  var flow = flowOn; flowOn = false;
+  try {
+    for (var y = 0; y < T.h; y++) for (var z = 0; z < T.l; z++) for (var x = 0; x < T.w; x++) if (T.cells[(y * T.l + z) * T.w + x]) editSet(A[0] + x, A[1] + y, A[2] + z, 0);
+    for (var k = 0; k < o.length; k += 4) editSet(o[k], o[k + 1], o[k + 2], o[k + 3]);
+    // o conteúdo vai para o primeiro lugar novo do bloco (num ângulo quebrado, um bloco pode aparecer em dois lugares: o baú não duplica os itens)
+    var used = new Set(), beB = [], beA = [];
+    T.be.forEach(function (e, f) { var x = f % T.w, r2 = (f - x) / T.w, z = r2 % T.l, y = (r2 - z) / T.l; beB.push([idx(A[0] + x, A[1] + y, A[2] + z), e[0] || null, e[1] || 0]); });
+    for (k = 0; k < o.length; k += 4) { var f = r.src[k / 4], e = T.be.get(f); if (!e || used.has(f)) continue; used.add(f); var ni = idx(o[k], o[k + 1], o[k + 2]); beA.push([ni, e[0] || null, e[1] || 0]); if (e[0]) bentSet(ni, JSON.parse(JSON.stringify(e[0])), true); else if (e[1]) { rsFill.set(ni, e[1]); rsFillSave = true; } }
+    endBatch();
+  } finally { flowOn = flow; symBusy = saved; }
+  var before = sel, bb = r.bb;
+  sel = { a: [bb[0], bb[1], bb[2]], b: [bb[3], bb[4], bb[5]] };
+  var last = histTop(); if (last) { last.selBefore = before; last.selAfter = sel; last.label = 'Girar com precisão'; if (beB.length) { last.beBefore = beB; last.beAfter = beA; } }
+  var ang = T.a.map(function (v, i) { return v ? 'XYZ'[i] + ' ' + String(v).replace('.', ',') + '°' : ''; }).filter(Boolean).join(', ');
+  tilt = null; tiltUI(); selRefresh();
+  toast('Girada' + (ang ? ' (' + ang + ')' : '') + ': ' + (o.length / 4) + ' blocos.' + (r.lost ? ' ' + r.lost + ' ficaram fora do espaço.' : '') + (cross ? ' A seleção cruza o plano da simetria: só ela girou.' : '') + ' Ctrl+Z desfaz.', r.lost ? 9000 : 5000);
+}
+function tiltSet(i, v) {
+  if (!tilt) return;
+  v = Math.round((+v || 0) * 2) / 2; // meio grau
+  while (v > 180) v -= 360; while (v <= -180) v += 360;
+  tilt.a[i] = v; tilt.cache = null; tiltUI(true); updatePreview();
+}
+function tiltUI(keepInputs) {
+  var c = $('tiltChip'); if (!c) return;
+  c.hidden = !tilt; if (!tilt) return;
+  if (keepInputs && c.firstChild) { for (var i = 0; i < 3; i++) { var e = $('tiltA' + i); if (document.activeElement !== e) e.value = tilt.a[i]; } return; }
+  var nm = ['X <small>(tomba para o sul / norte)</small>', 'Y <small>(gira, visto de cima)</small>', 'Z <small>(tomba para leste / oeste)</small>'];
+  c.innerHTML = '<b>Girar com precisão</b>' + [1, 0, 2].map(function (i) {
+    return '<span class="mbtns tiltax"><b>' + nm[i] + '</b><button data-tt="' + i + ',-1" title="−1° (Shift: −15°)">−</button><input type="number" id="tiltA' + i + '" step="0.5" min="-180" max="180" value="' + tilt.a[i] + '" aria-label="Ângulo em ' + 'XYZ'[i] + '"><span>°</span><button data-tt="' + i + ',1" title="+1° (Shift: +15°)">+</button></span>';
+  }).join('') +
+    '<span class="mbtns"><b>Pivô</b><button data-tp="base" aria-pressed="' + (tilt.piv === 'base') + '" title="Gira em volta do meio e depois apoia o resultado no chão da seleção">Apoiado no chão</button><button data-tp="mid" aria-pressed="' + (tilt.piv === 'mid') + '" title="Gira em volta do meio da seleção, sem apoiar no chão">Centro</button></span>' +
+    '<span id="tiltInfo" class="mixl"></span><span class="mbtns"><button data-tz="1">Zerar</button><button data-tc="1" title="Esc">Cancelar</button><button data-tg="1" class="on" title="Enter">Aplicar</button></span>';
+}
+function tiltBind() {
+  var c = $('tiltChip'); if (!c) return;
+  c.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.tt) { var p = b.dataset.tt.split(','), i = +p[0]; tiltSet(i, tilt.a[i] + (+p[1]) * (e.shiftKey ? 15 : 1)); }
+    else if (b.dataset.tp) { tilt.piv = b.dataset.tp; tilt.cache = null; tiltUI(); updatePreview(); }
+    else if (b.dataset.tz) { tilt.a = [0, 0, 0]; tilt.cache = null; tiltUI(); updatePreview(); }
+    else if (b.dataset.tc) tiltClose();
+    else if (b.dataset.tg) tiltApply();
+  });
+  c.addEventListener('input', function (e) { var m = /^tiltA(\d)$/.exec(e.target.id || ''); if (m && e.target.value !== '' && e.target.value !== '-') tiltSet(+m[1], e.target.value); });
+  c.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); tiltApply(); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); tiltClose(); }
+  });
 }
 
 /* ---------- Lançar: flecha, flecha em chamas, tridente, bola de neve e ovo ---------- */
@@ -12891,7 +13082,7 @@ function openHelp() {
     '<span>Pincel grosso (<kbd>B</kbd>)</span><span><kbd>-</kbd> e <kbd>+</kbd> (ou o aviso do canto) mudam o tamanho do Pincel: 1 bloco, ou um cubo ou uma esfera de 3, 5, 7… até 21 blocos, encostado na face clicada e só nos espaços vazios. Arrastar pinta vários; <kbd>Shift</kbd> apaga o mesmo volume.</span>' +
     '<span>Pincel de troca (<kbd>M</kbd>)</span><span><kbd>Shift</kbd> + clique num bloco escolhe a máscara; depois, pintar troca só esse bloco pelo da hotbar dentro da esfera ou do cubo. <kbd>-</kbd> e <kbd>+</kbd> mudam o raio.</span>' +
     '<span>Borracha (<kbd>E</kbd>)</span><span>Tamanho 1×1, 2×2 ou 3×3 no aviso do canto; apaga na face clicada.</span>' +
-    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e colando, as setas movem a prévia (↑ ↓ sobem e descem, ← → lados, Shift + ↑ ↓ frente e trás) e Enter cola onde ela está; o botão Substituir… troca um bloco por outro (ou por uma mistura com porcentagens, a do pincel de mistura) na área; Assentar no terreno… põe fundação até o chão, acerta o terreno em volta na altura da porta, abre um caminho e planta a vegetação do bioma. Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
+    '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e colando, as setas movem a prévia (↑ ↓ sobem e descem, ← → lados, Shift + ↑ ↓ frente e trás) e Enter cola onde ela está; o botão Substituir… troca um bloco por outro (ou por uma mistura com porcentagens, a do pincel de mistura) na área; Assentar no terreno… põe fundação até o chão, acerta o terreno em volta na altura da porta, abre um caminho e planta a vegetação do bioma; Girar com precisão… gira ou inclina em qualquer ângulo nos eixos X, Y e Z, com prévia (Enter aplica). Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
     '<span>Biblioteca</span><span>Com uma área selecionada, <b>Salvar na biblioteca</b> guarda a construção com nome neste navegador. Projeto → Biblioteca de construções lista tudo para colar em qualquer projeto ou mundo, baixar como arquivo e importar.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
     '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
@@ -12955,7 +13146,7 @@ $('wmapBtn').addEventListener('click', function () { $('menu').open = false; ope
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });
 $('worldUnder').addEventListener('click', function () { surfSet(!surfUnder); });
-wmPartsBind();
+wmPartsBind(); tiltBind();
 surfUI();
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {

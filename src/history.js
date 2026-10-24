@@ -25,6 +25,11 @@ function histPush(b) {
 function histApplyNode(n, undo) {
   applyBatch(n.b, undo);
   var s = undo ? n.b.selBefore : n.b.selAfter; if (s) { sel = s; selRefresh(); }
+  var sp = undo ? n.b.symBefore : n.b.symAfter; if (sp) { sym.p = sp.slice(); symRefresh(); }
+  // conteúdo que andou junto (mover e girar a seleção): [índice, registro, enchimento]; tira de onde estava e põe de volta
+  var bf = undo ? n.b.beAfter : n.b.beBefore, bt = undo ? n.b.beBefore : n.b.beAfter;
+  if (bf) bf.forEach(function (e) { if (bent.delete(e[0])) bentSave = true; if (rsFill.delete(e[0])) rsFillSave = true; });
+  if (bt) bt.forEach(function (e) { if (e[1]) bentSet(e[0], JSON.parse(JSON.stringify(e[1])), true); else if (e[2]) { rsFill.set(e[0], e[2]); rsFillSave = true; } });
 }
 function histUndo() {
   var n = histNode(hist.cur); if (!n || n.id === hist.root) return false;
@@ -76,7 +81,7 @@ function histSaveInto(st, clear) {
   var meta = { root: hist.root, cur: hist.cur, next: hist.next, size: [SX, SY, SZ], nodes: [] };
   hist.nodes.forEach(function (n) {
     meta.nodes.push({ id: n.id, p: n.p, kids: n.kids, label: n.label, t: n.t, n: n.n, last: n.last, mark: n.mark });
-    if (!n.saved && n.b) { var b = n.b, L = b.length; st.put({ i: b.i.slice(0, L), o: b.o.slice(0, L), v: b.v.slice(0, L), sb: b.selBefore, sa: b.selAfter }, 'h:b:' + n.id); }
+    if (!n.saved && n.b) { var b = n.b, L = b.length; st.put({ i: b.i.slice(0, L), o: b.o.slice(0, L), v: b.v.slice(0, L), sb: b.selBefore, sa: b.selAfter, pb: b.symBefore, pa: b.symAfter, eb: b.beBefore, ea: b.beAfter }, 'h:b:' + n.id); }
     n.saved = true;
   });
   st.put(meta, 'h:meta'); hist.dirty = false;
@@ -88,7 +93,7 @@ function histLoad() {
       var h = { nodes: new Map(), root: meta.root, cur: meta.cur, next: meta.next, total: 0, dirty: false, clear: false, gone: [] };
       for (var k = 0; k < meta.nodes.length; k++) {
         var m = meta.nodes[k], r = bs[k], n = { id: m.id, p: m.p, kids: m.kids, label: m.label, t: m.t, n: m.n, last: m.last, mark: m.mark, b: null, saved: true };
-        if (r) { var b = new EditLog(); b.i = r.i; b.o = r.o; b.v = r.v; b.length = r.i.length; if (r.sb) b.selBefore = r.sb; if (r.sa) b.selAfter = r.sa; n.b = b; h.total += b.length; }
+        if (r) { var b = new EditLog(); b.i = r.i; b.o = r.o; b.v = r.v; b.length = r.i.length; if (r.sb) b.selBefore = r.sb; if (r.sa) b.selAfter = r.sa; if (r.pb) b.symBefore = r.pb; if (r.pa) b.symAfter = r.pa; if (r.eb) b.beBefore = r.eb; if (r.ea) b.beAfter = r.ea; n.b = b; h.total += b.length; }
         else if (m.id !== meta.root) return false; // falta um pedaço: começa um histórico novo
         h.nodes.set(m.id, n);
       }

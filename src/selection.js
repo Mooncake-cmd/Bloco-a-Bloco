@@ -39,7 +39,7 @@ function updateSelChip() {
     $('selTxt').innerHTML = '<b>Seleção</b> ' + d[0] + ' × ' + d[1] + ' × ' + d[2];
     $('selBtns').innerHTML = '<span class="mvb"><b>Mover</b><button data-m="f" title="Para frente (seta ↑)">↑</button><button data-m="b" title="Para trás (seta ↓)">↓</button><button data-m="l" title="Para a esquerda (seta ←)">←</button><button data-m="r" title="Para a direita (seta →)">→</button><button data-m="u" title="Subir (Page Up)">▲</button><button data-m="d" title="Descer (Page Down)">▼</button></span>' +
       '<button data-s="copy" title="Ctrl+C">Copiar</button><button data-s="cut" title="Ctrl+X">Recortar</button>' +
-      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="seat" title="Fundação até o chão, terreno acertado em volta, caminho das portas e vegetação do bioma">Assentar no terreno…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
+      '<button data-s="del" title="Delete">Apagar</button><button data-s="repl">Substituir…</button><button data-s="tilt" title="Girar ou inclinar em qualquer ângulo, nos eixos X, Y e Z">Girar com precisão…</button><button data-s="seat" title="Fundação até o chão, terreno acertado em volta, caminho das portas e vegetação do bioma">Assentar no terreno…</button><button data-s="lib" title="Guardar com nome para colar em outros projetos e mundos">Salvar na biblioteca</button>' +
       (clip ? '<button data-s="paste" title="Ctrl+V">Colar</button>' : '') + '<button data-s="clear" title="Esc">Limpar</button>';
   } else if (clip && tool === 'select') {
     c.hidden = false;
@@ -58,7 +58,7 @@ function selectPress(t) {
   else { sel = selFrom(selA, c); selA = null; }
   selRefresh();
 }
-function clearSel() { sel = null; selA = null; pasting = false; selRefresh(); }
+function clearSel() { sel = null; selA = null; pasting = false; if (tilt) { tilt = null; tiltUI(); } selRefresh(); }
 
 function copySel(cut) {
   if (!sel) { toast('Selecione uma área primeiro (ferramenta Selecionar, V).'); return; }
@@ -95,24 +95,35 @@ function moveDir(m) {
 function moveSel(d, steps) {
   if (!sel) return;
   steps = steps || 1;
-  var dv = [d[0] * steps, d[1] * steps, d[2] * steps];
-  // com a simetria ligada, a área espelhada (do outro lado de cada plano) anda junto, no sentido espelhado
-  var moves = [{ a: sel.a, b: sel.b, d: dv }], skipped = 0;
-  var on = [0, 1, 2].filter(function (a) { return sym.on[a]; });
-  for (var mask = 1; mask < (1 << on.length); mask++) {
+  var dv = [d[0] * steps, d[1] * steps, d[2] * steps], AX = 'XYZ';
+  // com a simetria ligada, a área espelhada (do outro lado de cada plano) anda junto, no sentido espelhado. Por eixo:
+  // a seleção pega os dois lados por igual (simétrica): ela é o próprio espelho e anda inteira, com o plano junto;
+  // a seleção só cruza o plano: não dá para saber o que é cópia, então não move; senão, a cópia anda espelhada.
+  var self = [], apart = [], symShift = null;
+  for (var ax = 0; ax < 3; ax++) {
+    if (!sym.on[ax]) continue;
+    var p = sym.p[ax], lo = p - sel.b[ax], hi = p - sel.a[ax];
+    if (lo === sel.a[ax] && hi === sel.b[ax]) self.push(ax);
+    else if (lo <= sel.b[ax] && sel.a[ax] <= hi) { toast('Simetria ' + AX[ax] + ': a seleção cruza o plano sem pegar os dois lados por igual. Selecione só um lado (a cópia anda junto) ou a construção inteira, simétrica; ou desligue a simetria para mover sem espelho.', 9000); return; }
+    else apart.push(ax);
+  }
+  self.forEach(function (ax) { if (dv[ax]) (symShift = symShift || sym.p.slice())[ax] += 2 * dv[ax]; }); // o plano anda com a construção inteira
+  var moves = [{ a: sel.a, b: sel.b, d: dv }];
+  for (var mask = 1; mask < (1 << apart.length); mask++) {
     var a = sel.a.slice(), b = sel.b.slice(), dd = dv.slice();
-    on.forEach(function (ax, i) { if (!(mask & (1 << i))) return; var p = sym.p[ax], lo = p - b[ax], hi = p - a[ax]; a[ax] = lo; b[ax] = hi; dd[ax] = -dd[ax]; });
-    var dup = false, clash = false;
-    moves.forEach(function (m) {
-      var same = m.a.join() === a.join() && m.b.join() === b.join();
-      var meet = m.a[0] <= b[0] && a[0] <= m.b[0] && m.a[1] <= b[1] && a[1] <= m.b[1] && m.a[2] <= b[2] && a[2] <= m.b[2];
-      if (same && m.d.join() === dd.join()) dup = true; else if (meet) clash = true; // a área cruza o plano: o espelho iria para o lado oposto
-    });
-    if (dup) continue;
-    if (clash || !inB(a[0], a[1], a[2]) || !inB(b[0], b[1], b[2]) || !inB(a[0] + dd[0], a[1] + dd[1], a[2] + dd[2]) || !inB(b[0] + dd[0], b[1] + dd[1], b[2] + dd[2])) { skipped++; continue; }
+    apart.forEach(function (ax, i) { if (!(mask & (1 << i))) return; var p = sym.p[ax], lo = p - b[ax], hi = p - a[ax]; a[ax] = lo; b[ax] = hi; dd[ax] = -dd[ax]; });
     moves.push({ a: a, b: b, d: dd });
   }
-  if (!inB(sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]) || !inB(sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2])) { toast('A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+  var meet = function (a0, b0, a1, b1) { return a0[0] <= b1[0] && a1[0] <= b0[0] && a0[1] <= b1[1] && a1[1] <= b0[1] && a0[2] <= b1[2] && a1[2] <= b0[2]; };
+  var dst = moves.map(function (m) { return { a: [m.a[0] + m.d[0], m.a[1] + m.d[1], m.a[2] + m.d[2]], b: [m.b[0] + m.d[0], m.b[1] + m.d[1], m.b[2] + m.d[2]] }; });
+  for (var k = 0; k < moves.length; k++) {
+    var q = dst[k];
+    if (!inB(q.a[0], q.a[1], q.a[2]) || !inB(q.b[0], q.b[1], q.b[2])) { toast(k ? 'A cópia espelhada sairia do espaço: não dá para mover para esse lado com a simetria ligada.' : 'A seleção sairia do espaço: não dá para mover para esse lado.'); return; }
+    for (var k2 = 0; k2 < k; k2++) if (meet(q.a, q.b, dst[k2].a, dst[k2].b)) {
+      var hit = [0, 1, 2].filter(function (ax) { return apart.indexOf(ax) >= 0 && moves[k].d[ax] !== moves[k2].d[ax]; }).map(function (ax) { return AX[ax]; }).join(' e ');
+      toast('Simetria' + (hit ? ' ' + hit : '') + ': a construção encostou no plano. Mais um passo juntaria ela com a cópia espelhada (e blocos se perderiam). Para passar, desligue a simetria ou selecione as duas cópias juntas.', 9000); return;
+    }
+  }
   var lists = [], total = 0;
   moves.forEach(function (m) { var l = []; blocksInBox(m.a[0], m.a[1], m.a[2], m.b[0], m.b[1], m.b[2], function (x, y, z, v) { l.push(x, y, z, v); }); lists.push(l); total += l.length / 4; });
   if (total > 16e6) { toast('Blocos demais para mover de uma vez (o máximo é 16 milhões). Selecione uma área menor.', 7000); return; }
@@ -121,15 +132,20 @@ function moveSel(d, steps) {
   var flow = flowOn; flowOn = false; // a água movida não escorre no meio do caminho
   try {
     // primeiro tira tudo de todas as áreas, depois põe no lugar novo (as áreas podem se cruzar no caminho)
+    // o conteúdo (baú, placa) e o nível de enchimento vão junto: guardados antes, porque tirar o bloco os apaga
+    var carry = [], beB = [], beA = [];
+    lists.forEach(function (l, i) { var q = moves[i].d; for (var k = 0; k < l.length; k += 4) { var i0 = idx(l[k], l[k + 1], l[k + 2]), be = bent.get(i0), fv = rsFill.get(i0); if (be || fv) { var i1 = idx(l[k] + q[0], l[k + 1] + q[1], l[k + 2] + q[2]); carry.push(i1, be, fv); beB.push([i0, be || null, fv || 0]); beA.push([i1, be || null, fv || 0]); } } });
     lists.forEach(function (l) { for (var k = 0; k < l.length; k += 4) editSet1(l[k], l[k + 1], l[k + 2], 0); });
     lists.forEach(function (l, i) { var q = moves[i].d; for (var k = 0; k < l.length; k += 4) editSet1(l[k] + q[0], l[k + 1] + q[1], l[k + 2] + q[2], l[k + 3]); });
+    for (var c = 0; c < carry.length; c += 3) { if (carry[c + 1]) bentSet(carry[c], carry[c + 1], true); else { rsFill.set(carry[c], carry[c + 2]); rsFillSave = true; } }
     endBatch();
   } finally { flowOn = flow; }
   var before = sel;
   sel = { a: [sel.a[0] + dv[0], sel.a[1] + dv[1], sel.a[2] + dv[2]], b: [sel.b[0] + dv[0], sel.b[1] + dv[1], sel.b[2] + dv[2]] };
-  var last = histTop(); if (last) { last.selBefore = before; last.selAfter = sel; last.label = 'Mover seleção'; } // desfazer leva a seleção junto
+  var last = histTop(), symBefore = sym.p.slice();
+  if (symShift) { sym.p = symShift; symRefresh(); if (!moveSel.warned) { moveSel.warned = true; toast('A seleção pega os dois lados do espelho por igual: ela anda inteira, e o plano da simetria anda junto.', 7000); } }
+  if (last) { last.selBefore = before; last.selAfter = sel; last.label = 'Mover seleção'; if (symShift) { last.symBefore = symBefore; last.symAfter = sym.p.slice(); } if (beB.length) { last.beBefore = beB; last.beAfter = beA; } } // desfazer leva a seleção (e o plano) junto
   selRefresh();
-  if (skipped && !moveSel.warned) { moveSel.warned = true; toast('Simetria: a cópia espelhada não foi movida porque a seleção cruza o plano (ou o espelho sairia do espaço).', 7000); }
 }
 
 /* Girar 90° no sentido horário (visto de cima): posição e estado de cada bloco */
@@ -414,7 +430,7 @@ $('selBtns').addEventListener('click', function (e) {
   var b = e.target.closest('[data-s]'); if (!b) return;
   var a = b.getAttribute('data-s');
   if (a === 'copy') copySel(false); else if (a === 'cut') copySel(true); else if (a === 'del') deleteSel(false);
-  else if (a === 'repl') openReplace(); else if (a === 'seat') openSeat(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
+  else if (a === 'repl') openReplace(); else if (a === 'tilt') tiltOpen(); else if (a === 'seat') openSeat(); else if (a === 'lib') libSaveSel(); else if (a === 'paste') startPaste(); else if (a === 'rot') rotateClip(); else if (a === 'flipx') flipClip(0); else if (a === 'flipz') flipClip(2);
   else if (a === 'cancel') { pasting = false; selRefresh(); } else if (a === 'clear') clearSel();
 });
 /* Teclado da seleção (chamado antes dos atalhos normais); devolve true se tratou a tecla */
@@ -424,6 +440,8 @@ function selectionKey(e, k) {
   if (ctrl && k === 'x' && sel) { e.preventDefault(); copySel(true); return true; }
   if (ctrl && k === 'v') { e.preventDefault(); startPaste(); return true; }
   if ((k === 'delete' || k === 'backspace') && sel && !ctrl) { e.preventDefault(); deleteSel(false); return true; }
+  if (tilt && k === 'enter' && !ctrl) { e.preventDefault(); tiltApply(); return true; }
+  if (tilt && /^(arrow|page)/.test(k)) { e.preventDefault(); return true; } // girando: as setas não movem a seleção
   if (pasting && k === 'r' && !ctrl) { rotateClip(); return true; }
   // setas no modo colar: ↑ ↓ sobem e descem, ← → para os lados, Shift + ↑ ↓ frente e trás (Page Up e Page Down também sobem e descem)
   var pm = pasting && !ctrl ? { arrowup: e.shiftKey ? 'f' : 'u', arrowdown: e.shiftKey ? 'b' : 'd', arrowleft: 'l', arrowright: 'r', pageup: 'u', pagedown: 'd' }[k] : null;
@@ -436,6 +454,7 @@ function selectionKey(e, k) {
   return false;
 }
 function selectionEscape() {
+  if (tilt) { tiltClose(); return true; }
   if (pasting) { pasting = false; selRefresh(); return true; }
   if (sel || selA) { clearSel(); return true; }
   return false;
