@@ -43,7 +43,7 @@ var CMDS = {
   ajuda: {
     use: 'ajuda',
     help: 'Lista os comandos.',
-    run: function () { return { msg: Object.keys(CMDS).map(function (k) { return '/' + CMDS[k].use; }).join(' · ') + ' (Esc fecha, ↑ ↓ histórico, Tab completa)', long: true }; }
+    run: function () { var seen = new Set(); return { msg: Object.keys(CMDS).filter(function (k) { if (seen.has(CMDS[k])) return false; seen.add(CMDS[k]); return true; }).map(function (k) { return '/' + CMDS[k].use; }).join(' · ') + ' (Esc fecha, ↑ ↓ histórico, Tab completa)', long: true }; }
   }
 };
 CMDS.help = CMDS.ajuda;
@@ -102,3 +102,55 @@ function cmdKey(e) {
   if (now - cmdSlashAt < 500) { cmdSlashAt = 0; cmdOpen(); } else cmdSlashAt = now;
   return true;
 }
+
+/* ---------- hide / unhide: esconder tipos de bloco só na tela ---------- */
+/* hide guarda regras { bi, a, b } (a caixa: a seleção, ou null = o espaço inteiro). Um bloco escondido continua na
+   construção (exportar, copiar, redstone e as ferramentas o enxergam); só não é desenhado, não esconde as faces dos
+   vizinhos (o que estava atrás aparece) e não é acertado pelo clique. hideOn[bi] diz rápido se um tipo tem regra
+   (vis() é chamada muitas vezes por bloco ao montar a malha). Vale até unhide, Novo ou abrir outro projeto. */
+var hideRules = [], hideOn = new Uint8Array(0);
+function hideIndex() { hideOn = new Uint8Array(BLOCKS.length); hideRules.forEach(function (r) { hideOn[r.bi] = 1; }); }
+function hidden(x, y, z, bi) {
+  if (!hideOn[bi]) return false;
+  for (var k = 0; k < hideRules.length; k++) { var r = hideRules[k]; if (r.bi === bi && (!r.a || (x >= r.a[0] && x <= r.b[0] && y >= r.a[1] && y <= r.b[1] && z >= r.a[2] && z <= r.b[2]))) return true; }
+  return false;
+}
+function hideChanged() { hideIndex(); hideUI(); dirtyAll(); hoverT = null; updatePreview(); requestRender(); }
+function hideReset() { if (!hideRules.length) return; hideRules = []; hideIndex(); hideUI(); }
+function hideUI() {
+  var c = $('hideChip'); if (!c) return;
+  c.hidden = !hideRules.length; if (!hideRules.length) return;
+  var names = []; hideRules.forEach(function (r) { var n = BLOCKS[r.bi].name + (r.a ? ' (numa área)' : ''); if (names.indexOf(n) < 0) names.push(n); });
+  $('hideTxt').innerHTML = '<b>Escondidos</b> ' + esc(names.slice(0, 4).join(', ') + (names.length > 4 ? ' e mais ' + (names.length - 4) : ''));
+}
+CMDS.hide = {
+  use: 'hide <bloco> [outro bloco...]',
+  help: 'Esconde esses blocos na tela (eles continuam na construção) na seleção; sem seleção, na construção inteira ou na área do mundo carregada.',
+  run: function (args) {
+    if (!args.length) return { err: 'Falta o bloco. Ex.: hide oak_leaves (ou hide oak_leaves glass).' };
+    var B = cmdBlocks(args); if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '. Use o nome do Java (o da barra de status), como stone_bricks.' };
+    var sc = cmdScope(), box = sel ? { a: sel.a.slice(), b: sel.b.slice() } : null, n = 0;
+    B.ok.forEach(function (bi) {
+      if (!box) hideRules = hideRules.filter(function (r) { return r.bi !== bi; }); // o espaço inteiro engole as áreas
+      else if (hideRules.some(function (r) { return r.bi === bi && !r.a; })) return; // já escondido em tudo
+      hideRules.push({ bi: bi, a: box && box.a, b: box && box.b });
+      blocksInBox(sc.a[0], sc.a[1], sc.a[2], sc.b[0], sc.b[1], sc.b[2], function (x, y, z, v) { if (cellBlock(v) === bi) n++; });
+    });
+    hideChanged();
+    return { msg: 'Escondidos ' + n.toLocaleString('pt-BR') + ' blocos de ' + B.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ') + ' ' + sc.txt + ' (só na tela: continuam na construção). unhide all mostra tudo.' };
+  }
+};
+CMDS.unhide = {
+  use: 'unhide <bloco> [outro bloco...] | unhide all',
+  help: 'Mostra de novo esses blocos (em todo lugar onde estavam escondidos); unhide all mostra todos.',
+  run: function (args) {
+    if (!args.length) return { err: 'Falta o bloco (ou all). Ex.: unhide oak_leaves, unhide all.' };
+    if (!hideRules.length) return { msg: 'Nenhum bloco está escondido.' };
+    if (args.length === 1 && args[0].toLowerCase() === 'all') { hideRules = []; hideChanged(); return { msg: 'Todos os blocos estão visíveis de novo.' }; }
+    var B = cmdBlocks(args); if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '.' };
+    var before = hideRules.length; hideRules = hideRules.filter(function (r) { return B.ok.indexOf(r.bi) < 0; });
+    if (hideRules.length === before) return { msg: 'Esses blocos não estavam escondidos.' };
+    hideChanged();
+    return { msg: B.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ') + ' visível de novo.' };
+  }
+};
