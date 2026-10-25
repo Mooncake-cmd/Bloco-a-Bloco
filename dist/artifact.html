@@ -242,6 +242,10 @@ a.btn{display:inline-flex;align-items:center;color:var(--fg);text-decoration:non
 .mat .sw{display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:8px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel-2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
+#cmdBox{position:fixed;left:50%;bottom:122px;transform:translateX(-50%);z-index:59;width:min(560px,calc(100% - 32px));padding:6px 8px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
+#cmdBox .cmdrow{display:flex;align-items:center;gap:4px}#cmdBox .cmdsl{font-family:var(--font-mono);color:var(--muted);padding-left:2px}
+#cmdIn{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font-family:var(--font-mono);font-size:14px;padding:6px 2px;outline:none}
+#cmdOut{color:var(--muted);padding:2px 4px 0;min-height:14px;overflow-wrap:anywhere}#cmdOut.err{color:var(--danger)}
 #toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:60;padding:8px 14px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:13px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.show{opacity:1}
 #busy{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:70;width:min(360px,calc(100% - 32px));padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px;font-size:13px}
@@ -363,6 +367,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="cleanBtn">Tela limpa (Tab)</button>
+          <button class="tbtn txt" id="cmdBtn">Comandos… (/ /)</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="rsNumBtn">Força do pó de redstone: não</button>
@@ -408,6 +413,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
     <div id="list"></div>
   </aside>
 </div>
+<div id="cmdBox" hidden><div class="cmdrow"><span class="cmdsl">/</span><input type="text" id="cmdIn" autocomplete="off" spellcheck="false" aria-label="Comando" placeholder="delblock stone"><button class="tbtn txt" id="cmdGo" title="Enter">Executar</button><button class="tbtn" id="cmdX" title="Esc" aria-label="Fechar">×</button></div><div id="cmdOut"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="busy" role="status" aria-live="polite" hidden><div class="bl"><span class="sp"></span><span id="busyTxt"></span></div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="overlayRoot"></div>
@@ -10126,6 +10132,111 @@ function tiltBind() {
   });
 }
 
+/* ---------- Comandos: uma caixa de texto discreta (/ duas vezes) ---------- */
+/* Apertar / duas vezes seguidas (em até meio segundo) abre a caixa embaixo da tela, acima da hotbar. Enter executa,
+   Esc fecha, ↑ e ↓ andam pelos comandos já usados (guardados no navegador), Tab completa o nome do comando ou do
+   bloco. Os comandos ficam em CMDS: cada um tem a ajuda (uso e descrição) e a função que recebe as palavras depois
+   do nome. A barra no começo é opcional ("/delblock stone" e "delblock stone" valem igual). Também abre pelo menu
+   Projeto → Comandos… (no celular, sem teclado). */
+var CMD_KEY = 'bloco-a-bloco-comandos', cmdHist = [], cmdPos = -1, cmdSlashAt = 0;
+try { cmdHist = JSON.parse(localStorage.getItem(CMD_KEY) || '[]') || []; } catch (e) {}
+/* A área de trabalho dos comandos: a seleção, se houver; senão o espaço inteiro (a construção ou a área do mundo) */
+function cmdScope() {
+  if (sel) return { a: sel.a, b: sel.b, txt: 'na seleção' };
+  return { a: [0, 0, 0], b: [SX - 1, SY - 1, SZ - 1], txt: wio && wio.area ? 'na área do mundo carregada' : 'na construção inteira' };
+}
+/* Blocos de uma lista de palavras (nome do Java, com ou sem "minecraft:"; espaço ou vírgula separam) */
+function cmdBlocks(args) {
+  var ok = [], bad = [];
+  args.join(' ').split(/[,\s]+/).filter(Boolean).forEach(function (w) {
+    var bi = blockByText(w);
+    if (bi === -1) bi = blockByText(w.replace(/-/g, '_'));
+    if (bi < 0) bad.push(w); else if (ok.indexOf(bi) < 0) ok.push(bi);
+  });
+  return { ok: ok, bad: bad };
+}
+var CMDS = {
+  delblock: {
+    use: 'delblock <bloco> [outro bloco...]',
+    help: 'Apaga todos os blocos desse tipo (em qualquer direção ou estado) na seleção; sem seleção, na construção inteira ou na área do mundo carregada. Vários blocos: separe com espaço.',
+    run: function (args) {
+      if (!args.length) return { err: 'Falta o bloco. Ex.: delblock stone (ou delblock oak_leaves birch_leaves).' };
+      var B = cmdBlocks(args);
+      if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '. Use o nome do Java (o da barra de status), como stone_bricks.' };
+      var want = new Set(B.ok), sc = cmdScope(), list = [];
+      blocksInBox(sc.a[0], sc.a[1], sc.a[2], sc.b[0], sc.b[1], sc.b[2], function (x, y, z, v) { if (want.has(cellBlock(v))) list.push(x, y, z); });
+      var names = B.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ');
+      if (!list.length) return { msg: 'Nenhum bloco de ' + names + ' ' + sc.txt + '.' };
+      if (list.length / 3 > 16e6) return { err: 'Blocos demais para apagar de uma vez (' + (list.length / 3).toLocaleString('pt-BR') + '; o máximo é 16 milhões). Selecione uma área menor.' };
+      var saved = symBusy; symBusy = true; // a simetria não repete: o comando já pega tudo o que existe
+      fluidStop(); beginBatch('delblock ' + args.join(' '));
+      try { for (var k = 0; k < list.length; k += 3) editSet(list[k], list[k + 1], list[k + 2], 0); endBatch(); } finally { symBusy = saved; }
+      return { msg: 'Apagados ' + (list.length / 3).toLocaleString('pt-BR') + ' blocos de ' + names + ' ' + sc.txt + '. Ctrl+Z desfaz.' };
+    }
+  },
+  ajuda: {
+    use: 'ajuda',
+    help: 'Lista os comandos.',
+    run: function () { return { msg: Object.keys(CMDS).map(function (k) { return '/' + CMDS[k].use; }).join(' · ') + ' (Esc fecha, ↑ ↓ histórico, Tab completa)', long: true }; }
+  }
+};
+CMDS.help = CMDS.ajuda;
+function cmdRun(txt) {
+  txt = String(txt || '').trim().replace(/^\/+/, ''); if (!txt) return;
+  if (cmdHist[cmdHist.length - 1] !== txt) { cmdHist.push(txt); if (cmdHist.length > 50) cmdHist.shift(); try { localStorage.setItem(CMD_KEY, JSON.stringify(cmdHist)); } catch (e) {} }
+  var w = txt.split(/\s+/), name = w[0].toLowerCase(), C = CMDS[name], r;
+  if (!C) r = { err: 'Comando desconhecido: ' + name + '. Digite ajuda para ver a lista.' };
+  else { try { r = C.run(w.slice(1)) || {}; } catch (e) { r = { err: e.message || String(e) }; } }
+  cmdShow(r);
+  if (!r.err) { updateStatus(); requestRender(); }
+  return r;
+}
+function cmdShow(r) {
+  var o = $('cmdOut'); if (!o) return;
+  o.textContent = r.err || r.msg || ''; o.className = r.err ? 'err' : '';
+  if (!r.err && r.msg && !r.long) toast(r.msg, 6000);
+}
+function cmdOpen() {
+  var b = $('cmdBox'); if (!b) return;
+  b.hidden = false; cmdPos = cmdHist.length;
+  var i = $('cmdIn'); i.value = ''; $('cmdOut').textContent = 'Digite um comando (ajuda lista todos). ' + (sel ? 'Vale para a seleção.' : 'Sem seleção: vale para ' + (wio && wio.area ? 'a área do mundo inteira.' : 'a construção inteira.')); $('cmdOut').className = '';
+  setTimeout(function () { i.focus(); }, 0);
+}
+function cmdClose() { var b = $('cmdBox'); if (b && !b.hidden) { b.hidden = true; $('cmdIn').blur(); } }
+/* Tab: completa o comando (primeira palavra) ou o bloco (as outras) */
+function cmdComplete(i) {
+  var v = i.value, m = /(\S*)$/.exec(v), w = m[1], first = !/\s/.test(v.replace(/^\/+/, '').trim()) && !/\s$/.test(v);
+  var pool = first ? Object.keys(CMDS) : BLOCKS.filter(function (b) { return !b.hide && !b.isAir; }).map(function (b) { return b.java; });
+  var lw = w.replace(/^\/+/, '').toLowerCase(), hits = pool.filter(function (n) { return n.indexOf(lw) === 0; });
+  if (!hits.length) hits = pool.filter(function (n) { return n.indexOf(lw) >= 0; });
+  if (!hits.length) { $('cmdOut').textContent = 'Nada começa com “' + lw + '”.'; return; }
+  var pre = hits.reduce(function (a, b) { var k = 0; while (k < a.length && a[k] === b[k]) k++; return a.slice(0, k); });
+  var rep = hits.length === 1 ? hits[0] + ' ' : pre.length > lw.length ? pre : w.replace(/^\/+/, '');
+  i.value = v.slice(0, v.length - w.length) + (first && /^\//.test(w) ? '/' : '') + rep;
+  if (hits.length > 1) $('cmdOut').textContent = hits.slice(0, 12).join('  ') + (hits.length > 12 ? '  … (+' + (hits.length - 12) + ')' : '');
+}
+function cmdBind() {
+  var i = $('cmdIn'); if (!i) return;
+  i.addEventListener('keydown', function (e) {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); var r = cmdRun(i.value); if (r && !r.err) { i.value = ''; cmdPos = cmdHist.length; } }
+    else if (e.key === 'Escape') { e.preventDefault(); cmdClose(); }
+    else if (e.key === 'Tab') { e.preventDefault(); cmdComplete(i); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (cmdPos > 0) { cmdPos--; i.value = cmdHist[cmdPos] || ''; } }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); if (cmdPos < cmdHist.length) { cmdPos++; i.value = cmdHist[cmdPos] || ''; } }
+  });
+  $('cmdX').addEventListener('click', cmdClose);
+  $('cmdGo').addEventListener('click', function () { var r = cmdRun($('cmdIn').value); if (r && !r.err) $('cmdIn').value = ''; $('cmdIn').focus(); });
+}
+/* No teclado geral: / duas vezes abre a caixa (devolve true quando tratou a tecla) */
+function cmdKey(e) {
+  if (e.key !== '/' || ((e.ctrlKey || e.metaKey || e.altKey) && !(e.getModifierState && e.getModifierState('AltGraph')))) return false; // AltGr + Q também dá /
+  var now = Date.now();
+  e.preventDefault();
+  if (now - cmdSlashAt < 500) { cmdSlashAt = 0; cmdOpen(); } else cmdSlashAt = now;
+  return true;
+}
+
 /* ---------- Lançar: flecha, flecha em chamas, tridente, bola de neve e ovo ---------- */
 /* A ferramenta Lançar (W) atira do ponto de vista da câmera na direção do ponteiro; em primeira pessoa, Q atira na
    direção da mira. A física é a do jogo (Java, por tique, 20 por segundo):
@@ -13397,6 +13508,7 @@ function openHelp() {
     '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo. Carregar área aqui carrega a área do tamanho dela (com folga); Colar aqui carrega e põe a estrutura no lugar marcado, para ajustar a altura com as setas, girar com R e colar com Enter.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
+    '<span><kbd>/</kbd> <kbd>/</kbd></span><span>Caixa de comandos (também em Projeto → Comandos…): <code>delblock stone</code> apaga todos os blocos de pedra da seleção, ou do espaço inteiro sem seleção; <code>ajuda</code> lista os comandos</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
@@ -13431,8 +13543,9 @@ $('worldBtn').addEventListener('click', function () { $('menu').open = false; $(
 $('wmapBtn').addEventListener('click', function () { $('menu').open = false; openWorldMap(); });
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });
+$('cmdBtn').addEventListener('click', function () { var m = $('cmdBtn').closest('details'); if (m) m.open = false; cmdOpen(); });
 $('worldUnder').addEventListener('click', function () { surfSet(!surfUnder); });
-wmPartsBind(); tiltBind();
+wmPartsBind(); tiltBind(); cmdBind();
 surfUI();
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
@@ -13581,6 +13694,7 @@ window.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { if (document.body.classList.contains('blocks-open')) { openBlocks(false); return; } if (overlayRoot.firstChild) closeDialog(); else if (tool === 'tube' && tube.paths.length) tubeClear(); else if (tool === 'field' && fcur) fieldCancel(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerAny()) rulerClear(); $('menu').open = false; return; }
   if (typing || overlayRoot.firstChild || !camera) return;
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
+  if (cmdKey(e)) return; // / duas vezes: caixa de comandos (src/commands.js)
   var k = e.key.toLowerCase();
   if (tubeKey(e, k)) return;
   if (fieldKey(e, k)) return;

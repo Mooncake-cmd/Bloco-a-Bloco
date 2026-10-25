@@ -242,6 +242,10 @@ a.btn{display:inline-flex;align-items:center;color:var(--fg);text-decoration:non
 .mat .sw{display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:8px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel-2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
+#cmdBox{position:fixed;left:50%;bottom:122px;transform:translateX(-50%);z-index:59;width:min(560px,calc(100% - 32px));padding:6px 8px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
+#cmdBox .cmdrow{display:flex;align-items:center;gap:4px}#cmdBox .cmdsl{font-family:var(--font-mono);color:var(--muted);padding-left:2px}
+#cmdIn{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font-family:var(--font-mono);font-size:14px;padding:6px 2px;outline:none}
+#cmdOut{color:var(--muted);padding:2px 4px 0;min-height:14px;overflow-wrap:anywhere}#cmdOut.err{color:var(--danger)}
 #toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:60;padding:8px 14px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:13px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.show{opacity:1}
 #busy{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:70;width:min(360px,calc(100% - 32px));padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px;font-size:13px}
@@ -363,6 +367,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
           <button class="tbtn txt" id="sizeBtn">Tamanho do espaço…</button>
           <button class="tbtn txt" id="gridBtn">Mostrar/ocultar grade</button>
           <button class="tbtn txt" id="cleanBtn">Tela limpa (Tab)</button>
+          <button class="tbtn txt" id="cmdBtn">Comandos… (/ /)</button>
           <button class="tbtn txt" id="flowBtn">Água e lava escorrem: sim</button>
           <button class="tbtn txt" id="rsBtn">Redstone funcionando: sim</button>
           <button class="tbtn txt" id="rsNumBtn">Força do pó de redstone: não</button>
@@ -408,6 +413,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
     <div id="list"></div>
   </aside>
 </div>
+<div id="cmdBox" hidden><div class="cmdrow"><span class="cmdsl">/</span><input type="text" id="cmdIn" autocomplete="off" spellcheck="false" aria-label="Comando" placeholder="delblock stone"><button class="tbtn txt" id="cmdGo" title="Enter">Executar</button><button class="tbtn" id="cmdX" title="Esc" aria-label="Fechar">×</button></div><div id="cmdOut"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="busy" role="status" aria-live="polite" hidden><div class="bl"><span class="sp"></span><span id="busyTxt"></span></div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="overlayRoot"></div>
@@ -2261,6 +2267,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%BENT_JS%%*/
 /*%%SURF_JS%%*/
 /*%%TILT_JS%%*/
+/*%%CMD_JS%%*/
 /*%%PROJ_JS%%*/
 /*%%ICONS_JS%%*/
 /*%%HOLO_JS%%*/
@@ -2633,6 +2640,7 @@ function openHelp() {
     '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo. Carregar área aqui carrega a área do tamanho dela (com folga); Colar aqui carrega e põe a estrutura no lugar marcado, para ajustar a altura com as setas, girar com R e colar com Enter.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
+    '<span><kbd>/</kbd> <kbd>/</kbd></span><span>Caixa de comandos (também em Projeto → Comandos…): <code>delblock stone</code> apaga todos os blocos de pedra da seleção, ou do espaço inteiro sem seleção; <code>ajuda</code> lista os comandos</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
@@ -2667,8 +2675,9 @@ $('worldBtn').addEventListener('click', function () { $('menu').open = false; $(
 $('wmapBtn').addEventListener('click', function () { $('menu').open = false; openWorldMap(); });
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });
+$('cmdBtn').addEventListener('click', function () { var m = $('cmdBtn').closest('details'); if (m) m.open = false; cmdOpen(); });
 $('worldUnder').addEventListener('click', function () { surfSet(!surfUnder); });
-wmPartsBind(); tiltBind();
+wmPartsBind(); tiltBind(); cmdBind();
 surfUI();
 $('worldExp').addEventListener('click', function () { wioExport(); });
 $('fileIn').addEventListener('change', function (e) {
@@ -2817,6 +2826,7 @@ window.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { if (document.body.classList.contains('blocks-open')) { openBlocks(false); return; } if (overlayRoot.firstChild) closeDialog(); else if (tool === 'tube' && tube.paths.length) tubeClear(); else if (tool === 'field' && fcur) fieldCancel(); else if (anchor) { anchor = null; updateAnchorChip(); updatePreview(); } else if (!selectionEscape() && rulerAny()) rulerClear(); $('menu').open = false; return; }
   if (typing || overlayRoot.firstChild || !camera) return;
   if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setClean(!cleanMode); return; }
+  if (cmdKey(e)) return; // / duas vezes: caixa de comandos (src/commands.js)
   var k = e.key.toLowerCase();
   if (tubeKey(e, k)) return;
   if (fieldKey(e, k)) return;
