@@ -385,3 +385,48 @@ function growAt(c, big) {
   else toast(TREE_NAMES[r.kind] + (r.sq && (r.kind === 'spruce' || r.kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + r.n + ' blocos' + (r.out ? ' (' + r.out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
   return true;
 }
+
+/* ---------- Vinhas: Usar faz crescer um bloco; Shift + Usar encolhe um ---------- */
+/* Vinha comum, chorona e das cavernas crescem para baixo; a retorcida, para cima. Nas do Nether e das cavernas a
+   ponta é um bloco (weeping_vines, com idade) e o resto é outro (weeping_vines_plant): ao crescer, a ponta antiga vira
+   corpo e a nova ponta fica um ano mais velha. Nas das cavernas, cada pedaço novo sai com frutas brilhantes 11% das
+   vezes (como no jogo). A vinha comum desce com os mesmos lados da de cima. */
+var VINE_FAM = {
+  vine: { tip: 'vine', body: 'vine', dir: -1 },
+  weeping_vines: { tip: 'weeping_vines', body: 'weeping_vines_plant', dir: -1 }, weeping_vines_plant: 'weeping_vines',
+  twisting_vines: { tip: 'twisting_vines', body: 'twisting_vines_plant', dir: 1 }, twisting_vines_plant: 'twisting_vines',
+  cave_vines: { tip: 'cave_vines', body: 'cave_vines_plant', dir: -1 }, cave_vines_plant: 'cave_vines'
+};
+function vineFam(v) { var f = v && VINE_FAM[BLOCKS[cellBlock(v)].java]; return typeof f === 'string' ? VINE_FAM[f] : f || null; }
+function vineUse(c, back) {
+  var F = vineFam(gget(c[0], c[1], c[2])); if (!F) return false;
+  var isF = function (y) { var w = gget(c[0], y, c[2]); return w && vineFam(w) === F; };
+  var top = c[1]; while (inB(c[0], top + F.dir, c[2]) && isF(top + F.dir)) top += F.dir; // a ponta
+  var tv = gget(c[0], top, c[2]), tb = BLOCKS[cellBlock(tv)], tp = stateProps(tb, cellOri(tv)), name = BLOCKS[BY_JAVA[F.tip]].name;
+  var cell = function (java, props) { var bi = BY_JAVA[java], b = BLOCKS[bi]; return mkCell(bi, stateIndex(b, props)); };
+  beginBatch((back ? 'Encolher: ' : 'Crescer: ') + name);
+  try {
+    if (back) { // encolhe: tira a ponta; o pedaço de antes vira a ponta, com a mesma idade
+      editSet(c[0], top, c[2], 0);
+      var py = top - F.dir;
+      if (F.tip !== F.body && isF(py)) { var pv = gget(c[0], py, c[2]), pp = stateProps(BLOCKS[cellBlock(pv)], cellOri(pv)); editSet(c[0], py, c[2], cell(F.tip, { age: tp.age || '0', berries: pp.berries || 'false' })); }
+      toast(name + ': um bloco a menos. Usar faz crescer de novo.');
+      return true;
+    }
+    var ny = top + F.dir;
+    if (!inB(c[0], ny, c[2]) || ny > layerMax()) { toast(name + ' não cresce mais: chegou ' + (F.dir < 0 ? 'ao fundo' : 'ao teto') + ' do espaço.'); return true; }
+    if (gget(c[0], ny, c[2])) { toast(name + ' não cresce: há um bloco ' + (F.dir < 0 ? 'embaixo' : 'em cima') + ' da ponta.'); return true; }
+    if (F.tip === 'vine') {
+      var sides = {}, any = false; ['north', 'east', 'south', 'west'].forEach(function (h) { sides[h] = tp[h] === 'true' ? 'true' : 'false'; if (sides[h] === 'true') any = true; });
+      if (!any) { toast('Esta vinha só está presa no teto: no jogo, ela não desce sem um lado preso numa parede.'); return true; }
+      sides.up = 'false'; editSet(c[0], ny, c[2], cell('vine', sides));
+    } else {
+      var age = Math.min(25, (+tp.age || 0) + 1), cave = F.tip === 'cave_vines';
+      editSet(c[0], top, c[2], cave ? cell(F.body, { berries: tp.berries || 'false' }) : cell(F.body, {}));
+      editSet(c[0], ny, c[2], cave ? cell(F.tip, { age: String(age), berries: Math.random() < 0.11 ? 'true' : 'false' }) : cell(F.tip, { age: String(age) }));
+    }
+    var n = 1; while (isF(ny - F.dir * n)) n++;
+    toast(name + ' cresceu: ' + n + ' blocos de comprimento. Usar de novo cresce mais um; Shift + Usar encolhe.');
+    return true;
+  } finally { endBatch(); }
+}

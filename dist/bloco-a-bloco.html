@@ -1981,6 +1981,7 @@ function setShapeState(c, v, s2) {
 function useAt(c, back, t) {
   var v = gget(c[0], c[1], c[2]); if (!v) return;
   if (growAt(c, back)) return;
+  if (vineUse(c, back)) return; // vinhas: crescem um bloco (Shift encolhe), src/trees.js
   var b = BLOCKS[cellBlock(v)];
   if (b.java === 'chiseled_bookshelf') { useBookshelf(c, v, b, back, t); return; }
   if (b.java === 'target') { var lv = rsHitTarget(c, t); toast('Alvo: força ' + lv + ' por 1 s (quanto mais perto do centro, mais forte).'); return; }
@@ -4349,6 +4350,51 @@ function growAt(c, big) {
   else if (r.err === 'blocked') toast('Sem espaço para a árvore crescer: há um bloco em ' + r.at.join(', ') + ' no caminho do tronco.', 5000);
   else toast(TREE_NAMES[r.kind] + (r.sq && (r.kind === 'spruce' || r.kind === 'jungle') ? ' gigante' : big ? ' (versão grande)' : '') + ' cresceu: ' + r.n + ' blocos' + (r.out ? ' (' + r.out + ' ficaram fora do espaço)' : '') + '. Ctrl+Z desfaz; usar de novo depois de desfazer dá outra forma.', 5000);
   return true;
+}
+
+/* ---------- Vinhas: Usar faz crescer um bloco; Shift + Usar encolhe um ---------- */
+/* Vinha comum, chorona e das cavernas crescem para baixo; a retorcida, para cima. Nas do Nether e das cavernas a
+   ponta é um bloco (weeping_vines, com idade) e o resto é outro (weeping_vines_plant): ao crescer, a ponta antiga vira
+   corpo e a nova ponta fica um ano mais velha. Nas das cavernas, cada pedaço novo sai com frutas brilhantes 11% das
+   vezes (como no jogo). A vinha comum desce com os mesmos lados da de cima. */
+var VINE_FAM = {
+  vine: { tip: 'vine', body: 'vine', dir: -1 },
+  weeping_vines: { tip: 'weeping_vines', body: 'weeping_vines_plant', dir: -1 }, weeping_vines_plant: 'weeping_vines',
+  twisting_vines: { tip: 'twisting_vines', body: 'twisting_vines_plant', dir: 1 }, twisting_vines_plant: 'twisting_vines',
+  cave_vines: { tip: 'cave_vines', body: 'cave_vines_plant', dir: -1 }, cave_vines_plant: 'cave_vines'
+};
+function vineFam(v) { var f = v && VINE_FAM[BLOCKS[cellBlock(v)].java]; return typeof f === 'string' ? VINE_FAM[f] : f || null; }
+function vineUse(c, back) {
+  var F = vineFam(gget(c[0], c[1], c[2])); if (!F) return false;
+  var isF = function (y) { var w = gget(c[0], y, c[2]); return w && vineFam(w) === F; };
+  var top = c[1]; while (inB(c[0], top + F.dir, c[2]) && isF(top + F.dir)) top += F.dir; // a ponta
+  var tv = gget(c[0], top, c[2]), tb = BLOCKS[cellBlock(tv)], tp = stateProps(tb, cellOri(tv)), name = BLOCKS[BY_JAVA[F.tip]].name;
+  var cell = function (java, props) { var bi = BY_JAVA[java], b = BLOCKS[bi]; return mkCell(bi, stateIndex(b, props)); };
+  beginBatch((back ? 'Encolher: ' : 'Crescer: ') + name);
+  try {
+    if (back) { // encolhe: tira a ponta; o pedaço de antes vira a ponta, com a mesma idade
+      editSet(c[0], top, c[2], 0);
+      var py = top - F.dir;
+      if (F.tip !== F.body && isF(py)) { var pv = gget(c[0], py, c[2]), pp = stateProps(BLOCKS[cellBlock(pv)], cellOri(pv)); editSet(c[0], py, c[2], cell(F.tip, { age: tp.age || '0', berries: pp.berries || 'false' })); }
+      toast(name + ': um bloco a menos. Usar faz crescer de novo.');
+      return true;
+    }
+    var ny = top + F.dir;
+    if (!inB(c[0], ny, c[2]) || ny > layerMax()) { toast(name + ' não cresce mais: chegou ' + (F.dir < 0 ? 'ao fundo' : 'ao teto') + ' do espaço.'); return true; }
+    if (gget(c[0], ny, c[2])) { toast(name + ' não cresce: há um bloco ' + (F.dir < 0 ? 'embaixo' : 'em cima') + ' da ponta.'); return true; }
+    if (F.tip === 'vine') {
+      var sides = {}, any = false; ['north', 'east', 'south', 'west'].forEach(function (h) { sides[h] = tp[h] === 'true' ? 'true' : 'false'; if (sides[h] === 'true') any = true; });
+      if (!any) { toast('Esta vinha só está presa no teto: no jogo, ela não desce sem um lado preso numa parede.'); return true; }
+      sides.up = 'false'; editSet(c[0], ny, c[2], cell('vine', sides));
+    } else {
+      var age = Math.min(25, (+tp.age || 0) + 1), cave = F.tip === 'cave_vines';
+      editSet(c[0], top, c[2], cave ? cell(F.body, { berries: tp.berries || 'false' }) : cell(F.body, {}));
+      editSet(c[0], ny, c[2], cave ? cell(F.tip, { age: String(age), berries: Math.random() < 0.11 ? 'true' : 'false' }) : cell(F.tip, { age: String(age) }));
+    }
+    var n = 1; while (isF(ny - F.dir * n)) n++;
+    toast(name + ' cresceu: ' + n + ' blocos de comprimento. Usar de novo cresce mais um; Shift + Usar encolhe.');
+    return true;
+  } finally { endBatch(); }
 }
 
 /* ---------- Água e lava escorrendo, como no jogo ---------- */
@@ -13333,7 +13379,7 @@ function openHelp() {
     '<span>Selecionar (<kbd>V</kbd>)</span><span>Clique em dois cantos para marcar uma área. Depois: <kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> recorta, <kbd>Delete</kbd> apaga e colando, as setas movem a prévia (↑ ↓ sobem e descem, ← → lados, Shift + ↑ ↓ frente e trás) e Enter cola onde ela está; o botão Substituir… troca um bloco por outro (ou por uma mistura com porcentagens, a do pincel de mistura) na área; Assentar no terreno… põe fundação até o chão, acerta o terreno em volta na altura da porta, abre um caminho e planta a vegetação do bioma; Girar com precisão… gira ou inclina em qualquer ângulo nos eixos X, Y e Z, com prévia (Enter aplica). Setas e <kbd>Page Up</kbd>/<kbd>Page Down</kbd> (ou as setas do aviso) movem os blocos da área para a frente, trás, lados, cima e baixo; <kbd>Shift</kbd> anda 5.</span>' +
     '<span>Biblioteca</span><span>Com uma área selecionada, <b>Salvar na biblioteca</b> guarda a construção com nome neste navegador. Projeto → Biblioteca de construções lista tudo para colar em qualquer projeto ou mundo, baixar como arquivo e importar.</span>' +
     '<span><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span>Colar: a cópia segue o mouse e o clique cola (pode colar várias vezes). <kbd>R</kbd> gira 90°, <kbd>F</kbd> espelha (leste e oeste), <kbd>Shift</kbd>+<kbd>F</kbd> espelha (norte e sul), <kbd>Esc</kbd> termina.</span>' +
-    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
+    '<span>Usar (<kbd>U</kbd>)</span><span>Abre e fecha portas, alçapões e portões; liga alavancas; muda a idade das plantações, o atraso do repetidor (1 a 4), o modo do comparador e afins. Numa muda, cogumelo ou fungo, faz a árvore crescer, como a farinha de osso (4 mudas em quadrado dão a árvore gigante). Numa vinha, ela cresce um bloco (a retorcida para cima, as outras para baixo); com <kbd>Shift</kbd>, encolhe. Na frente da estante entalhada, põe ou tira o livro do nicho clicado. Com <kbd>Shift</kbd>, a segunda opção do bloco (ex.: acender velas) ou a árvore grande. Num contêiner (baú, barril, funil…), escolhe o nível que o comparador lê.</span>' +
     '<span>Direção</span><span>Ao colocar, blocos com frente (fornalha, abóbora entalhada…) ficam de frente para você e troncos seguem a face clicada. Para mudar depois, use Girar (<kbd>T</kbd>) e clique no bloco; com <kbd>Shift</kbd> gira ao contrário.</span>' +
     '<span>Mapa do mundo</span><span>Projeto → Mapa do mundo (com um mundo aberto): o mundo visto de cima em tela cheia; o zoom traz mais detalhe (bem perto, as texturas). Terreno ou Biomas, grade dos chunks, o bioma debaixo do ponteiro e, no clique, X e Z do jogo e do Nether.</span>' +
     '<span>Mundo do jogo</span><span>Projeto → Abrir mundo do jogo: escolha o .mcworld (ou um .zip com o mundo) exportado do Bedrock, ou um .zip com a pasta de um mundo do Java (1.18 ou mais nova), marque no mapa uma área de até 512 × 512 (ou uma Área livre, desenhada no mapa) e edite. Exportar mundo gera uma cópia do mundo com as mudanças.</span>' +
