@@ -368,11 +368,11 @@ async function wioOpenFile(file, prog) {
     else if (n === 13 || n === 14) { d = (k.charCodeAt(8) | k.charCodeAt(9) << 8 | k.charCodeAt(10) << 16 | k.charCodeAt(11) << 24); tg = k.charCodeAt(12); if (n === 14) y = k.charCodeAt(13); }
     else return;
     if (d !== 0 && d !== 1 && d !== 2) return;
-    if ((y === null && tg !== 0x2c && tg !== 0x76) || (y !== null && tg !== 0x2f)) return;
+    if ((y === null && tg !== 0x2c && tg !== 0x76 && tg !== 0x30) || (y !== null && tg !== 0x2f)) return; // 0x30: chunk no formato antigo (src/legacy.js)
     var u = wioBytes(k.slice(0, 8)), dv = new DataView(u.buffer), x = dv.getInt32(0, true), z = dv.getInt32(4, true), ck = x + ',' + z;
     if (Math.abs(x) > 1875000 || Math.abs(z) > 1875000) return; // fora da borda do mundo (30 milhões de blocos): chave estranha, não é chunk
     var c = w.dims[d].get(ck); if (!c) { c = { x: x, z: z, ok: false, subs: [] }; w.dims[d].set(ck, c); }
-    if (y === null) c.ok = true; else c.subs.push(y > 127 ? y - 256 : y);
+    if (y === null) { c.ok = true; if (tg === 0x30) { c.leg = true; w.leg = (w.leg || 0) + 1; } } else c.subs.push(y > 127 ? y - 256 : y);
   });
   try {
     var pl = await ldbGet(db, '~local_player');
@@ -407,6 +407,8 @@ async function wioMap(dim, prog) {
   wio.patches.forEach(function (v, k) { if (!v || k.length !== (dim ? 14 : 10) || k.charCodeAt(dim ? 12 : 8) !== 0x2f) return; var u = new DataView(wioBytes(k.slice(0, 8)).buffer), y = k.charCodeAt(k.length - 1), ck = u.getInt32(0, true) + ',' + u.getInt32(4, true); if (!extra.has(ck)) extra.set(ck, []); extra.get(ck).push(y > 127 ? y - 256 : y); });
   for (var ci = 0; ci < cols.length; ci++) {
     var c = cols[ci], subs = c.subs.concat(extra.get(c.x + ',' + c.z) || []).filter(function (y, i, a) { return a.indexOf(y) === i; }).sort(function (a, b) { return b - a; }), left = 256, top = new Int16Array(256).fill(-32768), col = new Array(256), seenAir = new Uint8Array(256);
+    var lr = c.leg ? await wioGet(wioKey(c.x, c.z, dim, 0x30)) : null;
+    if (lr) { var lt = legTops(lr); for (var lq = 0; lq < 256; lq++) if (lt.v[lq]) { var tq = ((lq & 15) << 4) | (lq >> 4); top[tq] = lt.h[lq]; col[tq] = wioColor(lt.v[lq]); } subs = []; } // formato antigo (src/legacy.js)
     for (var si = 0; si < subs.length && left; si++) {
       var sy = subs[si]; if (dim === 1 && sy > 7) continue;
       var dec = null; try { var raw = await wioGet(wioKey(c.x, c.z, dim, 0x2f, sy)); dec = raw && subDecode(raw); } catch (e) {}
@@ -458,8 +460,16 @@ async function wioLoadArea(dim, x0, z0, w, d, prog) {
     if (prog && ++n % 16 === 0) prog(n, tot);
     if (!col || !col.ok) { miss++; continue; }
     var beds = await wioBeds(dim, cx, cz);
+    var legRaw = col.leg ? await wioGet(wioKey(cx, cz, dim, 0x30)) : null;
+    if (legRaw) { // formato antigo: um registro com a coluna inteira (src/legacy.js); já convertido, segue o caminho de baixo
+      legLoadColumn(legRaw, a, b, D.min);
+      (beds.list || []).forEach(function (e) { legFixEntity(e.o); });
+      bentLoadBedrock(beds.list, x0, D.min, z0);
+      continue;
+    }
     rsCmdLoadWorld(beds.list, x0, D.min, z0); // comandos dos blocos de comando da área (src/redstone4.js)
     try { var d3 = await wioGet(wioKey(cx, cz, dim, 0x2b)); if (d3 && d3.length > 512) bioFromWorld(d3, a, b); } catch (e) {} // bioma de cada coluna, para mostrar
+    if (col.leg) { var d2 = await wioGet(wioKey(cx, cz, dim, 0x2d)); if (d2 && d2.length >= 768) bioOrig.set(bioKey(a, b), d2.slice(512, 768)); } // mundo antigo já convertido pelo site: biomas 2D
     for (var ey = 0; ey < ns; ey++) { // todas as alturas: um pedaço criado ao editar (antes só ar) também conta
       var sy = ey + ms, raw = await wioGet(wioKey(cx, cz, dim, 0x2f, sy)); if (!raw) continue;
       var dec = subDecode(raw); if (!dec) { wio.legacy++; continue; }
@@ -493,6 +503,7 @@ async function wioCommit(prog) {
   var A = wio.area, D = wioDim(A.dim), ms = D.min >> 4, dim = A.dim, cols = new Map();
   wio.edited.forEach(function (s) { var p = s.split(','), k = p[0] + ',' + p[2]; if (!cols.has(k)) cols.set(k, []); cols.get(k).push(+p[1]); });
   var air = wioAir(), n = 0;
+  if (wio.leg && wio.legKeep) await legCommitKeep(cols, A, dim, res); // mundo antigo mantido antigo: as colunas antigas saem no formato antigo (src/legacy.js)
   for (var entry of cols) {
     var p = entry[0].split(','), ecx = +p[0], ecz = +p[1], cx = (A.x0 >> 4) + ecx, cz = (A.z0 >> 4) + ecz, ys = entry[1];
     if (prog) prog(++n, cols.size);
@@ -501,6 +512,7 @@ async function wioCommit(prog) {
       ys.forEach(function (ecy) { var ch = W.get(ckey(ecx, ecy, ecz)); if (ch) res.lost += ch.n; });
       continue;
     }
+    var legConv = col.leg && !wio.legKeep && !!(await wioGet(wioKey(cx, cz, dim, 0x30))); if (legConv) ys = legAllYs(ecx, ecz, ys); // convertendo: a coluna inteira sai no formato novo
     var beKey = wioKey(cx, cz, dim, 0x31), beRaw = await wioGet(beKey), beList = [];
     if (beRaw) try { beList = nbtList(beRaw); } catch (e) { beList = null; }
     var beds = new Map(); (beList || []).forEach(function (e) { if (e.o.id === 'Bed' && e.o.color != null) beds.set(e.o.x + ',' + e.o.y + ',' + e.o.z, e.o.color); });
@@ -544,6 +556,7 @@ async function wioCommit(prog) {
       // mundos antigos guardam somas de verificação dos sub-chunks: sem a chave, o jogo não confere
       var ck = wioKey(cx, cz, dim, 0x3b); if (wio.db.idx.has(ck)) wio.patches.set(ck, null);
     }
+    if (legConv) await legFinishConvert(cx, cz, dim, ecx, ecz, D);
   }
   wio.edited.clear(); bentDirty.clear();
   wio.maps[dim] = null;
@@ -595,7 +608,7 @@ async function wioZipOut(files, prog) {
 /* ---------- Sessão guardada no navegador (o arquivo do mundo, as mudanças gravadas e a área aberta) ---------- */
 function wioMeta() {
   var fl = {}; if (wio.files) wio.files.forEach(function (d, nm) { fl[nm] = b64(d); });
-  return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl };
+  return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl, legKeep: wio.legKeep, presLeg: wio.pres.map(function (e) { return e.leg == null ? null : e.leg; }) };
 }
 function wioSaveSession(withFile) {
   if (!wio) return Promise.resolve();
@@ -626,6 +639,7 @@ async function wioRestore() {
       else { wio.presMap.set(wioStr(raw), wio.pres.length); wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); }
     });
     if (pat && !kept) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
+    if (!kept && wio.leg) { wio.legKeep = meta.legKeep !== false; (meta.presLeg || []).forEach(function (c, i) { if (c != null && wio.pres[i]) { wio.pres[i].leg = c; wio.presMap.set('leg:' + c, i); } }); }
     if (meta.files && !kept) { wio.files = new Map(); Object.keys(meta.files).forEach(function (nm) { wio.files.set(nm, unb64(meta.files[nm])); }); if (meta.name) wio.name = meta.name; }
     var A = meta.area;
     await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
@@ -680,6 +694,7 @@ async function wioOpen(file) {
     if (!w.dims.some(function (m) { return m.size; })) throw new Error(w.java ? 'Este mundo do Java não tem chunks (pasta region vazia).' : 'Este mundo não tem chunks no formato atual do Bedrock.');
     // outro mundo que estava aberto é trocado por este (o que não foi exportado dele se perde)
     if (wio && (wio.patches.size || wio.edited.size)) setTimeout(function () { toast('O mundo anterior foi fechado sem exportar.', 6000); }, 4000);
+    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(); } // mundo no formato antigo: manter ou converter (src/legacy.js)
     wio = w;
     await wioSaveSession(true);
     busyEnd();
@@ -689,6 +704,7 @@ async function wioOpen(file) {
 async function wioCommitAll() {
   if (!wio || !wio.area || (!wio.edited.size && !wio.bioEdited.size)) return null;
   busy('Guardando as mudanças da área…', null);
+  if (wio.leg && !wio.legKeep) legBioToEdited(); // convertendo: um chunk antigo só com o bioma pintado também sai no formato novo
   try { var r = await wioCommit(function (i, n) { busy('Guardando as mudanças: ' + i + ' de ' + n + ' chunks', i / n); }); r.biomes = await bioCommit(); await wioSaveSession(false); return r; }
   finally { busyEnd(); }
 }
@@ -899,7 +915,8 @@ async function wioGoArea(dim, x0, z0, w, d, quiet) {
     if (!quiet) toast('Área carregada: ' + blockCount.toLocaleString('pt-BR') + ' blocos.' + (r.miss ? ' ' + r.miss + ' chunks ainda não gerados ficaram vazios.' : '') +
       (unk.length ? ' Blocos que o editor não conhece aparecem em roxo e voltam iguais para o mundo (' + unk.slice(0, 4).join(', ') + (unk.length > 4 ? '…' : '') + ').' : '') +
       (wio.legacy ? ' ' + wio.legacy + ' pedaços num formato antigo do jogo ficaram de fora (abra o mundo no jogo uma vez e exporte de novo).' : '') +
-      (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : ''), 10000);
+      (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : '') + (r0 && r0.notOld ? ' ' + r0.notOld + ' blocos que não existiam na versão antiga viraram ar.' : '') +
+      (wio.leg && !blockCount ? ' Esta área não tem chunks do mundo antigo: escolha outra no mapa.' : ''), 10000);
     return true;
   } catch (e) { toast(e.message || 'Não foi possível carregar a área.', 9000); return false; }
   finally { busyEnd(); }
@@ -916,7 +933,7 @@ async function wioExport() {
       var a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = nm; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
     }
-    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : ''), 12000);
+    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
   } catch (e) { reportErr(e); }
   finally { busyEnd(); }
 }

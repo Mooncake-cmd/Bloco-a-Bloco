@@ -13,7 +13,9 @@ var JW_DIMS = [
   { id: 1, name: 'Nether', min: 0, h: 256 },
   { id: 2, name: 'End', min: 0, h: 256 }
 ];
-function wioDim(d) { return (wio && wio.java ? JW_DIMS : WIO_DIMS)[d]; }
+var LEG_DIMS = WIO_DIMS.map(function (D) { return { id: D.id, name: D.name, min: 0, h: 128 }; }); // mundo antigo do Bedrock, mantido antigo (src/legacy.js)
+var LEG_CONV_DIMS = WIO_DIMS.map(function (D) { return { id: D.id, name: D.name, min: 0, h: D.id === 1 ? 128 : 256 }; }); // convertido: chunks da 1.17 (0 a 255; o jogo cria o que fica abaixo do 0)
+function wioDim(d) { return (wio && wio.java ? JW_DIMS : wio && wio.leg ? (wio.legKeep ? LEG_DIMS : LEG_CONV_DIMS) : WIO_DIMS)[d]; }
 var JW_REGION = /^(?:(DIM-1|DIM1)\/|dimensions\/minecraft\/(overworld|the_nether|the_end)\/)?region\/r\.(-?\d+)\.(-?\d+)\.mca$/;
 var JW_AIR = { air: 1, cave_air: 1, void_air: 1 };
 

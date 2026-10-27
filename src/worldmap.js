@@ -55,6 +55,7 @@ function wmChunkEditor(dim, cx, cz) {
 }
 async function wmChunkBedrock(dim, cx, cz, col) {
   var r = wmEmpty(), D = wioDim(dim), left = 256, seenAir = new Uint8Array(256);
+  if (col.leg) { var lr = await wioGet(wioKey(cx, cz, dim, 0x30)); if (lr) { var lt = legTops(lr); r.v.set(lt.v); r.h.set(lt.h); r.b.set(lt.b); return r; } } // chunk no formato antigo (src/legacy.js)
   var subs = col.subs.concat(wmExtra(dim).get(cx + ',' + cz) || []).filter(function (y, i, a) { return a.indexOf(y) === i; }).sort(function (a, b) { return b - a; });
   for (var si = 0; si < subs.length && left; si++) {
     var sy = subs[si]; if (dim === 1 && sy > 7) continue;

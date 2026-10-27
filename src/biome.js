@@ -383,6 +383,7 @@ async function bioCommit() {
   for (var k of wio.bioEdited) {
     var p = k.split(','), ecx = +p[0], ecz = +p[1], cx = (A.x0 >> 4) + ecx, cz = (A.z0 >> 4) + ecz, col = wio.dims[dim].get(cx + ',' + cz);
     if (!col || !col.ok) continue; // chunk não gerado: o jogo refaria o bioma ao gerar
+    if (col.leg) { n += await legBioKeep(k, cx, cz, dim); continue; } // mundo antigo: o bioma fica no próprio chunk (src/legacy.js)
     var hk = wioKey(cx, cz, dim, 0x2b), d3 = await wioGet(hk), r;
     if (d3 && d3.length >= 512) r = bioDecode3D(d3);
     else r = { hm: new Int16Array(256), subs: [] };
