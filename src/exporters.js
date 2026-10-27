@@ -333,7 +333,7 @@
 
   // Nome, estados e versão Bedrock de um bloco que não é forma (usado ao gravar num mundo do jogo)
   function bedrockEntry(blk, ori) { return { name: blk.bedrock, states: bedrockStates(blk, ori == null ? null : ori), version: blk.bst && blk.bst[0] }; }
-  const api = { exportSchem, exportMcstructure, bounds, NbtWriter, makeZip, bedrockEntry, crc32 };
+  const api = { exportSchem, exportMcstructure, bounds, NbtWriter, makeZip, bedrockEntry, crc32, gzip };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MCExport = api;
 })(typeof window !== 'undefined' ? window : globalThis);

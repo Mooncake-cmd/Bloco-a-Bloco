@@ -556,7 +556,8 @@ async function wioBuild(prog) {
   var ents = []; wio.patches.forEach(function (v, k) { ents.push([k, v]); });
   ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
   var files = [], pre = wio.prefix, zip = wio.zip;
-  zip.paths.forEach(function (p) { if (p.indexOf(pre) === 0 && !/(^|\/)LOCK$/.test(p)) files.push({ name: p.slice(pre.length), src: p }); });
+  zip.paths.forEach(function (p) { if (p.indexOf(pre) !== 0 || /(^|\/)LOCK$/.test(p)) return; var nm = p.slice(pre.length); files.push(wio.files && wio.files.has(nm) ? { name: nm, data: wio.files.get(nm) } : { name: nm, src: p }); }); // wio.files: o que o Editor NBT trocou (src/nbtedit.js)
+  if (wio.files) wio.files.forEach(function (d, nm) { if (!files.some(function (f) { return f.name === nm; })) files.push({ name: nm, data: d }); });
   if (ents.length) {
     var num = wio.db.maxFile + 1, nm = String(num); while (nm.length < 6) nm = '0' + nm;
     files.push({ name: 'db/' + nm + '.log', data: ldbLogWrite(ents, wio.db.maxSeq + 1) });
@@ -593,7 +594,8 @@ async function wioZipOut(files, prog) {
 
 /* ---------- Sessão guardada no navegador (o arquivo do mundo, as mudanças gravadas e a área aberta) ---------- */
 function wioMeta() {
-  return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }) };
+  var fl = {}; if (wio.files) wio.files.forEach(function (d, nm) { fl[nm] = b64(d); });
+  return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl };
 }
 function wioSaveSession(withFile) {
   if (!wio) return Promise.resolve();
@@ -624,6 +626,7 @@ async function wioRestore() {
       else { wio.presMap.set(wioStr(raw), wio.pres.length); wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); }
     });
     if (pat && !kept) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
+    if (meta.files && !kept) { wio.files = new Map(); Object.keys(meta.files).forEach(function (nm) { wio.files.set(nm, unb64(meta.files[nm])); }); if (meta.name) wio.name = meta.name; }
     var A = meta.area;
     await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
     var recs = await idbDo('readonly', function (st) { return st.getAll(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () { return []; });

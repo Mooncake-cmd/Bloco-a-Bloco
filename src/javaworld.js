@@ -442,7 +442,7 @@ async function jwBuild(prog) {
   var repl = new Map(), i = 0;
   for (var e of byRegion) { if (prog) prog(++i, byRegion.size + 1); repl.set(e[0], await jwRegionRebuild(e[0], e[1])); }
   var files = [], pre = wio.prefix, top = (wio.name || 'mundo').replace(/[\\\/:*?"<>|]/g, '_') + '/';
-  wio.zip.paths.forEach(function (p) { if (p.indexOf(pre) === 0 && !/(^|\/)session\.lock$/.test(p)) files.push(repl.has(p) ? { name: top + p.slice(pre.length), data: repl.get(p) } : { name: top + p.slice(pre.length), src: p }); });
+  wio.zip.paths.forEach(function (p) { if (p.indexOf(pre) === 0 && !/(^|\/)session\.lock$/.test(p)) { var rel = p.slice(pre.length), ov = wio.files && wio.files.get(rel); files.push(ov ? { name: top + rel, data: ov } : repl.has(p) ? { name: top + rel, data: repl.get(p) } : { name: top + rel, src: p }); } }); // wio.files: o Editor NBT (src/nbtedit.js)
   var out = await wioZipOut(files, prog);
   return { blob: out, keys: wio.patches.size };
 }

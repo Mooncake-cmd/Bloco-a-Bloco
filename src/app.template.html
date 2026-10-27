@@ -242,6 +242,16 @@ a.btn{display:inline-flex;align-items:center;color:var(--fg);text-decoration:non
 .mat .sw{display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:8px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
 kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--panel-2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;align-items:center}
+/* Editor NBT (src/nbtedit.js) */
+.nbetabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}.nbetabs .btn[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.nbebody{max-height:min(62vh,560px);overflow:auto;padding-right:4px}.nbebody h4{margin:12px 0 4px;font-size:13px}
+.dialog .nberow{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--fg)}.dialog .nberow input,.dialog .nberow select{height:30px}.dialog .nberow input[type=checkbox]{width:18px;height:18px}.dialog .nberow>span{min-width:0}.dialog .nberow input[type=number],.dialog .nberow input[type=text],.dialog .nberow select{width:170px;max-width:50%;flex:none}
+.nbecols{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));column-gap:16px}
+.nbechips{flex-wrap:wrap;gap:4px}.nbechips .btn{padding:2px 8px;font-size:12px}.nbefx{flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.nbeinv{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px}.nbearmor,.nbeoff{grid-template-columns:repeat(4,minmax(0,1fr));max-width:420px}
+.nbeslot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;padding:3px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-size:10px;cursor:pointer;overflow:hidden}
+.nbeslot.on{outline:2px solid var(--accent)}.nbeslot b{position:absolute;right:3px;bottom:1px;font-size:11px}.nbesw{width:18px;height:18px;border-radius:3px;border:1px solid rgba(0,0,0,.2)}
+.nbenm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nbeedit{flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:8px}
 #cmdBox{position:fixed;left:50%;bottom:122px;transform:translateX(-50%);z-index:59;width:min(560px,calc(100% - 32px));padding:6px 8px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
 #cmdBox .cmdrow{display:flex;align-items:center;gap:4px}#cmdBox .cmdsl{font-family:var(--font-mono);color:var(--muted);padding-left:2px}
 #cmdIn{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font-family:var(--font-mono);font-size:14px;padding:6px 2px;outline:none}
@@ -356,6 +366,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
           <button class="tbtn txt" id="openBtn" title=".json, .mcstructure, .schem ou .litematic">Abrir projeto ou estrutura…</button>
           <button class="tbtn txt" id="worldBtn">Abrir mundo do jogo (Bedrock ou Java)…</button>
           <button class="tbtn txt" id="wmapBtn">Mapa do mundo…</button>
+          <button class="tbtn txt" id="nbtBtn">Editor NBT…</button>
           <button class="tbtn txt" id="libBtn">Biblioteca de construções…</button>
           <button class="tbtn txt" id="histMenuBtn">Histórico (linha do tempo)…</button>
           <button class="tbtn txt" id="palMenuBtn">Paletas de blocos…</button>
@@ -2270,6 +2281,7 @@ $('packDirIn').addEventListener('change', async function (e) {
 /*%%SURF_JS%%*/
 /*%%TILT_JS%%*/
 /*%%CMD_JS%%*/
+/*%%NBTE_JS%%*/
 /*%%PROJ_JS%%*/
 /*%%ICONS_JS%%*/
 /*%%HOLO_JS%%*/
@@ -2642,6 +2654,7 @@ function openHelp() {
     '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo. Carregar área aqui carrega a área do tamanho dela (com folga); Colar aqui carrega e põe a estrutura no lugar marcado, para ajustar a altura com as setas, girar com R e colar com Enter.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
+    '<span>Editor NBT</span><span>Projeto → Editor NBT… (com um mundo do jogo aberto): nome, modo, dificuldade, hora, clima e regras do mundo; posição, vida, fome, experiência, efeitos e inventário do jogador. Vai no Exportar mundo; no Bedrock, as conquistas do mundo exportado ficam desativadas, como ao ligar os comandos.</span>' +
     '<span><kbd>/</kbd> <kbd>/</kbd></span><span>Caixa de comandos (também em Projeto → Comandos…): <code>delblock stone</code> apaga todos os blocos de pedra da seleção, ou do espaço inteiro sem seleção; <code>replace stone stone_bricks</code> troca, <code>drain</code> seca, <code>find chest</code> acha, <code>overlay snow</code> cobre, <code>smooth</code> suaviza e <code>naturalize</code> refaz as camadas do terreno; <code>hide oak_leaves</code> esconde um tipo de bloco só na tela, <code>unhide all</code> mostra tudo; <code>ajuda</code> lista os comandos</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
@@ -2678,6 +2691,7 @@ $('wmapBtn').addEventListener('click', function () { $('menu').open = false; ope
 $('worldIn').addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) wioOpen(f); });
 $('worldArea').addEventListener('click', function () { wioArea(); });
 $('hideAll').addEventListener('click', function () { cmdRun('unhide all'); });
+$('nbtBtn').addEventListener('click', function () { openNbtEditor(); });
 $('cmdBtn').addEventListener('click', function () { var m = $('cmdBtn').closest('details'); if (m) m.open = false; cmdOpen(); });
 $('worldUnder').addEventListener('click', function () { surfSet(!surfUnder); });
 wmPartsBind(); tiltBind(); cmdBind();
