@@ -10221,14 +10221,14 @@ function cmdBind() {
   var i = $('cmdIn'); if (!i) return;
   i.addEventListener('keydown', function (e) {
     e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); var r = cmdRun(i.value); if (r && !r.err) { i.value = ''; cmdPos = cmdHist.length; } }
+    if (e.key === 'Enter') { e.preventDefault(); var r = cmdRun(i.value); if (r && !r.err && !r.keep) { i.value = ''; cmdPos = cmdHist.length; } } // find fica na caixa: Enter de novo vai ao próximo
     else if (e.key === 'Escape') { e.preventDefault(); cmdClose(); }
     else if (e.key === 'Tab') { e.preventDefault(); cmdComplete(i); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); if (cmdPos > 0) { cmdPos--; i.value = cmdHist[cmdPos] || ''; } }
     else if (e.key === 'ArrowDown') { e.preventDefault(); if (cmdPos < cmdHist.length) { cmdPos++; i.value = cmdHist[cmdPos] || ''; } }
   });
   $('cmdX').addEventListener('click', cmdClose);
-  $('cmdGo').addEventListener('click', function () { var r = cmdRun($('cmdIn').value); if (r && !r.err) $('cmdIn').value = ''; $('cmdIn').focus(); });
+  $('cmdGo').addEventListener('click', function () { var r = cmdRun($('cmdIn').value); if (r && !r.err && !r.keep) $('cmdIn').value = ''; $('cmdIn').focus(); });
 }
 /* No teclado geral: / duas vezes abre a caixa (devolve true quando tratou a tecla) */
 function cmdKey(e) {
@@ -10288,6 +10288,266 @@ CMDS.unhide = {
     if (hideRules.length === before) return { msg: 'Esses blocos não estavam escondidos.' };
     hideChanged();
     return { msg: B.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ') + ' visível de novo.' };
+  }
+};
+
+/* ---------- Ajudas dos comandos de terreno ---------- */
+/* Lista de destinos com porcentagem: "stone_bricks" ou "70%stone_bricks,30%cracked_stone_bricks" (vírgula ou espaço);
+   sem porcentagem, partes iguais. Devolve { pick(), names } ou { err } */
+function cmdMix(words) {
+  var items = [], bad = [];
+  words.join(' ').split(/[,\s]+/).filter(Boolean).forEach(function (w) {
+    var m = /^(\d+(?:[.,]\d+)?)%(.+)$/.exec(w), pct = m ? +m[1].replace(',', '.') : null, nm = m ? m[2] : w;
+    var bi = blockByText(nm); if (bi === -1) bi = blockByText(nm.replace(/-/g, '_'));
+    if (bi === -1) bad.push(nm); else items.push([bi === -2 ? AIR_BI : bi, pct]);
+  });
+  if (bad.length) return { err: 'Bloco desconhecido: ' + bad.join(', ') + '. Use o nome do Java (o da barra de status), como stone_bricks.' };
+  if (!items.length) return { err: 'Falta o bloco novo.' };
+  var free = items.filter(function (it) { return it[1] == null; }).length, given = items.reduce(function (a, it) { return a + (it[1] || 0); }, 0);
+  if (given > 100.001) return { err: 'As porcentagens somam ' + given + '%: o máximo é 100%.' };
+  items.forEach(function (it) { if (it[1] == null) it[1] = free ? (100 - given) / free : 0; });
+  var tot = items.reduce(function (a, it) { return a + it[1]; }, 0); if (tot <= 0) return { err: 'As porcentagens somam 0%.' };
+  return {
+    pick: function () { var r = Math.random() * tot; for (var k = 0; k < items.length; k++) { r -= items[k][1]; if (r < 0) return items[k][0]; } return items[items.length - 1][0]; },
+    names: items.map(function (it) { return (items.length > 1 ? Math.round(it[1] * 10) / 10 + '% ' : '') + (it[0] === AIR_BI ? 'ar' : BLOCKS[it[0]].name); }).join(', ')
+  };
+}
+/* Edita sem a simetria repetir (os comandos já pegam tudo o que existe) e com a água parada; um passo de desfazer */
+function cmdEdit(label, fn) {
+  var saved = symBusy; symBusy = true; fluidStop(); beginBatch(label);
+  try { fn(); } finally { endBatch(); symBusy = saved; }
+}
+function cmdCols(sc, fn) { for (var z = sc.a[2]; z <= sc.b[2]; z++) for (var x = sc.a[0]; x <= sc.b[0]; x++) fn(x, z); }
+var cmdNatOf = null;
+/* Terreno natural: pedra, terra, grama, areia, cascalho, minérios... (o de "só a superfície" e o do pincel de bioma) */
+function cmdNat(bi) {
+  if (!cmdNatOf || cmdNatOf.length !== BLOCKS.length) { cmdNatOf = new Uint8Array(BLOCKS.length); BLOCKS.forEach(function (b, i) { if (!b.shape && b.java && (SURF_RE.test(b.java) || BIO_GROUND.test(b.java)) && !/glazed/.test(b.java)) cmdNatOf[i] = 1; }); }
+  return cmdNatOf[bi] === 1;
+}
+var CMD_SOIL = /^(grass_block|dirt|coarse_dirt|podzol|mycelium|rooted_dirt|mud|sand|red_sand|snow_block|moss_block|stone)$/; // o que o naturalize troca (o resto do terreno, como minério e andesito, fica)
+var CMD_SOFT = /^(water|lava)$/;
+function cmdJ(v) { return v ? BLOCKS[cellBlock(v)].java : ''; }
+function cmdAirish(v) { if (!v) return true; var j = cmdJ(v); return BIO_PLANT.test(j) || j === 'snow' || j === 'short_grass' || j === 'tall_grass'; }
+
+/* ---------- replace ---------- */
+CMDS.replace = {
+  use: 'replace <bloco> <novo> (ex.: replace stone 70%stone_bricks,30%cracked_stone_bricks)',
+  help: 'Troca um bloco (ou vários, separados por vírgula) por outro, ou por uma mistura com porcentagens, mantendo a direção. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    if (args.length < 2) return { err: 'Use: replace <bloco> <novo>. Ex.: replace oak_planks,birch_planks spruce_planks, ou replace stone 70%stone_bricks,30%cracked_stone_bricks.' };
+    var F = cmdBlocks([args[0]]); if (F.bad.length) return { err: 'Bloco desconhecido: ' + F.bad.join(', ') + '.' };
+    var T = cmdMix(args.slice(1)); if (T.err) return T;
+    var want = new Set(F.ok), sc = cmdScope(), list = [];
+    blocksInBox(sc.a[0], sc.a[1], sc.a[2], sc.b[0], sc.b[1], sc.b[2], function (x, y, z, v) { if (want.has(cellBlock(v))) list.push(x, y, z, v); });
+    var from = F.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ');
+    if (!list.length) return { msg: 'Nenhum bloco de ' + from + ' ' + sc.txt + '.' };
+    cmdEdit('replace ' + args.join(' '), function () { for (var k = 0; k < list.length; k += 4) { var nb = T.pick(); editSet(list[k], list[k + 1], list[k + 2], nb === AIR_BI ? 0 : convertCell(list[k + 3], nb)); } });
+    return { msg: 'Trocados ' + (list.length / 4).toLocaleString('pt-BR') + ' blocos de ' + from + ' por ' + T.names + ' ' + sc.txt + '. Ctrl+Z desfaz.' };
+  }
+};
+
+/* ---------- drain ---------- */
+var CMD_WET = /^(kelp|kelp_plant|seagrass|tall_seagrass|bubble_column)$/;
+CMDS.drain = {
+  use: 'drain [agua|lava]',
+  help: 'Tira toda a água e a lava (com algas, plantas marinhas e colunas de bolhas); drain agua ou drain lava tira só uma delas. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    var a = (args[0] || '').toLowerCase().replace('á', 'a'), w = !a || /^(agua|water)$/.test(a), l = !a || a === 'lava';
+    if (a && !w && !l) return { err: 'Use drain, drain agua ou drain lava.' };
+    var sc = cmdScope(), list = [], nw = 0, nl = 0;
+    blocksInBox(sc.a[0], sc.a[1], sc.a[2], sc.b[0], sc.b[1], sc.b[2], function (x, y, z, v) { var j = cmdJ(v); if ((w && (j === 'water' || CMD_WET.test(j))) || (l && j === 'lava')) { list.push(x, y, z); if (j === 'lava') nl++; else nw++; } });
+    if (!list.length) return { msg: 'Nada para secar ' + sc.txt + '.' };
+    cmdEdit('drain ' + args.join(' '), function () { for (var k = 0; k < list.length; k += 3) editSet(list[k], list[k + 1], list[k + 2], 0); });
+    return { msg: 'Secado ' + sc.txt + ': ' + [nw ? nw.toLocaleString('pt-BR') + ' de água (com plantas aquáticas)' : '', nl ? nl.toLocaleString('pt-BR') + ' de lava' : ''].filter(Boolean).join(' e ') + '. Ctrl+Z desfaz.' };
+  }
+};
+
+/* ---------- find ---------- */
+var cmdFindState = null; // { key, seen: Set } para o próximo find ir ao próximo bloco
+CMDS.find = {
+  use: 'find <bloco> [outro...]',
+  help: 'Leva a câmera ao bloco desse tipo mais perto do centro da tela; repetir o mesmo find vai ao próximo. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    if (!args.length) { if (!cmdFindState) return { err: 'Falta o bloco. Ex.: find chest.' }; args = cmdFindState.args; }
+    var B = cmdBlocks(args); if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '.' };
+    var want = new Set(B.ok), sc = cmdScope(), key = B.ok.join() + '|' + sc.a + sc.b;
+    if (!cmdFindState || cmdFindState.key !== key) cmdFindState = { key: key, args: args, seen: new Set() };
+    var S = cmdFindState, best = null, bd = Infinity, n = 0, c = [cam.tx, cam.ty, cam.tz];
+    blocksInBox(sc.a[0], sc.a[1], sc.a[2], sc.b[0], sc.b[1], sc.b[2], function (x, y, z, v) {
+      if (!want.has(cellBlock(v))) return; n++;
+      var i = idx(x, y, z); if (S.seen.has(i)) return;
+      var d = (x + 0.5 - c[0]) * (x + 0.5 - c[0]) + (y + 0.5 - c[1]) * (y + 0.5 - c[1]) + (z + 0.5 - c[2]) * (z + 0.5 - c[2]);
+      if (d < bd) { bd = d; best = [x, y, z]; }
+    });
+    var names = B.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ');
+    if (!n) { cmdFindState = null; return { msg: 'Nenhum bloco de ' + names + ' ' + sc.txt + '.' }; }
+    if (!best) { S.seen.clear(); return CMDS.find.run(args); } // já passou por todos: recomeça
+    S.seen.add(idx(best[0], best[1], best[2]));
+    teleportTo({ hit: best }); findMark(best);
+    var w = wio && wio.area ? wioWorldPos(best) : best;
+    return { msg: names + ' ' + S.seen.size + ' de ' + n + ' em ' + w.join(', ') + (n > 1 ? '. Enter de novo vai ao próximo.' : '.'), long: true, keep: true };
+  }
+};
+/* Uma caixa piscando em volta do bloco achado, por 2,5 s */
+var findBox = null, findTimer = 0;
+function findMark(c) {
+  if (!findBox) { findBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.12, 1.12, 1.12)), new THREE.LineBasicMaterial({ color: new THREE.Color(cssColor('--accent')), depthTest: false, transparent: true })); findBox.renderOrder = 9; scene.add(findBox); }
+  findBox.position.set(c[0] + 0.5, c[1] + 0.5, c[2] + 0.5); findBox.visible = true;
+  clearInterval(findTimer); var k = 0;
+  findTimer = setInterval(function () { k++; findBox.visible = k < 10 ? k % 2 === 0 : false; requestRender(); if (k >= 10) clearInterval(findTimer); }, 250);
+  requestRender();
+}
+
+/* ---------- overlay ---------- */
+CMDS.overlay = {
+  use: 'overlay <bloco> [espessura] (ex.: overlay snow, overlay 60%moss_carpet,40%air)',
+  help: 'Põe uma camada do bloco (ou de uma mistura) em cima de tudo o que dá para o céu: no topo de cada coluna, sobre o terreno, telhados e copas. Plantas pequenas no caminho saem. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    if (!args.length) return { err: 'Falta o bloco. Ex.: overlay snow, overlay moss_carpet, overlay 70%grass_block,30%coarse_dirt 1.' };
+    var th = 1; if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) th = Math.max(1, Math.min(16, +args.pop()));
+    var T = cmdMix(args); if (T.err) return T;
+    var sc = cmdScope(), put = [], cols = 0, top = Math.min(SY - 1, sel ? sel.b[1] + th : SY - 1);
+    cmdCols(sc, function (x, z) {
+      var y = sc.b[1];
+      while (y >= sc.a[1]) { var v = gget(x, y, z); if (v && !cmdAirish(v)) break; y--; }
+      if (y < sc.a[1]) return;
+      var j = cmdJ(gget(x, y, z)); if (CMD_SOFT.test(j)) return; // água e lava: não cobre
+      // a coluna tem de dar para o céu (nada sólido acima do espaço da seleção)
+      for (var yy = sc.b[1] + 1; yy < SY; yy++) { var w = gget(x, yy, z); if (w && !cmdAirish(w)) return; }
+      cols++;
+      for (var k = 1; k <= th && y + k <= top; k++) put.push(x, y + k, z, T.pick());
+    });
+    if (!put.length) return { msg: 'Nenhum topo descoberto ' + sc.txt + '.' };
+    var n = 0;
+    cmdEdit('overlay ' + args.join(' '), function () { for (var k = 0; k < put.length; k += 4) { if (put[k + 3] === AIR_BI) continue; var v = gget(put[k], put[k + 1], put[k + 2]); if (v && !cmdAirish(v)) continue; editSet(put[k], put[k + 1], put[k + 2], mkCell(put[k + 3])); n++; } });
+    return { msg: 'Camada de ' + T.names + (th > 1 ? ' (' + th + ' de espessura)' : '') + ' em ' + cols.toLocaleString('pt-BR') + ' colunas ' + sc.txt + ': ' + n.toLocaleString('pt-BR') + ' blocos. Ctrl+Z desfaz.' };
+  }
+};
+
+/* ---------- smooth ---------- */
+/* O terreno como mapa de alturas (o bloco natural mais alto de cada coluna, com só ar, plantas, folhas ou troncos em
+   cima); n passadas de média ponderada 5 × 5; cada coluna sobe com o bloco do topo dela (a grama coberta vira terra) ou
+   desce tirando terreno (o bloco do topo desce junto). Colunas com construção em cima ficam como estão, mas entram na
+   média, então o terreno em volta acompanha. */
+CMDS.smooth = {
+  use: 'smooth [passadas 1 a 10]',
+  help: 'Suaviza o terreno: arredonda degraus, picos e buracos. Mais passadas, mais liso. Mexe só no terreno natural; construções ficam. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    var it = args.length ? +args[0] : 2; if (!(it >= 1 && it <= 10)) return { err: 'Use smooth ou smooth <1 a 10> (passadas).' };
+    var sc = cmdScope(), w = sc.b[0] - sc.a[0] + 1, l = sc.b[2] - sc.a[2] + 1, H = new Float32Array(w * l), fixed = new Uint8Array(w * l), has = new Uint8Array(w * l), surf = new Uint32Array(w * l);
+    cmdCols(sc, function (x, z) {
+      var i = (z - sc.a[2]) * w + (x - sc.a[0]), y, v, j, blocked = false;
+      for (y = sc.b[1]; y >= sc.a[1]; y--) {
+        v = gget(x, y, z); if (!v) continue; j = cmdJ(v);
+        if (cmdAirish(v) || /leaves$|_log$|_stem$/.test(j)) { if (/_log$|_stem$/.test(j)) blocked = true; continue; }
+        if (cmdNat(cellBlock(v))) break;
+        blocked = true; // construção em cima
+      }
+      if (y < sc.a[1]) return;
+      has[i] = 1; H[i] = y; fixed[i] = blocked ? 1 : 0; surf[i] = gget(x, y, z);
+    });
+    var K = [1, 4, 6, 4, 1];
+    for (var p = 0; p < it; p++) {
+      var N = new Float32Array(H);
+      for (var z = 0; z < l; z++) for (var x = 0; x < w; x++) {
+        var i = z * w + x; if (!has[i] || fixed[i]) continue;
+        var s = 0, ws = 0;
+        for (var dz = -2; dz <= 2; dz++) for (var dx = -2; dx <= 2; dx++) { var X = x + dx, Z = z + dz; if (X < 0 || Z < 0 || X >= w || Z >= l) continue; var q = Z * w + X; if (!has[q]) continue; var k = K[dx + 2] * K[dz + 2]; s += H[q] * k; ws += k; }
+        N[i] = s / ws;
+      }
+      H = N;
+    }
+    var up = 0, down = 0, cols = 0, dirt = BY_JAVA.dirt;
+    cmdEdit('smooth ' + it, function () {
+      cmdCols(sc, function (x, z) {
+        var i = (z - sc.a[2]) * w + (x - sc.a[0]); if (!has[i] || fixed[i]) return;
+        var old = -1; for (var y = sc.b[1]; y >= sc.a[1]; y--) { var v = gget(x, y, z); if (v && cmdNat(cellBlock(v))) { old = y; break; } }
+        if (old < 0) return;
+        var want = Math.max(sc.a[1], Math.min(sc.b[1], Math.round(H[i]))), top = surf[i], tj = cmdJ(top);
+        if (want === old) return; cols++;
+        if (want > old) {
+          if (SURFACE.test(tj) && dirt != null) editSet(x, old, z, mkCell(dirt)); // a grama coberta vira terra
+          for (var y2 = old + 1; y2 <= want; y2++) { var c = gget(x, y2, z); if (c && !cmdAirish(c)) { want = y2 - 1; break; } editSet(x, y2, z, y2 === want ? top : (SURFACE.test(tj) && dirt != null ? mkCell(dirt) : top)); up++; }
+        } else {
+          var plant = gget(x, old + 1, z), pv = plant && cmdAirish(plant) ? plant : 0; if (pv) editSet(x, old + 1, z, 0);
+          for (var y3 = old; y3 > want; y3--) { var c2 = gget(x, y3, z); if (c2 && cmdNat(cellBlock(c2))) { editSet(x, y3, z, 0); down++; } }
+          if (SURFACE.test(tj)) editSet(x, want, z, top); // a grama desce junto
+          if (pv && !gget(x, want + 1, z)) editSet(x, want + 1, z, pv);
+        }
+      });
+    });
+    if (!cols) return { msg: 'O terreno ' + sc.txt.replace(/^na |^no /, 'da ') + ' já está liso (ou não há terreno natural).' };
+    return { msg: 'Terreno suavizado ' + sc.txt + ' (' + it + ' passada' + (it > 1 ? 's' : '') + '): ' + cols.toLocaleString('pt-BR') + ' colunas mudaram, ' + up.toLocaleString('pt-BR') + ' blocos postos e ' + down.toLocaleString('pt-BR') + ' tirados. Ctrl+Z desfaz.' };
+  }
+};
+
+/* ---------- naturalize ---------- */
+/* Em cada coluna, desce contando a profundidade dentro de cada trecho de terreno (a partir do ar, da água ou de uma
+   planta em cima). Com céu em cima: as camadas do bioma da coluna (bioRecipe, src/biome.js; sem bioma, grama e 3 de
+   terra), e pedra abaixo delas. Embaixo d'água: areia (até 3 de água) ou cascalho. Sob uma saliência rasa (até 4 blocos
+   de terreno em cima): terra. Fundo de caverna e o resto: pedra. Só troca o "solo" (grama, terra, areia, pedra, neve e
+   os blocos dados no comando); minérios, andesito, construções e o que não é terreno ficam. */
+var CMD_PLAIN = null;
+function cmdRecipe(x, z) {
+  var id = bioAt(x, z), b = id >= 0 ? BIO_BY_ID[id] : null;
+  if (!b) { if (CMD_PLAIN === null) CMD_PLAIN = { layers: ['grass_block', 'dirt', 'dirt', 'dirt'] }; return { R: CMD_PLAIN, id: -1 }; }
+  var R = bioRecipeCache[id] || (bioRecipeCache[id] = bioRecipe(b) || 0);
+  return { R: R || CMD_PLAIN || (CMD_PLAIN = { layers: ['grass_block', 'dirt', 'dirt', 'dirt'] }), id: id };
+}
+CMDS.naturalize = {
+  use: 'naturalize [bloco...] [plantas]',
+  help: 'Refaz as camadas do terreno: grama (ou a areia, a neve, o micélio do bioma) em cima, 3 de terra e pedra embaixo; fundo de água vira areia ou cascalho. Blocos a mais no comando também contam como terreno; plantas põe a vegetação do bioma. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    var plants = false, extra = [];
+    args = args.filter(function (a) { if (/^(plantas|plants|vegetacao|vegetação)$/i.test(a)) { plants = true; return false; } return true; });
+    if (args.length) { var B = cmdBlocks(args); if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '.' }; extra = B.ok; }
+    var ex = new Set(extra), soil = function (v) { if (!v) return false; var bi = cellBlock(v); return ex.has(bi) || CMD_SOIL.test(BLOCKS[bi].java); };
+    var terr = function (v) { return v && (ex.has(cellBlock(v)) || cmdNat(cellBlock(v))); };
+    var sc = cmdScope(), nether = !!(wio && wio.area && wio.area.dim === 1), changes = [], snows = [], plantCols = {}, cols = 0;
+    cmdCols(sc, function (x, z) {
+      var rc = cmdRecipe(x, z), R = rc.R, Ls = R.layers.map(function (L) { return typeof L === 'function' ? L() : L; });
+      // sky: céu em cima; water: água logo acima; covered: terreno já passado (a espessura de uma saliência);
+      // built: passou por uma construção (o terreno debaixo dela fica como está); d: profundidade no trecho atual
+      var sky = true, water = 0, covered = 0, built = false, d = -1, touched = false, rSky = false, rWater = 0, rCov = 0;
+      for (var y = SY - 1; y >= sc.a[1]; y--) {
+        var v = gget(x, y, z), j = cmdJ(v), inS = y <= sc.b[1];
+        if (!terr(v)) {
+          d = -1;
+          if (j === 'water') water++;
+          else if (!v || cmdAirish(v) || /leaves$/.test(j) || (nether && j === 'bedrock')) water = 0;
+          else if (j !== 'lava') { sky = false; built = true; water = 0; }
+          continue;
+        }
+        d++;
+        if (d === 0) { rSky = sky; rWater = water; rCov = covered; } // o trecho todo segue o que havia em cima dele
+        if (inS && !built && soil(v)) {
+          var nm;
+          if (rSky && rWater) nm = d < 3 ? (rWater <= 3 ? 'sand' : 'gravel') : 'stone';
+          else if (rSky) { nm = d < Ls.length ? Ls[d] : 'stone'; if (nm === 'mesa') nm = MESA_BANDS[((y % 16) + 16) % 16]; }
+          else nm = rCov <= 4 && d < 3 ? 'dirt' : 'stone';
+          if (nether && nm === 'stone') nm = 'netherrack';
+          var nv = cellFromName(nm); if (nv && nv !== v) { changes.push(x, y, z, nv); touched = true; }
+        }
+        if (inS && !built && rSky && !rWater && d === 0 && y + 1 < SY) {
+          if (R.snow && !gget(x, y + 1, z)) snows.push(x, y + 1, z);
+          if (plants) (plantCols[rc.id] = plantCols[rc.id] || []).push(x, z);
+        }
+        sky = false; covered++; water = 0;
+      }
+      if (touched) cols++;
+    });
+    if (!changes.length && !snows.length && !Object.keys(plantCols).length) return { msg: 'Nada a mudar ' + sc.txt + ': o terreno já está com as camadas, ou não há grama, terra, areia ou pedra' + (extra.length ? ' (nem dos blocos dados)' : '') + '.' };
+    var st = {};
+    cmdEdit('naturalize ' + args.concat(plants ? ['plantas'] : []).join(' '), function () {
+      for (var k = 0; k < changes.length; k += 4) editSet(changes[k], changes[k + 1], changes[k + 2], changes[k + 3]);
+      var sn = cellFromName('snow'); if (sn) for (k = 0; k < snows.length; k += 3) if (!gget(snows[k], snows[k + 1], snows[k + 2])) editSet(snows[k], snows[k + 1], snows[k + 2], sn);
+      if (plants) {
+        var plainId = (BIOMES.filter(function (b) { return b.n === 'plains'; })[0] || {}).id;
+        Object.keys(plantCols).forEach(function (id) { var bid = +id < 0 ? plainId : +id; if (bid != null) bioTerra(plantCols[id], bid, st); });
+      }
+    });
+    var T = st.terra;
+    return { msg: 'Terreno naturalizado ' + sc.txt + ': ' + (changes.length / 4).toLocaleString('pt-BR') + ' blocos trocados em ' + cols.toLocaleString('pt-BR') + ' colunas' + (snows.length ? ', ' + (snows.length / 3).toLocaleString('pt-BR') + ' de neve' : '') + (T ? ', ' + (T.plantas || 0) + ' plantas e ' + (T.arvores || 0) + ' árvores' : '') + '. Ctrl+Z desfaz.' };
   }
 };
 
@@ -13562,7 +13822,7 @@ function openHelp() {
     '<span>Estrutura no mapa</span><span>No mapa do mundo, Estrutura no mapa… põe um retângulo tracejado do tamanho de uma estrutura (da cópia, da biblioteca ou de um arquivo): arraste para mover, R gira; com o Y da base, diz se cabe na altura do mundo. Carregar área aqui carrega a área do tamanho dela (com folga); Colar aqui carrega e põe a estrutura no lugar marcado, para ajustar a altura com as setas, girar com R e colar com Enter.</span>' +
     '<span>Pincel de campo</span><span>Botão do anel na barra (depois de Tubos): discos, anéis, arcos, espirais, cascas e funis com um gradiente de blocos. Clique no centro, mova para o tamanho, clique de novo; <kbd>-</kbd> <kbd>+</kbd> mudam o raio, <kbd>Enter</kbd> grava e <kbd>Esc</kbd> cancela. Ajustes e gradiente… no aviso do canto.</span>' +
     '<span><kbd>Tab</kbd></span><span>Tela limpa: esconde as barras e a lista de blocos (as teclas continuam valendo)</span>' +
-    '<span><kbd>/</kbd> <kbd>/</kbd></span><span>Caixa de comandos (também em Projeto → Comandos…): <code>delblock stone</code> apaga todos os blocos de pedra da seleção, ou do espaço inteiro sem seleção; <code>hide oak_leaves</code> esconde um tipo de bloco só na tela, <code>unhide all</code> mostra tudo; <code>ajuda</code> lista os comandos</span>' +
+    '<span><kbd>/</kbd> <kbd>/</kbd></span><span>Caixa de comandos (também em Projeto → Comandos…): <code>delblock stone</code> apaga todos os blocos de pedra da seleção, ou do espaço inteiro sem seleção; <code>replace stone stone_bricks</code> troca, <code>drain</code> seca, <code>find chest</code> acha, <code>overlay snow</code> cobre, <code>smooth</code> suaviza e <code>naturalize</code> refaz as camadas do terreno; <code>hide oak_leaves</code> esconde um tipo de bloco só na tela, <code>unhide all</code> mostra tudo; <code>ajuda</code> lista os comandos</span>' +
     '<span>Abas</span><span>A barra no alto, como a do navegador: <b>+</b> abre uma aba nova (uma construção vazia), o clique troca, dois cliques na aba aberta renomeiam, o <b>×</b> (duas vezes) ou o botão do meio fecha. Cada aba guarda a sua construção, o histórico e o mundo do jogo com a área; copiar (Ctrl+C) numa aba e colar na outra funciona.</span></div>' +
     '<p>No toque: um dedo toca para usar a ferramenta e arrasta para girar; dois dedos movem e dão zoom. Formas usam dois toques: ponto inicial e ponto final. A bússola no chão mostra N, S, L (leste) e O (oeste).</p>' +
     '<p>Todas as funções, com imagens, estão no <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/guia/" target="_blank" rel="noopener">guia de uso completo</a>.</p>' +
