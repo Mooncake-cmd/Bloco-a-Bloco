@@ -622,6 +622,17 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td><code>ajuda</code></td><td>Lista os comandos.</td></tr>
     </tbody>
   </table></div>
+  <p><b>Limite de altura</b>, em qualquer comando: acrescente <code>&lt;69</code> para valer só da camada 69 para baixo, ou <code>&gt;69</code> para valer da 69 para cima (a camada 69 entra nos dois). Os dois juntos dão uma faixa. O Y é o da barra de status: com um mundo do jogo aberto, o Y do jogo (de −64 a 319).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Exemplo</th><th>O que faz</th></tr></thead>
+    <tbody>
+      <tr><td><code>delblock stone &lt;69</code></td><td>Apaga a pedra só da camada 69 para baixo.</td></tr>
+      <tr><td><code>delblock dirt &gt;69</code></td><td>Apaga a terra só da camada 69 para cima.</td></tr>
+      <tr><td><code>replace stone deepslate &gt;-10 &lt;10</code></td><td>Troca a pedra por ardósia só entre as camadas −10 e 10.</td></tr>
+      <tr><td><code>overlay snow &gt;90</code></td><td>Neve só nos topos a partir da camada 90 (o pico das montanhas). Com <code>&lt;</code>, a camada também não passa do limite.</td></tr>
+      <tr><td><code>hide stone &gt;60</code> / <code>unhide stone &gt;80</code></td><td>Esconde a pedra da 60 para cima; depois mostra de novo só a que está da 80 para cima.</td></tr>
+    </tbody>
+  </table></div>
   <div class="grid2">
     <figure><img src="img/naturalize-antes.jpg" alt="Um terreno todo de pedra cinza, em degraus, cortado ao meio para mostrar o interior, com um lago, uma saliência e uma casa de tábuas" width="972" height="718" loading="lazy"><figcaption>Antes: um terreno feito só de pedra (cortado ao meio com <code>hide</code> numa seleção, para ver as camadas).</figcaption></figure>
     <figure><img src="img/naturalize-depois.jpg" alt="O mesmo terreno depois do naturalize: à esquerda grama, três camadas de terra e pedra embaixo; à direita, pintada de deserto, areia, arenito e pedra" width="972" height="718" loading="lazy"><figcaption>Depois de <code>naturalize</code>: grama, terra e pedra; à direita (pintada de deserto com o Pincel de bioma), areia e arenito.</figcaption></figure>
@@ -629,6 +640,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <figure><img src="img/overlay.jpg" alt="O terreno todo coberto por uma camada de neve, inclusive o telhado da casa, menos o lago" width="972" height="718" loading="lazy"><figcaption><code>overlay snow</code>: neve no topo de tudo o que dá para o céu, menos na água.</figcaption></figure>
   </div>
   <ul class="plain">
+    <li>O limite pode ficar em qualquer lugar depois do nome do comando, com ou sem espaço (<code>&lt;69</code> ou <code>&lt; 69</code>; <code>&lt;=69</code> também vale). Com uma seleção, vale o pedaço da seleção dentro do limite. Se a faixa ficar toda fora do espaço (ou da seleção), a caixa avisa em vermelho e diz de que Y a que Y ele vai. <code>find</code>, <code>smooth</code>, <code>naturalize</code> e <code>drain</code> também respeitam o limite.</li>
     <li>Maiúsculas e minúsculas não fazem diferença: <code>HIDE Oak_Planks</code>, <code>UnHide All</code> e <code>hide oak_planks</code> valem igual.</li>
     <li>O nome do bloco é o do Java, o que aparece na barra de status (<code>stone_bricks</code>, <code>oak_leaves</code>); <code>minecraft:</code> na frente também vale. Um nome errado não apaga nada: a caixa avisa em vermelho.</li>
     <li><kbd>Tab</kbd> completa o nome do comando e o do bloco (com várias opções, a caixa lista as que servem). <kbd>↑</kbd> e <kbd>↓</kbd> trazem os comandos já usados (os últimos 50 ficam guardados no navegador). <kbd>Esc</kbd> fecha.</li>

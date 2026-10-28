@@ -10163,10 +10163,36 @@ function tiltBind() {
    Projeto → Comandos… (no celular, sem teclado). */
 var CMD_KEY = 'bloco-a-bloco-comandos', cmdHist = [], cmdPos = -1, cmdSlashAt = 0;
 try { cmdHist = JSON.parse(localStorage.getItem(CMD_KEY) || '[]') || []; } catch (e) {}
-/* A área de trabalho dos comandos: a seleção, se houver; senão o espaço inteiro (a construção ou a área do mundo) */
+/* Limite de altura de qualquer comando: "<69" (da camada 69 para baixo) e ">69" (da 69 para cima), em qualquer lugar
+   depois do nome; os dois juntos dão uma faixa. O Y é o mostrado na barra de status (o do jogo, com um mundo aberto).
+   cmdRun tira essas palavras antes de chamar o comando e guarda o limite em cmdY ({ lo, hi } no Y do editor). */
+var cmdY = null;
+function cmdYOff() { return wio && wio.area ? wioDim(wio.area.dim).min : 0; }
+function cmdYParse(words) {
+  var out = [], lo = null, hi = null, bad = null;
+  for (var k = 0; k < words.length; k++) {
+    var w = words[k];
+    if (/^[<>]=?$/.test(w) && k + 1 < words.length && /^-?\d+$/.test(words[k + 1])) w += words[++k]; // "< 69" com espaço
+    var m = /^([<>])=?(-?\d+)$/.exec(w);
+    if (!m) { if (/^[<>]/.test(w)) bad = w; out.push(w); continue; }
+    if (m[1] === '<') hi = hi == null ? +m[2] : Math.min(hi, +m[2]); else lo = lo == null ? +m[2] : Math.max(lo, +m[2]);
+  }
+  if (bad) return { err: 'Limite de altura inválido: ' + bad + '. Use <69 (da camada 69 para baixo) ou >69 (da 69 para cima).' };
+  return { words: out, y: lo == null && hi == null ? null : { lo: lo, hi: hi } };
+}
+function cmdYTxt() { var Y = cmdY; return !Y ? '' : Y.lo != null && Y.hi != null ? ' de Y ' + Y.lo + ' a ' + Y.hi : Y.hi != null ? ' de Y ' + Y.hi + ' para baixo' : ' de Y ' + Y.lo + ' para cima'; }
+/* A área de trabalho dos comandos: a seleção, se houver; senão o espaço inteiro (a construção ou a área do mundo),
+   cortada pelo limite de altura (empty: a faixa não cruza o espaço) */
 function cmdScope() {
-  if (sel) return { a: sel.a, b: sel.b, txt: 'na seleção' };
-  return { a: [0, 0, 0], b: [SX - 1, SY - 1, SZ - 1], txt: wio && wio.area ? 'na área do mundo carregada' : 'na construção inteira' };
+  var r = sel ? { a: sel.a.slice(), b: sel.b.slice(), txt: 'na seleção' } : { a: [0, 0, 0], b: [SX - 1, SY - 1, SZ - 1], txt: wio && wio.area ? 'na área do mundo carregada' : 'na construção inteira' };
+  if (cmdY) {
+    var off = cmdYOff();
+    if (cmdY.lo != null) r.a[1] = Math.max(r.a[1], cmdY.lo - off);
+    if (cmdY.hi != null) r.b[1] = Math.min(r.b[1], cmdY.hi - off);
+    r.txt += cmdYTxt(); r.lim = true;
+    if (r.a[1] > r.b[1]) { r.empty = true; r.a[1] = r.b[1] + 1; }
+  }
+  return r;
 }
 /* Blocos de uma lista de palavras (nome do Java, com ou sem "minecraft:"; espaço ou vírgula separam) */
 function cmdBlocks(args) {
@@ -10200,16 +10226,23 @@ var CMDS = {
   ajuda: {
     use: 'ajuda',
     help: 'Lista os comandos.',
-    run: function () { var seen = new Set(); return { msg: Object.keys(CMDS).filter(function (k) { if (seen.has(CMDS[k])) return false; seen.add(CMDS[k]); return true; }).map(function (k) { return '/' + CMDS[k].use; }).join(' · ') + ' (Esc fecha, ↑ ↓ histórico, Tab completa)', long: true }; }
+    run: function () { var seen = new Set(); return { msg: Object.keys(CMDS).filter(function (k) { if (seen.has(CMDS[k])) return false; seen.add(CMDS[k]); return true; }).map(function (k) { return '/' + CMDS[k].use; }).join(' · ') + ' · Limite de altura em qualquer comando: <69 (da camada 69 para baixo), >69 (para cima) ou os dois (>10 <69). (Esc fecha, ↑ ↓ histórico, Tab completa)', long: true }; }
   }
 };
 CMDS.help = CMDS.ajuda;
 function cmdRun(txt) {
   txt = String(txt || '').trim().replace(/^\/+/, ''); if (!txt) return;
   if (cmdHist[cmdHist.length - 1] !== txt) { cmdHist.push(txt); if (cmdHist.length > 50) cmdHist.shift(); try { localStorage.setItem(CMD_KEY, JSON.stringify(cmdHist)); } catch (e) {} }
-  var w = txt.split(/\s+/), name = w[0].toLowerCase(), C = CMDS[name], r;
+  var w = txt.split(/\s+/), name = w[0].toLowerCase(), C = CMDS[name], r, P = cmdYParse(w.slice(1));
   if (!C) r = { err: 'Comando desconhecido: ' + name + '. Digite ajuda para ver a lista.' };
-  else { try { r = C.run(w.slice(1)) || {}; } catch (e) { r = { err: e.message || String(e) }; } }
+  else if (P.err) r = P;
+  else {
+    cmdY = P.y;
+    try {
+      var sc = cmdY && cmdScope();
+      r = sc && sc.empty && C !== CMDS.unhide ? { err: 'A faixa' + cmdYTxt() + ' fica fora ' + (sel ? 'da seleção' : 'do espaço') + ' (vai de Y ' + ((sel ? sel.a[1] : 0) + cmdYOff()) + ' a ' + ((sel ? sel.b[1] : SY - 1) + cmdYOff()) + ').' } : C.run(P.words) || {};
+    } catch (e) { r = { err: e.message || String(e) }; } finally { cmdY = null; }
+  }
   cmdShow(r);
   if (!r.err) { updateStatus(); requestRender(); }
   return r;
@@ -10286,7 +10319,7 @@ CMDS.hide = {
   run: function (args) {
     if (!args.length) return { err: 'Falta o bloco. Ex.: hide oak_leaves (ou hide oak_leaves glass).' };
     var B = cmdBlocks(args); if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '. Use o nome do Java (o da barra de status), como stone_bricks.' };
-    var sc = cmdScope(), box = sel ? { a: sel.a.slice(), b: sel.b.slice() } : null, n = 0;
+    var sc = cmdScope(), box = sel || sc.lim ? { a: sc.a.slice(), b: sc.b.slice() } : null, n = 0;
     B.ok.forEach(function (bi) {
       if (!box) hideRules = hideRules.filter(function (r) { return r.bi !== bi; }); // o espaço inteiro engole as áreas
       else if (hideRules.some(function (r) { return r.bi === bi && !r.a; })) return; // já escondido em tudo
@@ -10303,8 +10336,27 @@ CMDS.unhide = {
   run: function (args) {
     if (!args.length) return { err: 'Falta o bloco (ou all). Ex.: unhide oak_leaves, unhide all.' };
     if (!hideRules.length) return { msg: 'Nenhum bloco está escondido.' };
-    if (args.length === 1 && args[0].toLowerCase() === 'all') { hideRules = []; hideChanged(); return { msg: 'Todos os blocos estão visíveis de novo.' }; }
-    var B = cmdBlocks(args); if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '.' };
+    var all = args.length === 1 && args[0].toLowerCase() === 'all', B = all ? { ok: hideRules.map(function (r) { return r.bi; }), bad: [] } : cmdBlocks(args);
+    if (B.bad.length) return { err: 'Bloco desconhecido: ' + B.bad.join(', ') + '.' };
+    if (cmdY) { // só na faixa de altura (e na seleção, se houver): o resto continua escondido
+      var sc = cmdScope(), out = [], hit = false;
+      hideRules.forEach(function (r) {
+        if (B.ok.indexOf(r.bi) < 0) { out.push(r); return; }
+        var a = r.a || [0, 0, 0], b = r.b || [SX - 1, SY - 1, SZ - 1];
+        if (sc.empty || a[0] > sc.b[0] || b[0] < sc.a[0] || a[1] > sc.b[1] || b[1] < sc.a[1] || a[2] > sc.b[2] || b[2] < sc.a[2]) { out.push(r); return; }
+        hit = true;
+        // o que sobra da caixa da regra fora da caixa mostrada: até 6 pedaços (embaixo, em cima, e os quatro lados)
+        var lo = Math.max(a[1], sc.a[1]), hi = Math.min(b[1], sc.b[1]), x0 = Math.max(a[0], sc.a[0]), x1 = Math.min(b[0], sc.b[0]);
+        var add = function (p, q) { if (p[0] <= q[0] && p[1] <= q[1] && p[2] <= q[2]) out.push({ bi: r.bi, a: p, b: q }); };
+        add([a[0], a[1], a[2]], [b[0], lo - 1, b[2]]); add([a[0], hi + 1, a[2]], [b[0], b[1], b[2]]);
+        add([a[0], lo, a[2]], [x0 - 1, hi, b[2]]); add([x1 + 1, lo, a[2]], [b[0], hi, b[2]]);
+        add([x0, lo, a[2]], [x1, hi, Math.max(a[2], sc.a[2]) - 1]); add([x0, lo, Math.min(b[2], sc.b[2]) + 1], [x1, hi, b[2]]);
+      });
+      if (!hit) return { msg: 'Nada escondido ' + sc.txt + '.' };
+      hideRules = out; hideChanged();
+      return { msg: (all ? 'Todos os blocos' : B.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ')) + ' visíve' + (all || B.ok.length > 1 ? 'is' : 'l') + ' de novo ' + sc.txt + '.' };
+    }
+    if (all) { hideRules = []; hideChanged(); return { msg: 'Todos os blocos estão visíveis de novo.' }; }
     var before = hideRules.length; hideRules = hideRules.filter(function (r) { return B.ok.indexOf(r.bi) < 0; });
     if (hideRules.length === before) return { msg: 'Esses blocos não estavam escondidos.' };
     hideChanged();
@@ -10427,7 +10479,7 @@ CMDS.overlay = {
     if (!args.length) return { err: 'Falta o bloco. Ex.: overlay snow, overlay moss_carpet, overlay 70%grass_block,30%coarse_dirt 1.' };
     var th = 1; if (args.length > 1 && /^\d+$/.test(args[args.length - 1])) th = Math.max(1, Math.min(16, +args.pop()));
     var T = cmdMix(args); if (T.err) return T;
-    var sc = cmdScope(), put = [], cols = 0, top = Math.min(SY - 1, sel ? sel.b[1] + th : SY - 1);
+    var sc = cmdScope(), put = [], cols = 0, top = Math.min(SY - 1, cmdY && cmdY.hi != null ? sc.b[1] : sel ? sel.b[1] + th : SY - 1); // com <Y, a camada também fica dentro do limite
     cmdCols(sc, function (x, z) {
       var y = sc.b[1];
       while (y >= sc.a[1]) { var v = gget(x, y, z); if (v && !cmdAirish(v)) break; y--; }
