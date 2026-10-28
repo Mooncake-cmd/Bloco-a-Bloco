@@ -1,7 +1,7 @@
 /* ---------- Comandos: uma caixa de texto discreta (/ duas vezes) ---------- */
 /* Apertar / duas vezes seguidas (em até meio segundo) abre a caixa embaixo da tela, acima da hotbar. Enter executa,
-   Esc fecha, ↑ e ↓ andam pelos comandos já usados (guardados no navegador), Tab completa o nome do comando ou do
-   bloco. Os comandos ficam em CMDS: cada um tem a ajuda (uso e descrição) e a função que recebe as palavras depois
+   Esc fecha, ↑ e ↓ andam pelos comandos já usados (guardados no navegador); enquanto se digita, uma lista sugere o
+   comando ou o bloco, e Tab completa (cmdSuggest). Os comandos ficam em CMDS: cada um tem a ajuda (uso e descrição) e a função que recebe as palavras depois
    do nome. A barra no começo é opcional ("/delblock stone" e "delblock stone" valem igual). Também abre pelo menu
    Projeto → Comandos… (no celular, sem teclado). */
 var CMD_KEY = 'bloco-a-bloco-comandos', cmdHist = [], cmdPos = -1, cmdSlashAt = 0;
@@ -97,33 +97,70 @@ function cmdShow(r) {
 }
 function cmdOpen() {
   var b = $('cmdBox'); if (!b) return;
-  b.hidden = false; cmdPos = cmdHist.length;
+  b.hidden = false; cmdPos = cmdHist.length; cmdSug.list = []; cmdSugDraw();
   var i = $('cmdIn'); i.value = ''; $('cmdOut').textContent = 'Digite um comando (ajuda lista todos). ' + (sel ? 'Vale para a seleção.' : 'Sem seleção: vale para ' + (wio && wio.area ? 'a área do mundo inteira.' : 'a construção inteira.')); $('cmdOut').className = '';
   setTimeout(function () { i.focus(); }, 0);
 }
 function cmdClose() { var b = $('cmdBox'); if (b && !b.hidden) { b.hidden = true; $('cmdIn').blur(); } }
-/* Tab: completa o comando (primeira palavra) ou o bloco (as outras) */
-function cmdComplete(i) {
-  var v = i.value, m = /(\S*)$/.exec(v), w = m[1], first = !/\s/.test(v.replace(/^\/+/, '').trim()) && !/\s$/.test(v);
-  var pool = first ? Object.keys(CMDS) : BLOCKS.filter(function (b) { return !b.hide && !b.isAir; }).map(function (b) { return b.java; });
-  var lw = w.replace(/^\/+/, '').toLowerCase(), hits = pool.filter(function (n) { return n.indexOf(lw) === 0; });
-  if (!hits.length) hits = pool.filter(function (n) { return n.indexOf(lw) >= 0; });
-  if (!hits.length) { $('cmdOut').textContent = 'Nada começa com “' + lw + '”.'; return; }
-  var pre = hits.reduce(function (a, b) { var k = 0; while (k < a.length && a[k] === b[k]) k++; return a.slice(0, k); });
-  var rep = hits.length === 1 ? hits[0] + ' ' : pre.length > lw.length ? pre : w.replace(/^\/+/, '');
-  i.value = v.slice(0, v.length - w.length) + (first && /^\//.test(w) ? '/' : '') + rep;
-  if (hits.length > 1) $('cmdOut').textContent = hits.slice(0, 12).join('  ') + (hits.length > 12 ? '  … (+' + (hits.length - 12) + ')' : '');
+/* Sugestões enquanto digita: uma lista em cima da caixa com o que serve para a palavra sendo digitada (o nome do
+   comando na primeira; o bloco nas outras, também depois de vírgula ou de "70%"). O que começa com o texto vem antes
+   (do nome mais curto ao mais longo), depois o que tem uma palavra começando com ele (oak_planks para "pla"), depois o que
+   só contém. Tab (ou clique) põe a sugestão marcada; ↑ e ↓ mudam a
+   marcada enquanto a lista está aberta (fechada, andam pelo histórico); Esc fecha a lista. */
+var CMD_EXTRA = { unhide: ['all'], drain: ['agua', 'lava'], naturalize: ['plantas'] }, cmdSug = { list: [], at: 0, from: 0, to: 0 };
+var cmdBlockNames = null;
+function cmdPart(v) { // a palavra (ou o pedaço dela) sendo digitada no fim: [início, texto, é a primeira palavra]
+  var t = v.replace(/^\s*\/*/, ''), lead = v.length - t.length, first = !/\s/.test(t);
+  var m = /([^\s,%]*)$/.exec(v), w = m[1];
+  return { from: v.length - w.length, w: w.toLowerCase().replace(/^minecraft:/, ''), first: first, lead: lead, cmd: t.split(/\s+/)[0].toLowerCase() };
+}
+function cmdSuggest(v) {
+  var P = cmdPart(v), w = P.w;
+  if (!w || /^[<>=\-\d]/.test(w)) return { list: [], P: P };
+  var pool;
+  if (P.first) pool = Object.keys(CMDS);
+  else {
+    if (!cmdBlockNames || cmdBlockNames.n !== BLOCKS.length) { cmdBlockNames = BLOCKS.filter(function (b) { return !b.hide && !b.isAir && b.java; }).map(function (b) { return b.java; }); cmdBlockNames.push('air'); cmdBlockNames.n = BLOCKS.length; }
+    pool = (CMD_EXTRA[P.cmd] || []).concat(cmdBlockNames);
+  }
+  var pre = [], part = [], mid = [];
+  pool.forEach(function (n) { var k = n.indexOf(w); if (k === 0) pre.push(n); else if (k > 0) (n.indexOf('_' + w) >= 0 ? part : mid).push(n); }); // part: uma palavra do nome começa com o texto (oak_planks para "pla")
+  var by = function (a, b) { return a.length - b.length || (a < b ? -1 : 1); };
+  var list = pre.sort(by).concat(part.sort(by), mid.sort(by)).filter(function (n, i, a) { return a.indexOf(n) === i; });
+  if (list.length === 1 && list[0] === w) list = []; // já está completo
+  return { list: list, P: P };
+}
+function cmdSugShow() {
+  var i = $('cmdIn'), box = $('cmdSug'); if (!i || !box) return;
+  var r = cmdSuggest(i.value); cmdSug.list = r.list; cmdSug.at = 0; cmdSug.from = r.P.from;
+  cmdSugDraw();
+}
+function cmdSugDraw() {
+  var box = $('cmdSug'); if (!box) return;
+  var L = cmdSug.list; box.hidden = !L.length; if (!L.length) { box.innerHTML = ''; return; }
+  var s0 = Math.max(0, Math.min(cmdSug.at - 3, L.length - 8)), shown = L.slice(s0, s0 + 8);
+  box.innerHTML = shown.map(function (n, k) { return '<button type="button" class="cmds' + (s0 + k === cmdSug.at ? ' on' : '') + '" data-i="' + (s0 + k) + '">' + esc(n) + '</button>'; }).join('') +
+    (L.length > 8 ? '<span class="cmdmore">' + (cmdSug.at + 1) + ' de ' + L.length + '</span>' : '');
+}
+function cmdSugPick(k) {
+  var i = $('cmdIn'), n = cmdSug.list[k]; if (!n) return;
+  var v = i.value, P = cmdPart(v);
+  i.value = v.slice(0, P.from) + n + ' ';
+  cmdSug.list = []; cmdSugDraw(); i.focus();
 }
 function cmdBind() {
   var i = $('cmdIn'); if (!i) return;
   i.addEventListener('keydown', function (e) {
     e.stopPropagation();
-    if (e.key === 'Enter') { e.preventDefault(); var r = cmdRun(i.value); if (r && !r.err && !r.keep) { i.value = ''; cmdPos = cmdHist.length; } } // find fica na caixa: Enter de novo vai ao próximo
-    else if (e.key === 'Escape') { e.preventDefault(); cmdClose(); }
-    else if (e.key === 'Tab') { e.preventDefault(); cmdComplete(i); }
+    if (e.key === 'Enter') { e.preventDefault(); cmdSug.list = []; cmdSugDraw(); var r = cmdRun(i.value); if (r && !r.err && !r.keep) { i.value = ''; cmdPos = cmdHist.length; } } // find fica na caixa: Enter de novo vai ao próximo
+    else if (e.key === 'Escape') { e.preventDefault(); if (cmdSug.list.length) { cmdSug.list = []; cmdSugDraw(); } else cmdClose(); }
+    else if (e.key === 'Tab') { e.preventDefault(); if (!cmdSug.list.length) cmdSugShow(); if (cmdSug.list.length) cmdSugPick(cmdSug.at); else $('cmdOut').textContent = 'Nenhum comando ou bloco com “' + cmdPart(i.value).w + '”.'; }
+    else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && cmdSug.list.length) { e.preventDefault(); var n = cmdSug.list.length; cmdSug.at = (cmdSug.at + (e.key === 'ArrowUp' ? n - 1 : 1)) % n; cmdSugDraw(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); if (cmdPos > 0) { cmdPos--; i.value = cmdHist[cmdPos] || ''; } }
     else if (e.key === 'ArrowDown') { e.preventDefault(); if (cmdPos < cmdHist.length) { cmdPos++; i.value = cmdHist[cmdPos] || ''; } }
   });
+  i.addEventListener('input', cmdSugShow);
+  $('cmdSug').addEventListener('mousedown', function (e) { var b = e.target.closest('.cmds'); if (!b) return; e.preventDefault(); cmdSugPick(+b.dataset.i); });
   $('cmdX').addEventListener('click', cmdClose);
   $('cmdGo').addEventListener('click', function () { var r = cmdRun($('cmdIn').value); if (r && !r.err && !r.keep) $('cmdIn').value = ''; $('cmdIn').focus(); });
 }

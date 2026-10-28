@@ -255,6 +255,7 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 #cmdBox{position:fixed;left:50%;bottom:122px;transform:translateX(-50%);z-index:59;width:min(560px,calc(100% - 32px));padding:6px 8px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
 #cmdBox .cmdrow{display:flex;align-items:center;gap:4px}#cmdBox .cmdsl{font-family:var(--font-mono);color:var(--muted);padding-left:2px}
 #cmdIn{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font-family:var(--font-mono);font-size:14px;padding:6px 2px;outline:none}
+#cmdSug{display:flex;flex-wrap:wrap;gap:3px;padding:2px 2px 5px;border-bottom:1px solid var(--line);margin-bottom:2px}#cmdSug .cmds{font:12px var(--font-mono);padding:3px 7px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}#cmdSug .cmds.on{background:var(--accent);border-color:var(--accent);color:#fff}#cmdSug .cmdmore{color:var(--muted);align-self:center;padding:0 4px}
 #cmdOut{color:var(--muted);padding:2px 4px 0;min-height:14px;overflow-wrap:anywhere}#cmdOut.err{color:var(--danger)}
 #toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:60;padding:8px 14px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:13px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.show{opacity:1}
@@ -424,7 +425,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
     <div id="list"></div>
   </aside>
 </div>
-<div id="cmdBox" hidden><div class="cmdrow"><span class="cmdsl">/</span><input type="text" id="cmdIn" autocomplete="off" spellcheck="false" aria-label="Comando" placeholder="delblock stone"><button class="tbtn txt" id="cmdGo" title="Enter">Executar</button><button class="tbtn" id="cmdX" title="Esc" aria-label="Fechar">×</button></div><div id="cmdOut"></div></div>
+<div id="cmdBox" hidden><div id="cmdSug" hidden></div><div class="cmdrow"><span class="cmdsl">/</span><input type="text" id="cmdIn" autocomplete="off" spellcheck="false" aria-label="Comando" placeholder="delblock stone"><button class="tbtn txt" id="cmdGo" title="Enter">Executar</button><button class="tbtn" id="cmdX" title="Esc" aria-label="Fechar">×</button></div><div id="cmdOut"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="busy" role="status" aria-live="polite" hidden><div class="bl"><span class="sp"></span><span id="busyTxt"></span></div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="overlayRoot"></div>

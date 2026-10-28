@@ -35,10 +35,17 @@ eval(fs.readFileSync(__dirname + '/demo.inc', 'utf8'));
   await ev(`document.getElementById('cmdIn').value = ''`); await ev(`cmdShow({ msg: 'Apagados ${n0} blocos de ' + BLOCKS[BY_JAVA['${leaves}']].name + ' na construção inteira. Ctrl+Z desfaz.', long: true })`);
   await p.keyboard.type('delblock oak_fence'); await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(1200);
   await p.screenshot({ path: path.join(OUT, 'comandos.jpg'), type: 'jpeg', quality: 84, clip: { x: 0, y: 54, width: 972, height: 718 } });
-  await p.keyboard.press('Escape'); console.log('Esc fecha:', await ev("document.getElementById('cmdBox').hidden"));
+  await p.keyboard.press('Escape'); console.log('Esc fecha a lista:', await ev("document.getElementById('cmdSug').hidden"), '| caixa aberta:', !(await ev("document.getElementById('cmdBox').hidden")));
+  await p.keyboard.press('Escape'); console.log('Esc de novo fecha a caixa:', await ev("document.getElementById('cmdBox').hidden"));
   await p.keyboard.press('Control+z'); console.log('Ctrl+Z:', await count(leaves), 'folhas de volta');
   // com seleção: só dentro dela
   const r = await ev(`(function(){ var bi = BY_JAVA['${leaves}'], lo = null; forEachBlock(function (x, y, z, v) { if (cellBlock(v) === bi && (!lo || y > lo[1])) lo = [x, y, z]; }); sel = selFrom([lo[0] - 1, lo[1], lo[2] - 1], [lo[0] + 1, lo[1], lo[2] + 1]); var inBox = 0; blocksInBox(sel.a[0], sel.a[1], sel.a[2], sel.b[0], sel.b[1], sel.b[2], function (x, y, z, v) { if (cellBlock(v) === bi) inBox++; }); var r = cmdRun('/delblock ${leaves} oak_log'); return inBox + ' na seleção; ' + r.msg; })()`);
   console.log('seleção:', r, '| sobraram', await count(leaves));
+  // sugestões enquanto digita: "delblock dio" lista os dioritos; Tab põe o marcado
+  await ev('sel = null'); await p.keyboard.press('/'); await p.keyboard.press('/'); await p.waitForTimeout(300); await p.keyboard.type('delblock dio'); await p.waitForTimeout(400);
+  console.log('sugestões:', await p.$$eval('#cmdSug .cmds', a => a.map(x => x.textContent).join(' ')));
+  const bb = await (await p.$('#cmdBox')).boundingBox();
+  await p.screenshot({ path: path.join(OUT, 'comandos-sugestoes.jpg'), type: 'jpeg', quality: 88, clip: { x: bb.x - 8, y: bb.y - 8, width: bb.width + 16, height: bb.height + 16 } });
+  await p.keyboard.press('Tab'); console.log('Tab:', JSON.stringify(await ev("document.getElementById('cmdIn').value")));
   console.log('ok comandos', errs); await b.close();
 })();
