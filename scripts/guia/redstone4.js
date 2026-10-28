@@ -43,8 +43,9 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   console.log('ejetor', await ev(`[cellName(gget(13,2,10)), cellName(gget(13,3,10)), [8,9,10].map(function(x){return cellName(gget(x,1,15))}).join(','), cellName(gget(12,1,15)), 'baú ' + rsLevel(7,2,20,'chest'), cellName(gget(10,2,20))].join(' | ')`));
   // 3. janela de conteúdo do liberador
   await ev(`useAt([6, 2, 10], false, null)`); await p.waitForTimeout(400);
+  await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(300);
   let dlg = await p.$('.dialog'); await dlg.screenshot({ path: path.join(OUT, 'redstone-conteudo.jpg'), type: 'jpeg', quality: 85 });
-  await p.click('#fillNo');
+  await p.click('#beCancel');
   // 4. bloco de comando: impulso que põe ouro e uma corrente condicional
   await clear();
   await build([[10, 1, 14, 'command_block[facing=east]'], [11, 1, 14, 'chain_command_block[facing=east,conditional=true]'], [10, 1, 13, 'stone_button[face=floor,facing=north]']]);

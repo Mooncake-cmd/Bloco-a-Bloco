@@ -135,6 +135,7 @@ body.walking #viewport canvas{cursor:none}
 .begrid{display:grid;grid-template-columns:repeat(9,40px);gap:3px;margin:6px 0;max-width:100%;overflow-x:auto}
 .beslot{position:relative;width:40px;height:40px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2)}
 .beslot .sw{position:absolute;inset:6px;width:auto;height:auto;border-radius:3px;image-rendering:pixelated;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.beedit .beslot{cursor:pointer;padding:0;color:inherit}.beedit .beslot.on{outline:2px solid var(--accent);outline-offset:-2px}.beedrow{flex-wrap:wrap;align-items:center;gap:4px}.befill{margin-top:8px}.beslot .beab{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 10px var(--font-mono);font-style:normal;color:#fff;text-shadow:0 1px 2px #000}.beedrow .beq{display:flex;flex-direction:row;align-items:center;gap:6px;margin:0}.befill summary{cursor:pointer;color:var(--muted)}
 .beslot b{position:absolute;right:3px;bottom:1px;font:700 12px var(--font-mono);color:#fff;text-shadow:0 1px 2px #000,0 0 2px #000}
 .besign{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0;display:flex;flex-direction:column;gap:4px}
 .besign legend{font-weight:600;padding:0 4px}
@@ -1504,14 +1505,21 @@ function openFill(c, b) {
     : j === 'hopper' ? 'O <b>funil</b> passa um item a cada 8 tiques para o contêiner para onde aponta e puxa do contêiner de cima (travado com sinal).'
     : 'Ejetores e funis põem e tiram itens daqui.';
   var its = beItems(i, j), nsl = beSlots(j), bez = bent.get(i), orig = bez && bez.k === 'inv' && bez.fv === (rsFill.get(i) || 0) && its.length;
+  var st = { items: its.map(function (it) { return it.slice(); }), at: 0 };
   openDialog('<h3>' + esc(b.name) + ': conteúdo</h3>' +
-    beGrid(its, nsl) + '<p class="pen">' + (its.length ? esc(beSummary(its)) + (orig ? ' (como veio do arquivo ou do mundo).' : '.') : 'Vazio.') + ' Vai junto ao exportar para o mundo do jogo, o .mcstructure e o .schem, e ao copiar, colar e guardar na biblioteca.</p>' +
-    '<h4>Trocar o conteúdo</h4><p>' + act + ' Aqui o conteúdo é um tipo de item só (o que a simulação da redstone usa); trocar substitui os itens acima.</p>' +
+    '<p class="pen">Clique num espaço para pôr ou tirar um item (qualquer item do jogo, pelo nome do Java). <b>Gravar</b> troca o conteúdo; Ctrl+Z desfaz. Vai junto ao exportar para o mundo do jogo, o .mcstructure e o .schem, e ao copiar, colar e guardar na biblioteca.' + (orig ? ' Encantamentos, nomes dados aos itens e livros escritos não aparecem aqui: ao gravar, os itens deste bloco ficam sem eles (Cancelar deixa como está).' : '') + '</p>' +
+    beEditHtml(nsl) + '<p class="pen" id="beSum"></p>' +
+    '<div class="row"><button class="btn primary" id="beSave">Gravar</button><button class="btn" id="beClear">Esvaziar tudo</button><button class="btn" id="beCancel">Cancelar</button></div>' +
+    '<details class="befill"' + (/^(dispenser|dropper|hopper)$/.test(j) ? ' open' : '') + '><summary>Conteúdo para a simulação da redstone (um tipo de item)</summary><p>' + act + ' Aqui o conteúdo é um tipo de item só (o que a simulação da redstone usa); trocar substitui os itens acima.</p>' +
     '<label>Item<select id="fillI">' + opts + '</select></label>' +
     '<label>Quantidade: <b id="fillOut"></b><span class="row"><input type="range" id="fillR" min="0" value="0" style="flex:1"><input type="number" id="fillN" min="0" value="0" style="width:90px"></span></label>' +
     '<p class="pen">“Itens comuns” vão para o jogo como pedregulho.</p>' +
-    '<div class="row"><button class="btn primary" id="fillOk">Trocar</button><button class="btn" id="fillEmpty">Esvaziar</button><button class="btn" id="fillNo">Fechar</button></div>',
+    '<div class="row"><button class="btn" id="fillOk">Trocar</button><button class="btn" id="fillEmpty">Esvaziar</button></div></details>',
     function () {
+      beEditBind(st, nsl, function () { var s = beSummary(st.items); $('beSum').textContent = st.items.length ? 'Total: ' + s + '.' : 'Vazio.'; });
+      $('beCancel').onclick = closeDialog;
+      $('beClear').onclick = function () { st.items = []; st.at = 0; $('beGrid').querySelector('.beslot').click(); };
+      $('beSave').onclick = function () { closeDialog(); beEditSave(i, st.items, 'Conteúdo: ' + b.name); updateStatus(); toast(b.name + ': ' + (st.items.length ? beSummary(st.items) : 'vazio') + '. Ctrl+Z desfaz.'); };
       var show = function () {
         var code = +$('fillI').value, cap = rsInvCap(j, code), n = Math.min(+$('fillR').value, cap); $('fillR').max = cap;
         var lv = n ? Math.min(15, Math.floor(1 + n / RS_ITEMS[code].s / slots * 14)) : 0;
@@ -1519,7 +1527,6 @@ function openFill(c, b) {
       };
       $('fillI').value = q.code; $('fillR').max = rsInvCap(j, q.code); $('fillR').value = q.n; show();
       $('fillI').onchange = show; $('fillR').oninput = show; $('fillN').oninput = function () { $('fillR').value = Math.max(0, +this.value || 0); show(); };
-      $('fillNo').onclick = closeDialog;
       $('fillEmpty').onclick = function () { closeDialog(); beginBatch('Conteúdo: ' + b.name); bent.delete(i); bentSave = true; rsFillSet(i, 0, true); endBatch(); updateStatus(); toast(b.name + ': vazio.'); };
       $('fillOk').onclick = function () {
         var code = +$('fillI').value, n = Math.min(+$('fillR').value, rsInvCap(j, code)); closeDialog(); bent.delete(i); bentSave = true;

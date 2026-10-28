@@ -297,3 +297,58 @@ function openSign(c, b) {
     };
   });
 }
+
+/* ---------- Editar os itens de um contêiner (a janela do Usar) ---------- */
+/* A grade fica clicável: um espaço escolhido mostra o item e a quantidade; Pôr coloca (qualquer item: os nomes do Java,
+   com sugestões), Tirar esvazia o espaço. Gravar troca o conteúdo de uma vez (um passo de Ctrl+Z, com os itens antes e
+   depois em beBefore/beAfter, como o mover seleção). */
+var BE_STACK1 = /(_sword|_pickaxe|_axe|_shovel|_hoe|_helmet|_chestplate|_leggings|_boots|_horse_armor|^bow|^crossbow|^trident|^mace|^shield|^elytra|^fishing_rod|^flint_and_steel|^shears|^brush|^spyglass|_bucket|^potion|^splash_potion|^lingering_potion|_stew|_soup|^cake|^saddle|^totem_of_undying|_minecart|_boat|_raft|^minecart|^enchanted_book|^writable_book|^written_book|^music_disc|_shulker_box|^shulker_box|^bundle|_bundle|^goat_horn|^carrot_on_a_stick|^warped_fungus_on_a_stick|^debug_stick)$/;
+var BE_STACK16 = /^(snowball|egg|blue_egg|brown_egg|ender_pearl|bucket|honey_bottle|armor_stand|written_book|.*_sign|.*_hanging_sign|.*_banner)$/;
+function beStack(id) { return BE_STACK1.test(id) ? 1 : BE_STACK16.test(id) ? 16 : 64; }
+function beKnown(id) { return BY_JAVA[id] != null || (typeof NBE_ITEMS !== 'undefined' && NBE_ITEMS.indexOf(id) >= 0); }
+/* Itens que não são blocos e não têm cor própria: as iniciais em cima do quadrado (diamond_sword: DS) */
+function beAbbr(id) { if (id in BY_JAVA || BE_ITEM_COL[id]) return ''; return '<i class="beab">' + esc(id.split('_').map(function (w) { return w.charAt(0); }).join('').slice(0, 3).toUpperCase()) + '</i>'; }
+function beEditHtml(n) {
+  return '<div class="begrid beedit" id="beGrid"></div>' +
+    '<div class="row beedrow"><span id="beSlotN" class="pen"></span><input type="text" id="beItem" list="beItems" placeholder="item (ex.: diamond, oak_log)" autocomplete="off" spellcheck="false" style="flex:1;min-width:120px"></div>' +
+    '<div class="row beedrow"><label class="beq">Quantidade <input type="number" id="beQty" min="1" max="64" value="1" style="width:64px"></label><button class="btn" id="beMax" title="Uma pilha cheia">Pilha</button><button class="btn primary" id="bePut">Pôr</button><button class="btn" id="beTake">Tirar</button></div>' +
+    '<datalist id="beItems"></datalist><p class="pen" id="beMsg"></p>';
+}
+function beEditBind(st, n, onChange) {
+  var draw = function () {
+    var by = {}; st.items.forEach(function (it) { by[it[2]] = it; });
+    var h = '';
+    for (var s = 0; s < n; s++) { var it = by[s]; h += '<button type="button" class="beslot' + (s === st.at ? ' on' : '') + '" data-s="' + s + '" title="' + (it ? esc(beItemName(it[0]) + ' × ' + it[1] + ' (' + it[0] + ')') : 'espaço ' + (s + 1) + ': vazio') + '">' + (it ? '<span class="sw" style="' + beSwatch(it[0]) + '"></span>' + beAbbr(it[0]) + '<b>' + (it[1] > 1 ? it[1] : '') + '</b>' : '') + '</button>'; }
+    $('beGrid').innerHTML = h;
+    var cur = by[st.at]; $('beSlotN').textContent = 'Espaço ' + (st.at + 1) + ':';
+    if (cur) { $('beItem').value = cur[0]; $('beQty').value = cur[1]; }
+    $('beMsg').textContent = cur ? beItemName(cur[0]) + ' × ' + cur[1] + (beKnown(cur[0]) ? '' : ' (nome que o site não conhece: confira)') : 'Espaço vazio: escolha o item e a quantidade e clique em Pôr.';
+    if (onChange) onChange();
+  };
+  $('beItems').innerHTML = (typeof NBE_ITEMS !== 'undefined' ? NBE_ITEMS : []).concat(BLOCKS.filter(function (b) { return !b.hide && !b.isAir && b.java; }).map(function (b) { return b.java; })).map(function (k) { return '<option value="' + k + '">'; }).join('');
+  $('beGrid').addEventListener('click', function (e) { var b = e.target.closest('.beslot'); if (!b) return; st.at = +b.dataset.s; draw(); });
+  $('beItem').addEventListener('input', function () { var id = beId(this.value.trim().toLowerCase()); if (id) $('beQty').max = beStack(id); });
+  $('beMax').onclick = function () { var id = beId($('beItem').value.trim().toLowerCase()); $('beQty').value = id ? beStack(id) : 64; };
+  $('bePut').onclick = function () {
+    var id = beId($('beItem').value.trim().toLowerCase()).replace(/\s+/g, '_');
+    if (!/^[a-z0-9_.]+$/.test(id)) { $('beMsg').textContent = 'Digite o nome do item (o do Java, como diamond ou oak_log).'; return; }
+    var q = Math.max(1, Math.min(beStack(id), Math.floor(+$('beQty').value) || 1));
+    st.items = st.items.filter(function (it) { return it[2] !== st.at; }); st.items.push([id, q, st.at]); st.items.sort(function (a, b) { return a[2] - b[2]; });
+    if (st.at < n - 1) st.at++; // o próximo espaço, para encher em sequência
+    draw();
+  };
+  $('beTake').onclick = function () { st.items = st.items.filter(function (it) { return it[2] !== st.at; }); draw(); };
+  $('beItem').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('bePut').click(); } });
+  draw();
+}
+/* Grava os itens no contêiner i, com desfazer */
+function beEditSave(i, items, label) {
+  var oldBe = bent.get(i), oldFv = rsFill.get(i) || 0;
+  beginBatch(label);
+  if (batch) batch.add(-(RS_FILL_BASE + i), oldFv, oldFv); // um registro para o passo existir mesmo sem o nível mudar
+  if (items.length) bentSet(i, { k: 'inv', items: items.map(function (it) { return it.slice(); }) }, true);
+  else { if (bent.delete(i)) bentSave = true; rsFillSet(i, 0, false); bentMark(i); }
+  var newBe = bent.get(i), newFv = rsFill.get(i) || 0;
+  endBatch();
+  var last = histTop(); if (last) { last.beBefore = [[i, oldBe ? JSON.parse(JSON.stringify(oldBe)) : null, oldFv]]; last.beAfter = [[i, newBe ? JSON.parse(JSON.stringify(newBe)) : null, newFv]]; }
+}
