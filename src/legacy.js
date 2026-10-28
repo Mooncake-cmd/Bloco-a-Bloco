@@ -131,6 +131,7 @@ function legChunkBytes(orig, ecx, ecz, LR) {
     for (var y = 0; y < 128; y++) {
       var v = gget(ex, y, ez), i = (x << 11) | (z << 7) | y, code, oc = orig && orig.length >= LEG_LEN ? (orig[i] << 4) | (i & 1 ? orig[LEG_OFF.meta + (i >> 1)] >> 4 : orig[LEG_OFF.meta + (i >> 1)] & 15) : 0;
       code = oc && legCell(oc) === v ? oc : legCode(v); // o que não mudou volta com o código de antes (água parada 9 e corrente 8 viram a mesma água no editor)
+      if (code > 0 && wio.old && code !== oc && !legOldTile(code >> 4)) code = -1; // bloco que a Pocket Edition 0.5 não tem
       if (code < 0) { lost++; code = 0; }
       if (code) { out[i] = code >> 4; var m = code & 15, bi = LEG_OFF.meta + (i >> 1); out[bi] |= i & 1 ? m << 4 : m; if (legLight(v) & 15) top = y + 1; }
       var li = LR.I(ex - LR.x0, ez - LR.z0, y), s = LR.sky[li], b = LR.blk[li], h = i >> 1;
@@ -143,6 +144,7 @@ function legChunkBytes(orig, ecx, ecz, LR) {
 /* Bloco com dados no formato antigo (baús e afins com itens por número; placas com Text1 a Text4) */
 function legEntity(ent, wx, wy, wz) {
   if (!ent) return null;
+  if (wio.old) return legOldEntity(ent, wx, wy, wz);
   var o = {}, k; for (k in ent) o[k] = ent[k];
   if (o.Items && o.Items.t === 'list') {
     o.Items = { t: 'list', of: 'compound', v: o.Items.v.map(function (it) {
@@ -272,12 +274,13 @@ function legOldNum(c, k) { var e = c.filter(function (q) { return q.k === k; })[
 async function legOldOpen(f) {
   var zip = f.zip, pre = f.prefix, cd = await zip.read(pre + 'chunks.dat'), idx = new Map(), dv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
   var w = { file: f.blob, zip: zip, prefix: pre, db: { idx: idx, tables: [], cache: new Map(), maxFile: 0, maxSeq: 0 }, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
-    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0, leg: 0, old: { cd: cd, at: new Map() } };
+    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0, leg: 0, old: { cd: cd, at: new Map(), ids: new Uint8Array(256) } };
   for (var z = 0; z < 32; z++) for (var x = 0; x < 32; x++) {
     var e = dv.getUint32((z * 32 + x) * 4, true), off = (e >>> 8) * LEG_OLD_SECT; if (!e || off + 4 + LEG_OLD_BODY > cd.length) continue;
     var v = new Uint8Array(LEG_LEN); v.set(cd.subarray(off + 4, off + 4 + LEG_OLD_BODY));
     for (var q = 0; q < 256; q++) v.set(LEG_OLD_BIO, LEG_OFF.bio + q * 4);
     idx.set(wioKey(x, z, 0, 0x30), { t: 1, f: -1, val: v }); w.old.at.set(x + ',' + z, off);
+    for (var b = 0; b < 32768; b++) w.old.ids[v[b]] = 1; // os blocos que o jogo do mundo conhece (ele mesmo gravou)
     w.dims[0].set(x + ',' + z, { x: x, z: z, ok: true, subs: [], leg: true }); w.leg++;
   }
   try { var ld = await zip.read(pre + 'level.dat'), lo = nbtRead(ld.subarray(8), true); w.old.level = ld; if (lo.LevelName) w.name = lo.LevelName; w.spawn = [lo.SpawnX | 0, lo.SpawnZ | 0];
@@ -307,6 +310,7 @@ async function legOldBuild(prog) {
     });
     wio.patches.forEach(function (v, k) { if (k.length === 9 && k.charCodeAt(8) === 0x31) entCh = true; });
     zip.paths.forEach(function (p) { if (p.indexOf(pre) !== 0 || /\/$/.test(p)) return; var nm = p.slice(pre.length); if (nm === 'chunks.dat' || (entCh && nm === 'entities.dat')) return; files.push(wio.files && wio.files.has(nm) ? { name: nm, data: wio.files.get(nm) } : { name: nm, src: p }); });
+    var note = legOldSpawnFix(cd);
     files.push({ name: 'chunks.dat', data: cd });
     if (entCh) { // TileEntities de novo, com os blocos com dados de todas as chaves 0x31
       var tes = [];
@@ -321,7 +325,7 @@ async function legOldBuild(prog) {
       hd.set([69, 78, 84, 0]); hv.setInt32(4, 1, true); hv.setInt32(8, body.length, true);
       files.push({ name: 'entities.dat', data: wioCat([hd, body]) });
     }
-    return { blob: await wioZipOut(files.map(function (f) { f.name = wioOldFolder() + '/' + f.name; return f; }), prog), keys: wio.patches.size };
+    return { blob: await wioZipOut(files.map(function (f) { f.name = wioOldFolder() + '/' + f.name; return f; }), prog), keys: wio.patches.size, note: note };
   }
   // convertido: todas as chaves (chunks antigos com a versão 2 da época, os editados já no formato da 1.17)
   var keys = new Map();
@@ -350,4 +354,45 @@ function legOldLevelDat() {
   var body = nbtTreeWrite(tree), hd = new Uint8Array(8), dv = new DataView(hd.buffer);
   dv.setInt32(0, new DataView(raw.buffer, raw.byteOffset).getInt32(0, true), true); dv.setInt32(4, body.length, true);
   return wioCat([hd, body]);
+}
+
+/* ---------- O que a Pocket Edition 0.5 conhece (conferido na biblioteca do jogo 0.5.0, Tile:: e Item::) ---------- */
+/* Blocos: os 0.5.0, mais qualquer um que já esteja no mundo (o jogo que gravou o mundo conhece). Itens: os da 0.5.0. */
+var LEG_OLD_TILES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 24, 26, 30, 31, 35, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+  50, 51, 53, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 71, 73, 74, 78, 79, 80, 81, 82, 83, 85, 89, 95, 96, 98, 102, 103, 105, 107, 108, 246, 247];
+var LEG_OLD_ITEMS = [256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283,
+  284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 318, 319, 320, 321, 323, 324, 330, 332, 334, 336, 337, 338, 339, 340, 341, 344, 345,
+  347, 348, 351, 352, 353, 355, 359, 360, 362, 363, 364, 365, 366];
+function legOldTile(id) { return LEG_OLD_TILES.indexOf(id) >= 0 || !!(wio.old && wio.old.ids[id]); }
+/* Baú, fornalha e placa como a 0.5 grava (id, x, y, z e os itens por número; a placa com Text1 a Text4); o resto não vai */
+function legOldEntity(ent, wx, wy, wz) {
+  var id = String((ent.id || {}).v || ''), o = { id: { t: 'string', v: id } };
+  if (id === 'Sign') { var tx = ent.FrontText ? String((ent.FrontText.v.Text || {}).v || '').split('\n') : [1, 2, 3, 4].map(function (q) { return String((ent['Text' + q] || {}).v || ''); }); for (var q = 0; q < 4; q++) o['Text' + (q + 1)] = { t: 'string', v: tx[q] || '' }; }
+  else if (id === 'Chest' || id === 'Furnace') {
+    o.Items = { t: 'list', of: 'compound', v: ((ent.Items || {}).v || []).map(function (it) {
+      var nm = String((it.Name || {}).v || '').replace(/^minecraft:/, ''), code = BY_JAVA[nm] != null ? legCode(mkCell(BY_JAVA[nm])) : -1, n = -1;
+      if (code > 0 && legOldTile(code >> 4)) n = code >> 4; else for (var k in LEG.i) if (LEG.i[k] === nm && LEG_OLD_ITEMS.indexOf(+k) >= 0) { n = +k; break; }
+      if (n < 0) return null;
+      return { Count: it.Count, Damage: { t: 'short', v: code > 0 && n < 256 ? code & 15 : 0 }, Slot: it.Slot, id: { t: 'short', v: n } };
+    }).filter(Boolean) };
+  } else return null;
+  o.x = { t: 'int', v: wx }; o.y = { t: 'int', v: wy }; o.z = { t: 'int', v: wz };
+  return o;
+}
+/* Ao abrir o mundo, a 0.5 procura o ponto de nascimento numa coluna com bloco na altura 63 (Level::validateSpawn: a partir
+   do y 63, sobe enquanto há bloco em cima; ar ou rocha-mãe invisível não servem) e, enquanto não acha, sorteia outro lugar
+   perto, sem parar: um mundo sem nenhum bloco no y 63 trava em "Generating world". Se o ponto de nascimento não servir e o
+   mundo tiver poucas colunas que sirvam, o site põe um bloco de pedra no y 63 do ponto de nascimento. */
+function legOldSpawnFix(cd) {
+  var lv = wio.files && wio.files.get('level.dat') || wio.old.level, sx = 128, sz = 128;
+  try { var lo = nbtRead(lv.subarray(8), true); sx = lo.SpawnX | 0; sz = lo.SpawnZ | 0; } catch (e) {}
+  var at = function (x, z) { var off = wio.old.at.get((x >> 4) + ',' + (z >> 4)); return off == null ? -1 : off + 4 + ((x & 15) << 11) + ((z & 15) << 7) + 63; };
+  var good = function (p) { return p >= 0 && cd[p] && cd[p] !== 95; }, n = 0;
+  if (good(at(sx, sz))) return '';
+  wio.old.at.forEach(function (off) { for (var q = 0; q < 256; q++) { var p = off + 4 + ((q >> 4) << 11) + ((q & 15) << 7) + 63; if (cd[p] && cd[p] !== 95) n++; } });
+  if (n >= 256) return '';
+  var p = at(sx, sz); if (p < 0) return '';
+  var off = wio.old.at.get((sx >> 4) + ',' + (sz >> 4)) + 4, i = p - off, m = off + LEG_OFF.meta + (i >> 1);
+  cd[p] = 1; cd[m] &= i & 1 ? 0x0f : 0xf0; // pedra, dado 0
+  return 'O jogo antigo só abre o mundo com um bloco na altura 63 no ponto de nascimento: o site pôs um bloco de pedra em ' + sx + ', 63, ' + sz + ' (pode tirar no jogo, mas sem ele o mundo volta a travar ao abrir).';
 }
