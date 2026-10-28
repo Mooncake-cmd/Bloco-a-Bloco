@@ -347,13 +347,18 @@ async function wioFind(file) {
   var jv = paths.filter(function (p) { return /(^|\/)level\.dat$/i.test(p); }).map(function (p) { return p.slice(0, p.length - 9); })
     .filter(function (pre) { return paths.some(function (q) { return q.indexOf(pre) === 0 && JW_REGION.test(q.slice(pre.length)); }); }).sort(function (a, b) { return a.length - b.length; });
   if (jv.length) return { zip: zip, blob: file, prefix: jv[0], java: true };
+  // Pocket Edition 0.2 a 0.8: level.dat e chunks.dat (src/legacy.js)
+  var od = paths.filter(function (p) { return /(^|\/)chunks\.dat$/i.test(p); }).map(function (p) { return p.slice(0, p.length - 10); })
+    .filter(function (pre) { return paths.indexOf(pre + 'level.dat') >= 0; }).sort(function (a, b) { return a.length - b.length; });
+  if (od.length) return { zip: zip, blob: file, prefix: od[0], old: true };
   var inner = paths.filter(function (p) { return /\.mcworld$/i.test(p); })[0];
   if (inner) { var b = new Blob([await zip.read(inner)]); return wioFind(b); }
-  throw new Error('Não achei um mundo do Minecraft neste arquivo (Bedrock: level.dat e a pasta db; Java: level.dat e a pasta region).');
+  throw new Error('Não achei um mundo do Minecraft neste arquivo (Bedrock: level.dat e a pasta db, ou level.dat e chunks.dat nos da Pocket Edition 0.2 a 0.8; Java: level.dat e a pasta region).');
 }
 async function wioOpenFile(file, prog) {
   var f = await wioFind(file), zip = f.zip, pre = f.prefix;
   if (f.java) return jwOpen(f, prog);
+  if (f.old) return legOldOpen(f);
   var dbNames = zip.paths.filter(function (p) { return p.indexOf(pre + 'db/') === 0 && p.indexOf('/', pre.length + 3) < 0; }).map(function (p) { return p.slice(pre.length + 3); });
   var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog);
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
@@ -566,6 +571,7 @@ async function wioCommit(prog) {
 /* ---------- Exportar o .mcworld ---------- */
 async function wioBuild(prog) {
   if (wio.java) return jwBuild(prog);
+  if (wio.old) return legOldBuild(prog);
   var ents = []; wio.patches.forEach(function (v, k) { ents.push([k, v]); });
   ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
   var files = [], pre = wio.prefix, zip = wio.zip;
@@ -694,7 +700,7 @@ async function wioOpen(file) {
     if (!w.dims.some(function (m) { return m.size; })) throw new Error(w.java ? 'Este mundo do Java não tem chunks (pasta region vazia).' : 'Este mundo não tem chunks no formato atual do Bedrock.');
     // outro mundo que estava aberto é trocado por este (o que não foi exportado dele se perde)
     if (wio && (wio.patches.size || wio.edited.size)) setTimeout(function () { toast('O mundo anterior foi fechado sem exportar.', 6000); }, 4000);
-    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(); } // mundo no formato antigo: manter ou converter (src/legacy.js)
+    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(!!w.old); } // mundo no formato antigo: manter ou converter (src/legacy.js)
     wio = w;
     await wioSaveSession(true);
     busyEnd();
@@ -927,13 +933,13 @@ async function wioExport() {
     var r = await wioCommitAll() || { lost: 0 };
     busy('Montando o mundo…', 0);
     var out = await wioBuild(function (i, n) { busy('Montando o mundo: ' + i + ' de ' + n + ' arquivos', i / n); });
-    var nm = cleanName(wio.name) + (wio.java ? '-editado.zip' : '-editado.mcworld');
+    var oldKeep = wio.old && wio.legKeep, nm = cleanName(wio.name) + (wio.java || oldKeep ? '-editado.zip' : '-editado.mcworld');
     if (inArtifact) { var sv = await saveBytes(nm, new Uint8Array(await out.blob.arrayBuffer())); reportSave(sv, nm); }
     else {
       var a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = nm; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
     }
-    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
+    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : oldKeep ? 'Extraia o .zip na pasta minecraftWorlds do jogo (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
   } catch (e) { reportErr(e); }
   finally { busyEnd(); }
 }

@@ -11182,9 +11182,9 @@ function legEntity(ent, wx, wy, wz) {
   return wioEntTags(o, wx, wy, wz);
 }
 /* Escolha do modo, ao abrir um mundo antigo */
-function legChooseMode() {
+function legChooseMode(old) {
   return new Promise(function (res) {
-    openDialog('<h3>Mundo no formato antigo</h3><p>Este mundo foi gravado por uma versão antiga do Minecraft Bedrock (Pocket Edition até a 1.0): os blocos vão até a altura 127 e são guardados por número. O site lê o mundo do jeito que ele é. Ao exportar:</p>' +
+    openDialog('<h3>Mundo no formato antigo</h3><p>Este mundo foi gravado por uma versão antiga do Minecraft Bedrock (Pocket Edition ' + (old ? '0.2 a 0.8, com o mundo de 256 × 256 blocos' : 'até a 1.0') + '): os blocos vão até a altura 127 e são guardados por número. O site lê o mundo do jeito que ele é. Ao exportar:</p>' +
       '<label class="check"><input type="radio" name="legM" value="keep" checked><span><b>Manter o formato antigo</b> (para jogar na versão antiga): o editor tem a altura 0 a 127 e os blocos da época; um bloco que não existia vira ar ao exportar (o aviso conta quantos). A luz dos chunks editados é calculada de novo.</span></label>' +
       '<label class="check"><input type="radio" name="legM" value="conv"><span><b>Converter para o formato atual</b> (para jogar na versão de hoje): o editor tem a altura 0 a 255 e todos os blocos; os chunks editados saem num formato que o jogo atual atualiza sozinho, como faz com os outros, e ao abrir ele cria a parte de baixo do mundo (-64 a 0). O mundo deixa de abrir nas versões antigas.</span></label>' +
       '<div class="row"><button class="btn primary" id="legOk">Continuar</button></div>', function () {
@@ -11278,6 +11278,104 @@ function legTops(raw) {
     for (var y = 127; y >= 0; y--) { var i = (x << 11) | (z << 7) | y; if (!raw[i]) continue; var mb = raw[LEG_OFF.meta + (i >> 1)], c = legCell((raw[i] << 4) | (i & 1 ? mb >> 4 : mb & 15)); if (!c) continue; v[q] = c; h[q] = y; break; }
   }
   return { v: v, h: h, b: b };
+}
+
+/* ---------- Mundos ainda mais antigos (Pocket Edition 0.2 a 0.8): chunks.dat e entities.dat ---------- */
+/* Antes da 0.9, o mundo era limitado a 256 × 256 blocos (16 × 16 chunks) e guardado em três arquivos:
+   - chunks.dat: uma tabela de 32 × 32 entradas de 4 bytes (o número de setores de 4 KB e, nos 3 bytes de cima, o
+     setor onde o chunk começa; índice x + z·32) e cada chunk em 21 setores: 4 bytes de tamanho e os mesmos 82.176
+     bytes do chunk 0x30 da 0.9 a 1.0 (blocos, dados, luz do céu, luz dos blocos e 256 bytes de colunas a refazer);
+   - entities.dat: "ENT\0", a versão, o tamanho e um NBT com Entities (criaturas) e TileEntities (baús, placas...);
+   - level.dat: como o da 0.9 em diante, com o jogador dentro (Player).
+   O site monta um banco de mentira (só na memória) com uma chave 0x30 e uma 0x31 por chunk, e o resto do caminho do
+   mundo antigo vale igual. Exportar mantendo o formato regrava o chunks.dat (os chunks editados) e o entities.dat
+   (os blocos com dados); convertendo, sai um mundo da 0.9 (banco LevelDB com chunks 0x30), que o jogo atual atualiza
+   sozinho como o de qualquer mundo antigo, no tipo de mundo Antigo (limitado), com a semente e o ponto de nascimento. */
+var LEG_OLD_SECT = 4096, LEG_OLD_BODY = 82176, LEG_OLD_BIO = [1, 145, 189, 89]; // planície, com a cor da grama dela
+function legOldEnt(u8) { return u8 && u8.length > 12 && u8[0] === 69 && u8[1] === 78 && u8[2] === 84 ? nbtTreeLE(u8.subarray(12)) : null; }
+function legOldList(root, k) { var e = root && root.v.filter(function (q) { return q.k === k; })[0]; return e && e.t === 9 && e.v.et === 10 ? e.v.a : []; }
+function legOldNum(c, k) { var e = c.filter(function (q) { return q.k === k; })[0]; return e ? e.v : null; }
+async function legOldOpen(f) {
+  var zip = f.zip, pre = f.prefix, cd = await zip.read(pre + 'chunks.dat'), idx = new Map(), dv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+  var w = { file: f.blob, zip: zip, prefix: pre, db: { idx: idx, tables: [], cache: new Map(), maxFile: 0, maxSeq: 0 }, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
+    patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0, leg: 0, old: { cd: cd, at: new Map() } };
+  for (var z = 0; z < 32; z++) for (var x = 0; x < 32; x++) {
+    var e = dv.getUint32((z * 32 + x) * 4, true), off = (e >>> 8) * LEG_OLD_SECT; if (!e || off + 4 + LEG_OLD_BODY > cd.length) continue;
+    var v = new Uint8Array(LEG_LEN); v.set(cd.subarray(off + 4, off + 4 + LEG_OLD_BODY));
+    for (var q = 0; q < 256; q++) v.set(LEG_OLD_BIO, LEG_OFF.bio + q * 4);
+    idx.set(wioKey(x, z, 0, 0x30), { t: 1, f: -1, val: v }); w.old.at.set(x + ',' + z, off);
+    w.dims[0].set(x + ',' + z, { x: x, z: z, ok: true, subs: [], leg: true }); w.leg++;
+  }
+  try { var ld = await zip.read(pre + 'level.dat'), lo = nbtRead(ld.subarray(8), true); w.old.level = ld; if (lo.LevelName) w.name = lo.LevelName; w.spawn = [lo.SpawnX | 0, lo.SpawnZ | 0];
+    if (lo.Player && lo.Player.Pos) w.player = { dim: 0, x: Math.floor(lo.Player.Pos[0]), z: Math.floor(lo.Player.Pos[2]) }; } catch (e) {}
+  // baús e placas (TileEntities) vão para a chave 0x31 do chunk; as criaturas (Entities) para a 0x32, que só o modo convertido grava
+  try {
+    var root = legOldEnt(await zip.read(pre + 'entities.dat')), by = function (tag, list, pos) {
+      var m = new Map(); list.forEach(function (c) { var p = pos(c); if (!p) return; var k = wioKey(p[0] >> 4, p[1] >> 4, 0, tag); if (!m.has(k)) m.set(k, []); m.get(k).push(nbtTreeWrite({ k: '', t: 10, v: c })); });
+      m.forEach(function (a, k) { idx.set(k, { t: 1, f: -1, val: wioCat(a) }); });
+    };
+    w.old.ent = root;
+    by(0x31, legOldList(root, 'TileEntities'), function (c) { var x = legOldNum(c, 'x'), z = legOldNum(c, 'z'); return x == null ? null : [x, z]; });
+    by(0x32, legOldList(root, 'Entities'), function (c) { var p = legOldNum(c, 'Pos'); if (!p || p.et !== 5) return null; var f = function (b) { return Math.floor(new DataView(b.buffer, b.byteOffset, 4).getFloat32(0, true)); }; return [f(p.a[0]), f(p.a[2])]; });
+  } catch (e) {}
+  return w;
+}
+/* O valor de uma chave do mundo (o que foi gravado ou o original) */
+async function legOldVal(k) { return wio.patches.has(k) ? wio.patches.get(k) : (wio.db.idx.get(k) || {}).val || null; }
+/* Exportar: no formato da época (pasta com chunks.dat) ou convertido (mundo da 0.9, que o jogo atual atualiza) */
+async function legOldBuild(prog) {
+  var zip = wio.zip, pre = wio.prefix, files = [];
+  if (wio.legKeep) {
+    var cd = wio.old.cd.slice(), dv = new DataView(cd.buffer), entCh = false;
+    wio.old.at.forEach(function (off, ck) {
+      var p = ck.split(','), v = wio.patches.get(wioKey(+p[0], +p[1], 0, 0x30));
+      if (v) cd.set(v.subarray(0, LEG_OFF.hm), off + 4); // as 256 colunas a refazer ficam como estavam
+    });
+    wio.patches.forEach(function (v, k) { if (k.length === 9 && k.charCodeAt(8) === 0x31) entCh = true; });
+    zip.paths.forEach(function (p) { if (p.indexOf(pre) !== 0 || /\/$/.test(p)) return; var nm = p.slice(pre.length); if (nm === 'chunks.dat' || (entCh && nm === 'entities.dat')) return; files.push(wio.files && wio.files.has(nm) ? { name: nm, data: wio.files.get(nm) } : { name: nm, src: p }); });
+    files.push({ name: 'chunks.dat', data: cd });
+    if (entCh) { // TileEntities de novo, com os blocos com dados de todas as chaves 0x31
+      var tes = [];
+      for (var k of new Set(Array.from(wio.db.idx.keys()).concat(Array.from(wio.patches.keys())))) {
+        if (k.length !== 9 || k.charCodeAt(8) !== 0x31) continue; var raw = await legOldVal(k); if (!raw) continue;
+        nbtList(raw).forEach(function (e) { tes.push(nbtTreeLE(e.raw).v); });
+      }
+      var root = wio.old.ent || { k: '', t: 10, v: [] }, rv = root.v.filter(function (q) { return q.k !== 'TileEntities'; });
+      if (!rv.some(function (q) { return q.k === 'Entities'; })) rv.unshift({ k: 'Entities', t: 9, v: { et: 10, a: [] } });
+      rv.push({ k: 'TileEntities', t: 9, v: { et: 10, a: tes } });
+      var body = nbtTreeWrite({ k: '', t: 10, v: rv }), hd = new Uint8Array(12), hv = new DataView(hd.buffer);
+      hd.set([69, 78, 84, 0]); hv.setInt32(4, 1, true); hv.setInt32(8, body.length, true);
+      files.push({ name: 'entities.dat', data: wioCat([hd, body]) });
+    }
+    return { blob: await wioZipOut(files.map(function (f) { f.name = wioOldFolder() + '/' + f.name; return f; }), prog), keys: wio.patches.size };
+  }
+  // convertido: todas as chaves (chunks antigos com a versão 2 da época, os editados já no formato da 1.17)
+  var keys = new Map();
+  wio.db.idx.forEach(function (r, k) { keys.set(k, r.val); if (k.charCodeAt(8) === 0x30) keys.set(k.slice(0, 8) + String.fromCharCode(0x76), new Uint8Array([2])); });
+  wio.patches.forEach(function (v, k) { if (v) keys.set(k, v); else keys.delete(k); });
+  var ents = []; keys.forEach(function (v, k) { ents.push([k, v]); });
+  ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+  files.push({ name: 'level.dat', data: legOldLevelDat() }, { name: 'levelname.txt', data: new TextEncoder().encode(wio.name) },
+    { name: 'db/CURRENT', data: new TextEncoder().encode('MANIFEST-000002\n') }, { name: 'db/MANIFEST-000002', data: nwManifest(0) },
+    { name: 'db/000003.log', data: ldbLogWrite(ents, 1) });
+  return { blob: await wioZipOut(files, prog), keys: ents.length };
+}
+function wioOldFolder() { return (wio.prefix.replace(/\/$/, '').split('/').pop() || cleanName(wio.name)); }
+/* level.dat do mundo convertido: o modelo do mundo novo (src/worldio.js) com o nome, a semente, o nascimento, a hora
+   e o modo de jogo do mundo antigo, e o tipo de mundo Antigo (limitado a 256 × 256, como era) */
+function legOldLevelDat() {
+  var raw = wioBytes(atob(NW_LEVEL)), tree = nbtTreeLE(raw.subarray(8)), old = [];
+  try { old = nbtTreeLE(wio.old.level.subarray(8)).v; } catch (e) { old = []; }
+  var get = function (k) { var e = old.filter(function (q) { return q.k === k; })[0]; return e ? e.v : null; };
+  var set = function (k, v) { if (v == null) return; tree.v.forEach(function (e) { if (e.k === k) e.v = v; }); };
+  set('LevelName', wio.name); set('RandomSeed', get('RandomSeed')); set('SpawnX', get('SpawnX')); set('SpawnY', get('SpawnY')); set('SpawnZ', get('SpawnZ'));
+  set('Time', get('Time')); set('GameType', get('GameType')); set('LastPlayed', nwLong(Math.floor(Date.now() / 1000))); set('currentTick', nwLong(0));
+  set('Generator', 0);
+  // o modelo é de um mundo criativo com comandos; o mundo antigo não tinha nada disso: fica como ele era (no criativo, marcado como o jogo marca)
+  var gt = get('GameType'); set('commandsEnabled', 0); set('hasBeenLoadedInCreative', gt === 1 ? 1 : 0);
+  var body = nbtTreeWrite(tree), hd = new Uint8Array(8), dv = new DataView(hd.buffer);
+  dv.setInt32(0, new DataView(raw.buffer, raw.byteOffset).getInt32(0, true), true); dv.setInt32(4, body.length, true);
+  return wioCat([hd, body]);
 }
 
 /* ---------- Lançar: flecha, flecha em chamas, tridente, bola de neve e ovo ---------- */
@@ -12991,13 +13089,18 @@ async function wioFind(file) {
   var jv = paths.filter(function (p) { return /(^|\/)level\.dat$/i.test(p); }).map(function (p) { return p.slice(0, p.length - 9); })
     .filter(function (pre) { return paths.some(function (q) { return q.indexOf(pre) === 0 && JW_REGION.test(q.slice(pre.length)); }); }).sort(function (a, b) { return a.length - b.length; });
   if (jv.length) return { zip: zip, blob: file, prefix: jv[0], java: true };
+  // Pocket Edition 0.2 a 0.8: level.dat e chunks.dat (src/legacy.js)
+  var od = paths.filter(function (p) { return /(^|\/)chunks\.dat$/i.test(p); }).map(function (p) { return p.slice(0, p.length - 10); })
+    .filter(function (pre) { return paths.indexOf(pre + 'level.dat') >= 0; }).sort(function (a, b) { return a.length - b.length; });
+  if (od.length) return { zip: zip, blob: file, prefix: od[0], old: true };
   var inner = paths.filter(function (p) { return /\.mcworld$/i.test(p); })[0];
   if (inner) { var b = new Blob([await zip.read(inner)]); return wioFind(b); }
-  throw new Error('Não achei um mundo do Minecraft neste arquivo (Bedrock: level.dat e a pasta db; Java: level.dat e a pasta region).');
+  throw new Error('Não achei um mundo do Minecraft neste arquivo (Bedrock: level.dat e a pasta db, ou level.dat e chunks.dat nos da Pocket Edition 0.2 a 0.8; Java: level.dat e a pasta region).');
 }
 async function wioOpenFile(file, prog) {
   var f = await wioFind(file), zip = f.zip, pre = f.prefix;
   if (f.java) return jwOpen(f, prog);
+  if (f.old) return legOldOpen(f);
   var dbNames = zip.paths.filter(function (p) { return p.indexOf(pre + 'db/') === 0 && p.indexOf('/', pre.length + 3) < 0; }).map(function (p) { return p.slice(pre.length + 3); });
   var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog);
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
@@ -13210,6 +13313,7 @@ async function wioCommit(prog) {
 /* ---------- Exportar o .mcworld ---------- */
 async function wioBuild(prog) {
   if (wio.java) return jwBuild(prog);
+  if (wio.old) return legOldBuild(prog);
   var ents = []; wio.patches.forEach(function (v, k) { ents.push([k, v]); });
   ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
   var files = [], pre = wio.prefix, zip = wio.zip;
@@ -13338,7 +13442,7 @@ async function wioOpen(file) {
     if (!w.dims.some(function (m) { return m.size; })) throw new Error(w.java ? 'Este mundo do Java não tem chunks (pasta region vazia).' : 'Este mundo não tem chunks no formato atual do Bedrock.');
     // outro mundo que estava aberto é trocado por este (o que não foi exportado dele se perde)
     if (wio && (wio.patches.size || wio.edited.size)) setTimeout(function () { toast('O mundo anterior foi fechado sem exportar.', 6000); }, 4000);
-    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(); } // mundo no formato antigo: manter ou converter (src/legacy.js)
+    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(!!w.old); } // mundo no formato antigo: manter ou converter (src/legacy.js)
     wio = w;
     await wioSaveSession(true);
     busyEnd();
@@ -13571,13 +13675,13 @@ async function wioExport() {
     var r = await wioCommitAll() || { lost: 0 };
     busy('Montando o mundo…', 0);
     var out = await wioBuild(function (i, n) { busy('Montando o mundo: ' + i + ' de ' + n + ' arquivos', i / n); });
-    var nm = cleanName(wio.name) + (wio.java ? '-editado.zip' : '-editado.mcworld');
+    var oldKeep = wio.old && wio.legKeep, nm = cleanName(wio.name) + (wio.java || oldKeep ? '-editado.zip' : '-editado.mcworld');
     if (inArtifact) { var sv = await saveBytes(nm, new Uint8Array(await out.blob.arrayBuffer())); reportSave(sv, nm); }
     else {
       var a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = nm; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
     }
-    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
+    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : oldKeep ? 'Extraia o .zip na pasta minecraftWorlds do jogo (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
   } catch (e) { reportErr(e); }
   finally { busyEnd(); }
 }
