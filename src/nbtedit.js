@@ -51,8 +51,8 @@ async function nbeLoad() {
   } else {
     var dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     o.hdr = dv.getInt32(0, true); o.lvl = nbtTreeLE(raw.subarray(8)); o.D = o.lvl.v;
-    var pr = await wioGet('~local_player');
-    if (pr) { o.plTree = nbtTreeLE(pr); o.pl = o.plTree.v; }
+    if (wio.old) { var P0 = nbeGetIn(o.D, 'Player'); o.old = true; o.pl = P0 ? P0.v : null; } // Pocket Edition 0.2 a 0.8: o jogador fica no level.dat (src/legacy.js)
+    else { var pr = await wioGet('~local_player'); if (pr) { o.plTree = nbtTreeLE(pr); o.pl = o.plTree.v; } }
   }
   return o;
 }
@@ -61,6 +61,7 @@ function nbeGetIn(c, k) { for (var i = 0; i < c.length; i++) if (c[i].k === k) r
 async function nbeCommit() {
   if (!nbe.dirtyL && !nbe.dirtyP) return false;
   wio.files = wio.files || new Map();
+  if (nbe.old) { if (nbe.dirtyP) nbe.dirtyL = true; if (nbe.cheat) wio.oldCheat = true; nbe.cheat = false; } // 0.8: sem conquistas (a marca vai só se o mundo for convertido, src/legacy.js)
   if (!nbe.java && nbe.cheat) nbeSet(nbe.D, 'hasBeenLoadedInCreative', 1, 1); // a marca de "usou trapaças" do jogo
   if (nbe.java) {
     var body = nbtTreeWrite(nbe.lvl, true);
@@ -70,7 +71,7 @@ async function nbeCommit() {
       var b = nbtTreeWrite(nbe.lvl), hd = new Uint8Array(8), dv = new DataView(hd.buffer);
       dv.setInt32(0, nbe.hdr, true); dv.setInt32(4, b.length, true);
       wio.files.set('level.dat', wioCat([hd, b]));
-      var nm = nbeGet(nbe.D, 'LevelName'); if (nm) wio.files.set('levelname.txt', new TextEncoder().encode(nm.v));
+      var nm = nbeGet(nbe.D, 'LevelName'); if (nm && !nbe.old) wio.files.set('levelname.txt', new TextEncoder().encode(nm.v));
     }
     if (nbe.dirtyP && nbe.plTree) wio.patches.set('~local_player', nbtTreeWrite(nbe.plTree));
   }
@@ -137,7 +138,7 @@ function nbeOpen() {
   var locked = !nbe.java && (nbeNum(nbeGet(nbe.D, 'hasBeenLoadedInCreative')) === 1 || nbeNum(nbeGet(nbe.D, 'commandsEnabled')) === 1);
   var tabs = [['mundo', 'Mundo'], ['regras', 'Regras'], ['jogador', 'Jogador'], ['inv', 'Inventário']];
   openDialog('<h3>Editor NBT</h3><div class="nbetabs" role="tablist">' + tabs.map(function (t) { return '<button class="btn" role="tab" data-nt="' + t[0] + '" aria-pressed="' + (t[0] === nbe.tab) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
-    (nbe.java ? '' : '<p class="mixl" id="nbeAch">' + (locked ? 'As conquistas já estão desativadas neste mundo (ele já usou comandos ou o criativo).' : 'Atenção: ao gravar uma mudança (fora o nome do mundo), as conquistas ficam desativadas no mundo exportado, como ao ligar os comandos no jogo.') + '</p>') +
+    (nbe.java ? '' : nbe.old ? '<p class="mixl" id="nbeAch">Mundo da Pocket Edition 0.2 a 0.8: só aparecem os dados que essa versão guarda (ela não tem regras, clima, efeitos nem conquistas). Se o mundo for exportado convertido, um mundo mudado aqui sai com as conquistas desativadas.</p>' : '<p class="mixl" id="nbeAch">' + (locked ? 'As conquistas já estão desativadas neste mundo (ele já usou comandos ou o criativo).' : 'Atenção: ao gravar uma mudança (fora o nome do mundo), as conquistas ficam desativadas no mundo exportado, como ao ligar os comandos no jogo.') + '</p>') +
     '<div id="nbeBody" class="nbebody"></div><datalist id="nbeItems"></datalist>' +
     '<div class="row"><button class="btn primary" id="nbeOk">Gravar mudanças</button><button class="btn" id="nbeNo">Fechar sem gravar</button><span id="nbeState" class="mixl"></span></div>', function () {
     var dg = $('nbeBody').closest('.dialog'); if (dg) dg.classList.add('wide');
@@ -199,14 +200,14 @@ function nbeWorldHtml() {
   var nm = nbeGet(D, 'LevelName'), id = nbeId();
   NBE_SET[id] = function (v) { v = String(v).trim(); if (!v) return 'O nome não pode ficar vazio.'; nbeSet(D, 'LevelName', 8, v); nbeTouch(true, false); };
   h += nbeRow('Nome do mundo', nbeInput(id, nm ? nm.v : '', 'text', 'maxlength="64"'));
-  h += nbeSel(D, 'GameType', 'Modo de jogo padrão', J ? NBE_MODES.map(function (m) { return [m[0] === 6 ? 3 : m[0], m[1]]; }) : NBE_MODES, true);
+  h += nbeSel(D, 'GameType', nbe.old ? 'Modo de jogo' : 'Modo de jogo padrão', J ? NBE_MODES.map(function (m) { return [m[0] === 6 ? 3 : m[0], m[1]]; }) : nbe.old ? NBE_MODES.slice(0, 2) : NBE_MODES, true);
   h += nbeSel(D, 'Difficulty', 'Dificuldade', [[0, 'Pacífico'], [1, 'Fácil'], [2, 'Normal'], [3, 'Difícil']], true);
   h += nbeBool(D, J ? 'hardcore' : 'IsHardcore', 'Hardcore (uma vida só)', true);
   h += nbeBool(D, J ? 'allowCommands' : 'commandsEnabled', 'Comandos (trapaças) ligados', true, J ? '' : 'desativa as conquistas');
   h += '<h4>Ponto de nascimento do mundo</h4>';
   var sp = J ? nbeGet(D, 'spawn') : null, sv = sp && nbeGet(sp.v, 'pos');
   if (sv && sv.t === 11) ['X', 'Y', 'Z'].forEach(function (a, i) { var fid = nbeId(); NBE_SET[fid] = function (v) { var r = nbeNumIn(v, -30000000, 30000000, a); if (r.err) return r.err; sv.v[i] = Math.round(r.n); nbeTouch(true); }; h += nbeRow(a, nbeInput(fid, sv.v[i])); });
-  else h += nbeField(D, 'SpawnX', 3, 'X', -30000000, 30000000, true) + nbeField(D, 'SpawnY', 3, 'Y', -64, 32767, true, J ? '' : '32767 = o jogo escolhe a altura') + nbeField(D, 'SpawnZ', 3, 'Z', -30000000, 30000000, true);
+  else h += nbeField(D, 'SpawnX', 3, 'X', -30000000, 30000000, true) + (nbe.old ? nbeField(D, 'SpawnY', 3, 'Y', 0, 128, true) : nbeField(D, 'SpawnY', 3, 'Y', -64, 32767, true, J ? '' : '32767 = o jogo escolhe a altura')) + nbeField(D, 'SpawnZ', 3, 'Z', -30000000, 30000000, true);
   // hora: dia e hora do dia (24000 ticks por dia)
   var tk = J ? 'DayTime' : 'Time', te = nbeGet(D, tk);
   if (te) {
@@ -218,8 +219,9 @@ function nbeWorldHtml() {
       '<div class="row nbechips">' + [[0, 'Nascer do sol'], [1000, 'Manhã'], [6000, 'Meio-dia'], [12000, 'Pôr do sol'], [13000, 'Noite'], [18000, 'Meia-noite']].map(function (p) { return '<button class="btn" data-nhr="' + p[0] + '">' + p[1] + '</button>'; }).join('') + '</div>';
     setTimeout(function () { document.querySelectorAll('[data-nhr]').forEach(function (b) { b.onclick = function () { NBE_SET[i2](b.getAttribute('data-nhr')); }; }); }, 0);
   }
-  // clima
+  // clima (a Pocket Edition 0.8 não tem)
   var w = nbeWeather(), iw = nbeId(), im = nbeId();
+  if (nbe.old) return h + '<h4>Só para ver</h4><p class="mixl"><b>Semente:</b> ' + esc(String(nbeNum(nbeGet(D, 'RandomSeed')))) + (nbeDate(nbeGet(D, 'LastPlayed')) ? ' · <b>Última vez jogado:</b> ' + esc(nbeDate(nbeGet(D, 'LastPlayed'))) : '') + ' · <b>Versão:</b> Pocket Edition 0.2 a 0.8 (mundo de 256 × 256)</p>';
   NBE_SET[iw] = function (v) { nbeWeatherSet(v, nbeWeather().min); nbeTouch(true); };
   NBE_SET[im] = function (v) { var r = nbeNumIn(v, 0, 10000, 'Duração'); if (r.err) return r.err; nbeWeatherSet(nbeWeather().k, r.n); nbeTouch(true); };
   h += '<h4>Clima</h4>' + nbeRow('Agora', nbeSelect(iw, w.k, [['clear', 'Limpo'], ['rain', 'Chuva (ou neve)'], ['thunder', 'Tempestade']])) + nbeRow('Por quanto tempo', nbeInput(im, w.min, 'number', 'min="0" step="1"'), 'minutos de jogo; depois o clima muda sozinho (se o ciclo do clima estiver ligado)');
@@ -249,6 +251,7 @@ function nbeWeatherSet(k, min) {
 /* ---------- Aba Regras ---------- */
 function nbeRulesHtml() {
   var h = '<p class="mixl">As regras do jogo (as do comando /gamerule).</p>', rows = [];
+  if (nbe.old) return '<p>A Pocket Edition 0.8 não tem regras do jogo (o /gamerule veio depois).</p>';
   if (nbe.java) {
     var G = nbeGet(nbe.D, 'GameRules'); if (!G) return '<p>Este mundo não tem regras guardadas.</p>';
     G.v.forEach(function (e) {
@@ -269,6 +272,7 @@ function nbeRulesHtml() {
 /* ---------- Aba Jogador ---------- */
 function nbePlayerHtml() {
   var P = nbe.pl, J = nbe.java;
+  if (nbe.old) return nbeOldPlayerHtml();
   if (!P) return '<p>Este mundo não tem um jogador guardado' + (J ? ' no level.dat (num servidor, os jogadores ficam na pasta playerdata).' : ' (~local_player): o jogador ainda não entrou no mundo, ou é um mundo de servidor.') + '</p>';
   var h = '<h4>Posição</h4>', pe = nbeGet(P, 'Pos'), pos = nbeListNums(pe) || [0, 0, 0];
   ['X', 'Y', 'Z'].forEach(function (a, i) { var id = nbeId(); NBE_SET[id] = function (v) { var r = nbeNumIn(v, i === 1 ? -128 : -30000000, i === 1 ? 2000 : 30000000, a); if (r.err) return r.err; nbeSetList(pe, i, r.n + (i !== 1 && J ? 0 : 0)); nbeTouch(false); }; h += nbeRow(a, nbeInput(id, Math.round(pos[i] * 100) / 100, 'number', 'step="any"')); });
@@ -332,7 +336,7 @@ function nbeFxBind() {
     if (!sel || !wio.area) { toast('Marque uma área com Selecionar (V) na área do mundo carregada.'); return; }
     var c = [(sel.a[0] + sel.b[0] + 1) / 2, sel.b[1] + 1, (sel.a[2] + sel.b[2] + 1) / 2], w = wioWorldPos(c), pe = nbeGet(nbe.pl, 'Pos');
     nbeSetList(pe, 0, w[0]); nbeSetList(pe, 1, w[1] + (nbe.java ? 0 : 1.62)); nbeSetList(pe, 2, w[2]); // no Bedrock, Pos é a altura dos olhos
-    if (nbe.java) { var de = nbeGet(nbe.pl, 'Dimension'); if (de && de.t === 8) de.v = NBE_DIM[wio.area.dim][2]; } else nbeSet(nbe.pl, 'DimensionId', 3, wio.area.dim);
+    if (nbe.java) { var de = nbeGet(nbe.pl, 'Dimension'); if (de && de.t === 8) de.v = NBE_DIM[wio.area.dim][2]; } else if (!nbe.old) nbeSet(nbe.pl, 'DimensionId', 3, wio.area.dim);
     nbeTouch(false); nbeRender(); toast('O jogador vai aparecer em ' + w.map(Math.floor).join(', ') + ' (em cima da seleção).');
   };
   var add = $('nbeFxAdd'); if (!add) return;
@@ -416,6 +420,7 @@ function nbeItemWrite(g, i, it) {
 function nbeShort(id) { var b = BY_JAVA[id] != null ? BLOCKS[BY_JAVA[id]].name : id.replace(/_/g, ' '); return b; }
 function nbeInvHtml() {
   if (!nbe.pl) return nbePlayerHtml();
+  if (nbe.old) return nbeOldInvHtml();
   var h = '<p class="mixl">Clique num espaço para pôr, trocar ou tirar um item. 0 a 8 são a barra de baixo do jogo.</p>';
   NBE_GROUPS.forEach(function (G) {
     h += '<h4>' + G[1] + '</h4><div class="nbeinv nbe' + G[0] + '">';
@@ -448,4 +453,35 @@ function nbeInvBind() {
   $('nbeIt64').onclick = function () { apply(64); };
   $('nbeItDel').onclick = function () { nbeItemWrite(nbeSlotSel[0], nbeSlotSel[1], null); nbeTouch(false); nbeRender(); };
   $('nbeIt').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); apply(0); } });
+}
+
+/* ---------- Pocket Edition 0.2 a 0.8 (o jogador dentro do level.dat) ---------- */
+/* O que essa versão guarda do jogador: posição, vida, a cama e o inventário por número. Sem modo próprio, fome,
+   experiência, efeitos ou habilidades. */
+function nbeOldPlayerHtml() {
+  var P = nbe.pl; if (!P) return '<p>Este mundo não tem o jogador no level.dat.</p>';
+  var h = '<h4>Posição</h4>', pe = nbeGet(P, 'Pos'), pos = nbeListNums(pe) || [0, 0, 0];
+  ['X', 'Y', 'Z'].forEach(function (a, i) { var id = nbeId(); NBE_SET[id] = function (v) { var r = nbeNumIn(v, i === 1 ? 0 : 0, i === 1 ? 200 : 256, a); if (r.err) return r.err; nbeSetList(pe, i, r.n); nbeTouch(false); }; h += nbeRow(a, nbeInput(id, Math.round(pos[i] * 100) / 100, 'number', 'step="any"'), i === 1 ? '' : 'o mundo vai de 0 a 256'); });
+  if (wio.player) h += '<div class="row"><button class="btn" id="nbePosSel" title="A posição vira o meio da seleção do editor (na área carregada)">Pôr o jogador no meio da seleção</button></div>';
+  h += '<h4>Estado</h4>' + nbeField(P, 'Health', 2, 'Vida', 1, 20, false, '20 = 10 corações');
+  h += '<h4>Ponto de renascimento</h4>';
+  if (nbeNum(nbeGet(P, 'SpawnY')) >= 0 && nbeGet(P, 'SpawnX')) h += nbeField(P, 'SpawnX', 3, 'X', 0, 256, false) + nbeField(P, 'SpawnY', 3, 'Y', 0, 128, false) + nbeField(P, 'SpawnZ', 3, 'Z', 0, 256, false);
+  else h += '<p class="mixl">Sem cama: renasce no ponto de nascimento do mundo.</p>';
+  return h;
+}
+/* Inventário: os itens por número (id e Damage). Os espaços 0 a 8 da lista são a barra, que aponta para os espaços do
+   inventário (id 255 = nada); o site mostra, mas não muda (o formato não pôde ser conferido com o jogo antigo). */
+function nbeOldName(id, dmg) {
+  if (id > 0 && id < 256) { var j = LEG.b[id + ':' + (dmg || 0)] || LEG.b[id + ':0']; if (j) { j = j.replace(/\[.*$/, ''); return LEG_RENAME[j] || j; } }
+  return LEG.i[id] || ('item ' + id);
+}
+function nbeOldInvHtml() {
+  var L = nbeGet(nbe.pl, 'Inventory'), rows = [];
+  (L && L.v.et === 10 ? L.v.a : []).forEach(function (c) {
+    var id = nbeNum(nbeGet(c, 'id')), n = nbeNum(nbeGet(c, 'Count')), s = nbeNum(nbeGet(c, 'Slot')), d = nbeNum(nbeGet(c, 'Damage'));
+    if (s < 9 || !id || id === 255 || !n || n === 255) return; // barra (aponta para o inventário) e espaços vazios
+    rows.push('<div class="row"><span class="nbesw" style="' + beSwatch(nbeOldName(id, d)) + '"></span><b>' + esc(beItemName(nbeOldName(id, d))) + '</b> × ' + n + ' <span class="mixl">(espaço ' + (s - 8) + '; número ' + id + (d > 0 ? ':' + d : '') + ')</span></div>');
+  });
+  return '<p class="mixl">Nesta versão, os itens ficam guardados por número, e a barra de baixo aponta para os espaços do inventário. O site mostra o inventário, mas não muda: o jeito exato que a versão antiga grava não pôde ser conferido no jogo, e um erro aqui pode apagar o inventário.</p>' +
+    (rows.length ? rows.join('') : '<p>O inventário está vazio.</p>');
 }

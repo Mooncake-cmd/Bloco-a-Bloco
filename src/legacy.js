@@ -339,14 +339,14 @@ function wioOldFolder() { return (wio.prefix.replace(/\/$/, '').split('/').pop()
    e o modo de jogo do mundo antigo, e o tipo de mundo Antigo (limitado a 256 × 256, como era) */
 function legOldLevelDat() {
   var raw = wioBytes(atob(NW_LEVEL)), tree = nbtTreeLE(raw.subarray(8)), old = [];
-  try { old = nbtTreeLE(wio.old.level.subarray(8)).v; } catch (e) { old = []; }
+  try { old = nbtTreeLE((wio.files && wio.files.get('level.dat') || wio.old.level).subarray(8)).v; } catch (e) { old = []; } // com o que o Editor NBT mudou
   var get = function (k) { var e = old.filter(function (q) { return q.k === k; })[0]; return e ? e.v : null; };
   var set = function (k, v) { if (v == null) return; tree.v.forEach(function (e) { if (e.k === k) e.v = v; }); };
   set('LevelName', wio.name); set('RandomSeed', get('RandomSeed')); set('SpawnX', get('SpawnX')); set('SpawnY', get('SpawnY')); set('SpawnZ', get('SpawnZ'));
   set('Time', get('Time')); set('GameType', get('GameType')); set('LastPlayed', nwLong(Math.floor(Date.now() / 1000))); set('currentTick', nwLong(0));
   set('Generator', 0);
   // o modelo é de um mundo criativo com comandos; o mundo antigo não tinha nada disso: fica como ele era (no criativo, marcado como o jogo marca)
-  var gt = get('GameType'); set('commandsEnabled', 0); set('hasBeenLoadedInCreative', gt === 1 ? 1 : 0);
+  var gt = get('GameType'); set('commandsEnabled', 0); set('hasBeenLoadedInCreative', gt === 1 || wio.oldCheat ? 1 : 0); // mudado pelo Editor NBT: como o jogo marca
   var body = nbtTreeWrite(tree), hd = new Uint8Array(8), dv = new DataView(hd.buffer);
   dv.setInt32(0, new DataView(raw.buffer, raw.byteOffset).getInt32(0, true), true); dv.setInt32(4, body.length, true);
   return wioCat([hd, body]);

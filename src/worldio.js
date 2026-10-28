@@ -614,7 +614,7 @@ async function wioZipOut(files, prog) {
 /* ---------- Sessão guardada no navegador (o arquivo do mundo, as mudanças gravadas e a área aberta) ---------- */
 function wioMeta() {
   var fl = {}; if (wio.files) wio.files.forEach(function (d, nm) { fl[nm] = b64(d); });
-  return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl, legKeep: wio.legKeep, presLeg: wio.pres.map(function (e) { return e.leg == null ? null : e.leg; }) };
+  return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl, legKeep: wio.legKeep, oldCheat: wio.oldCheat || 0, presLeg: wio.pres.map(function (e) { return e.leg == null ? null : e.leg; }) };
 }
 function wioSaveSession(withFile) {
   if (!wio) return Promise.resolve();
@@ -645,7 +645,7 @@ async function wioRestore() {
       else { wio.presMap.set(wioStr(raw), wio.pres.length); wio.pres.push({ raw: raw, name: String(nbtRead(raw, true).name) }); }
     });
     if (pat && !kept) Object.keys(pat).forEach(function (h) { wio.patches.set(wioUnhex(h), pat[h]); });
-    if (!kept && wio.leg) { wio.legKeep = meta.legKeep !== false; (meta.presLeg || []).forEach(function (c, i) { if (c != null && wio.pres[i]) { wio.pres[i].leg = c; wio.presMap.set('leg:' + c, i); } }); }
+    if (!kept && wio.leg) { wio.legKeep = meta.legKeep !== false; if (meta.oldCheat) wio.oldCheat = 1; (meta.presLeg || []).forEach(function (c, i) { if (c != null && wio.pres[i]) { wio.pres[i].leg = c; wio.presMap.set('leg:' + c, i); } }); }
     if (meta.files && !kept) { wio.files = new Map(); Object.keys(meta.files).forEach(function (nm) { wio.files.set(nm, unb64(meta.files[nm])); }); if (meta.name) wio.name = meta.name; }
     var A = meta.area;
     await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
