@@ -47,5 +47,10 @@ eval(fs.readFileSync(__dirname + '/demo.inc', 'utf8'));
   const bb = await (await p.$('#cmdBox')).boundingBox();
   await p.screenshot({ path: path.join(OUT, 'comandos-sugestoes.jpg'), type: 'jpeg', quality: 88, clip: { x: bb.x - 8, y: bb.y - 8, width: bb.width + 16, height: bb.height + 16 } });
   await p.keyboard.press('Tab'); console.log('Tab:', JSON.stringify(await ev("document.getElementById('cmdIn').value")));
+  // placeon: flores em 30% da grama (20% papoula, 10% dente-de-leão) e girassóis em 3%
+  await p.keyboard.press('Escape'); await p.keyboard.press('Escape'); await ev('undo()');
+  for (const c of ['placeon grass_block 20%poppy,10%dandelion', 'placeon grass_block 3%sunflower']) console.log(c, '=>', (await ev(`cmdRun(${JSON.stringify(c)})`)).msg);
+  await p.evaluate(() => document.getElementById('toast').classList.remove('show')); await p.waitForTimeout(1500);
+  await p.screenshot({ path: path.join(OUT, 'placeon.jpg'), type: 'jpeg', quality: 84, clip: { x: 0, y: 54, width: 972, height: 718 } });
   console.log('ok comandos', errs); await b.close();
 })();

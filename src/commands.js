@@ -503,3 +503,38 @@ CMDS.naturalize = {
     return { msg: 'Terreno naturalizado ' + sc.txt + ': ' + (changes.length / 4).toLocaleString('pt-BR') + ' blocos trocados em ' + cols.toLocaleString('pt-BR') + ' colunas' + (snows.length ? ', ' + (snows.length / 3).toLocaleString('pt-BR') + ' de neve' : '') + (T ? ', ' + (T.plantas || 0) + ' plantas e ' + (T.arvores || 0) + ' árvores' : '') + '. Ctrl+Z desfaz.' };
   }
 };
+
+/* ---------- placeon ---------- */
+/* Põe um bloco em cima de cada bloco de um tipo (flores em cima da grama). O novo é como no replace: um bloco, uma
+   mistura em partes iguais ("poppy,dandelion") ou com porcentagens; quando todas têm porcentagem e somam menos de
+   100%, o resto fica sem nada ("30%poppy": flor em 30% da grama). Só onde o lugar de cima está vazio; plantas de dois
+   blocos (girassol, roseira...) precisam de dois lugares vazios e ganham a metade de cima. O limite de altura vale para o
+   bloco de baixo. */
+function cmdTwoTall(bi) { var j = BLOCKS[bi].java, u = cellFromJava(j + '[half=upper]'); return !!u && u !== cellFromJava(j + '[half=lower]'); } // girassol, roseira, capim alto, portas...
+CMDS.placeon = {
+  use: 'placeon <bloco de baixo> <bloco novo> (ex.: placeon grass_block 30%poppy)',
+  help: 'Põe um bloco (ou uma mistura) em cima de todos os blocos de um tipo, onde em cima está vazio. Com porcentagem que soma menos de 100%, só nessa parte: placeon grass_block 30%poppy. Na seleção; sem seleção, no espaço inteiro.',
+  run: function (args) {
+    if (args.length < 2) return { err: 'Use: placeon <bloco de baixo> <bloco novo>. Ex.: placeon grass_block poppy, placeon grass_block 20%poppy,10%dandelion.' };
+    var F = cmdBlocks([args[0]]); if (F.bad.length) return { err: 'Bloco desconhecido: ' + F.bad.join(', ') + '. Use o nome do Java (o da barra de status), como grass_block.' };
+    var words = args.slice(1), all = words.join(' ').split(/[,\s]+/).filter(Boolean), pcts = all.map(function (w) { var m = /^(\d+(?:[.,]\d+)?)%/.exec(w); return m ? +m[1].replace(',', '.') : null; });
+    var sum = pcts.reduce(function (a, p) { return a + (p || 0); }, 0);
+    if (pcts.every(function (p) { return p != null; }) && sum < 100) words = words.concat([(100 - sum) + '%air']); // o resto: nada
+    var T = cmdMix(words); if (T.err) return T;
+    var want = new Set(F.ok), sc = cmdScope(), spots = [];
+    blocksInBox(sc.a[0], sc.a[1], sc.a[2], sc.b[0], sc.b[1], sc.b[2], function (x, y, z, v) { if (want.has(cellBlock(v)) && y + 1 < SY && !gget(x, y + 1, z)) spots.push(x, y + 1, z); });
+    var base = F.ok.map(function (bi) { return BLOCKS[bi].name; }).join(', ');
+    if (!spots.length) return { msg: 'Nenhum bloco de ' + base + ' com espaço vazio em cima ' + sc.txt + '.' };
+    var n = 0, tall = 0, cells = {};
+    var cellOf = function (bi, half) { var k = bi + half; if (!(k in cells)) cells[k] = half ? cellFromJava(BLOCKS[bi].java + '[half=' + half + ']') || mkCell(bi) : mkCell(bi); return cells[k]; };
+    cmdEdit('placeon ' + args.join(' '), function () {
+      for (var k = 0; k < spots.length; k += 3) {
+        var x = spots[k], y = spots[k + 1], z = spots[k + 2], bi = T.pick(); if (bi === AIR_BI || gget(x, y, z)) continue;
+        if (cmdTwoTall(bi)) { if (y + 1 >= SY || gget(x, y + 1, z)) { tall++; continue; } editSet(x, y, z, cellOf(bi, 'lower')); editSet(x, y + 1, z, cellOf(bi, 'upper')); n++; } // conta as duas metades
+        else editSet(x, y, z, cellOf(bi, ''));
+        n++;
+      }
+    });
+    return { msg: 'Postos ' + n.toLocaleString('pt-BR') + ' blocos (' + T.names + ') em cima de ' + base + ' ' + sc.txt + ' (' + (spots.length / 3).toLocaleString('pt-BR') + ' lugares vazios' + (tall ? '; ' + tall + ' sem altura para planta de dois blocos' : '') + '). Ctrl+Z desfaz.' };
+  }
+};
