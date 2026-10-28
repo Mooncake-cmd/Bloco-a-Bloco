@@ -413,7 +413,8 @@ async function wioMap(dim, prog) {
   for (var ci = 0; ci < cols.length; ci++) {
     var c = cols[ci], subs = c.subs.concat(extra.get(c.x + ',' + c.z) || []).filter(function (y, i, a) { return a.indexOf(y) === i; }).sort(function (a, b) { return b - a; }), left = 256, top = new Int16Array(256).fill(-32768), col = new Array(256), seenAir = new Uint8Array(256);
     var lr = c.leg ? await wioGet(wioKey(c.x, c.z, dim, 0x30)) : null;
-    if (lr) { var lt = legTops(lr); for (var lq = 0; lq < 256; lq++) if (lt.v[lq]) { var tq = ((lq & 15) << 4) | (lq >> 4); top[tq] = lt.h[lq]; col[tq] = wioColor(lt.v[lq]); } subs = []; } // formato antigo (src/legacy.js)
+    var lb = null; // bioma de cada coluna de um chunk antigo (q2 = x*16 + z), para o mapa no modo Biomas
+    if (lr) { var lt = legTops(lr); lb = new Uint8Array(256).fill(255); for (var lq = 0; lq < 256; lq++) { var tq = ((lq & 15) << 4) | (lq >> 4); lb[tq] = lt.b[lq]; if (lt.v[lq]) { top[tq] = lt.h[lq]; col[tq] = wioColor(lt.v[lq]); } } subs = []; } // formato antigo (src/legacy.js)
     for (var si = 0; si < subs.length && left; si++) {
       var sy = subs[si]; if (dim === 1 && sy > 7) continue;
       var dec = null; try { var raw = await wioGet(wioKey(c.x, c.z, dim, 0x2f, sy)); dec = raw && subDecode(raw); } catch (e) {}
@@ -433,8 +434,8 @@ async function wioMap(dim, prog) {
     }
     var b3 = null; try { var d3r = await wioGet(wioKey(c.x, c.z, dim, 0x2b)); if (d3r && d3r.length > 512) b3 = bioDecode3D(d3r); } catch (e) {}
     for (var q2 = 0; q2 < 256; q2++) {
-      if (b3 && top[q2] !== -32768) { // q2 = x*16 + z aqui
-        var ry = top[q2] - D.min, sb = b3.subs[ry >> 4] || b3.subs[b3.subs.length - 1], bv = sb ? sb[((q2 >> 4) << 8) | ((q2 & 15) << 4) | (ry & 15)] : 255;
+      if ((b3 || lb) && top[q2] !== -32768) { // q2 = x*16 + z aqui
+        var ry = top[q2] - D.min, sb = b3 ? b3.subs[ry >> 4] || b3.subs[b3.subs.length - 1] : null, bv = lb ? lb[q2] : sb ? sb[((q2 >> 4) << 8) | ((q2 & 15) << 4) | (ry & 15)] : 255;
         if (bv !== 255) { var bx = Math.floor(((c.x - x0) * 16 + (q2 >> 4)) / sc), bz = Math.floor(((c.z - z0) * 16 + (q2 & 15)) / sc), bo = bz * W2 + bx, bc2 = BIO_BY_ID[bv] ? BIO_BY_ID[bv].map : 0x888888;
           bid[bo] = bv; bcnt[bv] = (bcnt[bv] || 0) + 1; bimg.data[bo * 4] = bc2 >> 16 & 255; bimg.data[bo * 4 + 1] = bc2 >> 8 & 255; bimg.data[bo * 4 + 2] = bc2 & 255; bimg.data[bo * 4 + 3] = 255; }
       }
