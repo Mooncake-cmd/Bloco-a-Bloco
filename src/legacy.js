@@ -131,7 +131,7 @@ function legChunkBytes(orig, ecx, ecz, LR) {
     for (var y = 0; y < 128; y++) {
       var v = gget(ex, y, ez), i = (x << 11) | (z << 7) | y, code, oc = orig && orig.length >= LEG_LEN ? (orig[i] << 4) | (i & 1 ? orig[LEG_OFF.meta + (i >> 1)] >> 4 : orig[LEG_OFF.meta + (i >> 1)] & 15) : 0;
       code = oc && legCell(oc) === v ? oc : legCode(v); // o que não mudou volta com o código de antes (água parada 9 e corrente 8 viram a mesma água no editor)
-      if (code > 0 && wio.old && code !== oc && !legOldTile(code >> 4)) code = -1; // bloco que a Pocket Edition 0.5 não tem
+      if (code > 0 && code !== oc && ((wio.old && !legOldTile(code >> 4)) || (wio.legVer === '011' && LEG_011_TILES.indexOf(code >> 4) < 0))) code = -1; // bloco que a versão do jogo não tem
       if (code < 0) { lost++; code = 0; }
       if (code) { out[i] = code >> 4; var m = code & 15, bi = LEG_OFF.meta + (i >> 1); out[bi] |= i & 1 ? m << 4 : m; if (legLight(v) & 15) top = y + 1; }
       var li = LR.I(ex - LR.x0, ez - LR.z0, y), s = LR.sky[li], b = LR.blk[li], h = i >> 1;
@@ -150,7 +150,7 @@ function legEntity(ent, wx, wy, wz) {
     o.Items = { t: 'list', of: 'compound', v: o.Items.v.map(function (it) {
       var nm = String((it.Name || {}).v || '').replace(/^minecraft:/, ''), code = BY_JAVA[nm] != null ? legCode(mkCell(BY_JAVA[nm])) : -1, n = -1;
       if (code > 0) n = code >> 4; else for (var id in LEG.i) if (LEG.i[id] === nm) { n = +id; break; }
-      if (n < 0) return null;
+      if (n < 0 || (wio.legVer === '011' && (n < 256 ? LEG_011_TILES : LEG_011_ITEMS).indexOf(n) < 0)) return null;
       return { Count: it.Count, Damage: { t: 'short', v: code > 0 ? code & 15 : 0 }, Slot: it.Slot, id: { t: 'short', v: n } };
     }).filter(Boolean) };
   }
@@ -163,8 +163,9 @@ function legChooseMode(old) {
     openDialog('<h3>Mundo no formato antigo</h3><p>Este mundo foi gravado por uma versão antiga do Minecraft Bedrock (Pocket Edition ' + (old ? '0.2 a 0.8, com o mundo de 256 × 256 blocos' : 'até a 1.0') + '): os blocos vão até a altura 127 e são guardados por número. O site lê o mundo do jeito que ele é. Ao exportar:</p>' +
       '<label class="check"><input type="radio" name="legM" value="keep" checked><span><b>Manter o formato antigo</b> (para jogar na versão antiga): o editor tem a altura 0 a 127 e os blocos da época; um bloco que não existia vira ar ao exportar (o aviso conta quantos). A luz dos chunks editados é calculada de novo.</span></label>' +
       '<label class="check"><input type="radio" name="legM" value="conv"><span><b>Converter para o formato atual</b> (para jogar na versão de hoje): o editor tem a altura 0 a 255 e todos os blocos; os chunks editados saem num formato que o jogo atual atualiza sozinho, como faz com os outros, e ao abrir ele cria a parte de baixo do mundo (-64 a 0). O mundo deixa de abrir nas versões antigas.</span></label>' +
+      (old ? '' : '<label class="nberow"><span>Versão do jogo em que você vai jogar<br><small class="mixl">mantendo o formato antigo, os blocos e itens que ela não tem viram ar</small></span><select id="legVer"><option value="011">0.9 a 0.11</option><option value="10">0.12 a 1.0</option></select></label>') +
       '<div class="row"><button class="btn primary" id="legOk">Continuar</button></div>', function () {
-      $('legOk').onclick = function () { var v = (document.querySelector('[name=legM]:checked') || {}).value; closeDialog(); res(v !== 'conv'); };
+      $('legOk').onclick = function () { var v = (document.querySelector('[name=legM]:checked') || {}).value; legChooseMode.ver = $('legVer') ? $('legVer').value : ''; closeDialog(); res(v !== 'conv'); };
     });
   });
 }
@@ -396,3 +397,14 @@ function legOldSpawnFix(cd) {
   cd[p] = 1; cd[m] &= i & 1 ? 0x0f : 0xf0; // pedra, dado 0
   return 'O jogo antigo só abre o mundo com um bloco na altura 63 no ponto de nascimento: o site pôs um bloco de pedra em ' + sx + ', 63, ' + sz + ' (pode tirar no jogo, mas sem ele o mundo volta a travar ao abrir).';
 }
+
+/* ---------- O que a Pocket Edition 0.9 a 0.11 conhece (lido dos registros Tile::tiles e Item::items do jogo 0.11.1, rodando
+   a biblioteca dele num emulador; os números sem bloco são o "info_update" do jogo) ---------- */
+var LEG_011_TILES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26, 27, 30, 31, 32, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+  46, 47, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 71, 73, 74, 78, 79, 80, 81, 82, 83, 85, 86, 87, 89, 91, 92, 95, 96, 97, 98,
+  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 114, 120, 121, 126, 127, 128, 129, 133, 134, 135, 136, 139, 141, 142, 152, 155, 156, 157,
+  158, 159, 161, 162, 163, 164, 170, 171, 172, 173, 174, 175, 183, 184, 185, 186, 187, 198, 243, 244, 245, 246, 247];
+var LEG_011_ITEMS = [256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283,
+  284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+  315, 316, 317, 318, 319, 320, 321, 323, 324, 325, 328, 329, 330, 331, 332, 333, 334, 336, 337, 338, 339, 340, 341, 344, 345, 346, 347, 348, 349, 350, 351,
+  352, 353, 354, 355, 357, 359, 360, 361, 362, 363, 364, 365, 366, 367, 378, 383, 388, 391, 392, 393, 400, 405, 406, 457, 458, 459];
