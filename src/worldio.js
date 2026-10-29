@@ -368,7 +368,7 @@ function wioCellOf(raw) {
   var name = String(o.name || '').replace(/^minecraft:/, '');
   if (name === 'air' || !name) c = 0;
   else {
-    c = cellFromBedrock(name, o.states || {});
+    var up = beUpgrade(name, o.states, o.version, o.val); c = cellFromBedrock(up[0], up[1]); // nomes de versões mais antigas do jogo (src/import.js)
     if (!c) {
       var i = wio.presMap.get(k);
       if (i === undefined) { i = wio.pres.length; wio.pres.push({ raw: raw, name: String(o.name) }); wio.presMap.set(k, i); wio.presDirty = true; }

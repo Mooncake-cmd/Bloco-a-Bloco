@@ -18,7 +18,7 @@ const root = path.join(__dirname, '..');
 const ctx = { console, TextDecoder, TextEncoder, Blob, Response, DecompressionStream, CompressionStream, ReadableStream, Uint8Array, DataView, Map, Set, Math, String, Number, JSON, Array, Object, Promise };
 vm.createContext(ctx);
 ctx.MCExport = require(path.join(root, 'src/exporters.js'));
-vm.runInContext(fs.readFileSync(path.join(root, 'src/import.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(root, 'src/import.js'), 'utf8').replace('/*%%UPGRADE%%*/[]', () => fs.readFileSync(path.join(root, 'data/bedrock-upgrade.json'), 'utf8')).replace('/*%%BEVAL%%*/{}', () => fs.readFileSync(path.join(root, 'data/bedrock-val.json'), 'utf8')), ctx);
 vm.runInContext(fs.readFileSync(path.join(root, 'src/worldio.js'), 'utf8'), ctx);
 (async () => {
   const files = unzip(fs.readFileSync(path.join(__dirname, 'fixtures/mundo-teste.mcworld')));
@@ -51,6 +51,11 @@ vm.runInContext(fs.readFileSync(path.join(root, 'src/worldio.js'), 'utf8'), ctx)
   check(v1 && v1.length === big.length && v1.every((x, i) => x === big[i]), 'registro: valor de 70 KB (mais de um bloco de 32 KB) lido de volta igual');
   check(v2 === null, 'registro: chave apagada some');
   check((await ctx.ldbGet(db2, ctx.wioKey(1, 1, 0, 0x2f, 3))) !== null, 'registro: as outras chaves continuam');
+  // nomes de versões antigas do jogo (mundo salvo na 1.18.31): grama, folhas com o tipo no estado, granito
+  const V118 = 0x01121E04, up = (n, st) => JSON.stringify(ctx.beUpgrade(n, st, V118));
+  check(up('grass', {}) === '["grass_block",{}]' && up('leaves', { old_leaf_type: 'birch', persistent_bit: 0, update_bit: 1 }) === '["birch_leaves",{"persistent_bit":0,"update_bit":1}]'
+    && up('stone', { stone_type: 'granite' }) === '["granite",{}]' && up('grass_block', {}) === '["grass_block",{}]', 'nomes antigos do Bedrock: grass, leaves e stone_type viram os de hoje');
+  check(JSON.stringify(ctx.beUpgrade('log', null, 0, 1)) === '["spruce_log",{"pillar_axis":"y"}]' && ctx.beUpgrade('tallgrass', null, 0, 2)[0] === 'fern' && ctx.beUpgrade('red_flower', null, 0, 0)[0] === 'poppy', 'blocos de antes da 1.13 (val): log 1 = tronco de abeto, tallgrass 2 = samambaia, red_flower 0 = papoula');
   // .log lido aos poucos (mundos com .log enormes): pedaços de tamanho qualquer, os mesmos valores
   const stream = async n => new ReadableStream({ start(c) { const u = files['db/' + n]; for (let i = 0; i < u.length; i += 5000) c.enqueue(u.slice(i, i + 5000)); c.close(); } });
   const db3 = await ctx.ldbOpen(names.concat(['000099.log']), read, null, stream);

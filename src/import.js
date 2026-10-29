@@ -46,6 +46,44 @@ function bedrockIndex() {
   if (BY_JAVA.deepslate_redstone_ore != null) add('lit_deepslate_redstone_ore', BY_JAVA.deepslate_redstone_ore);
   return beByName;
 }
+/* Nomes e estados antigos do Bedrock -> os de hoje (data/bedrock-upgrade.json, de scripts/gen_upgrade.js): aplica em ordem
+   as tabelas das versões depois da gravada no bloco (version). Ex.: na 1.20.70 grass virou grass_block e leaves com
+   old_leaf_type virou oak_leaves, birch_leaves...; sem isso, um mundo salvo numa versão mais antiga mostra esses blocos
+   como desconhecidos (roxos). Blocos de antes da 1.13 não têm estados, só o número do tipo (val): BE_VAL dá os estados
+   da 1.12.0 (ex.: log com val 1 = old_log_type spruce). Devolve [nome sem minecraft:, estados]. */
+var BE_UPGRADE = /*%%UPGRADE%%*/[], BE_VAL = /*%%BEVAL%%*/{};
+function beFlat(f, st) { var v = st[f.k]; if (v === undefined) return null; v = String(v); return (f.p || '') + (f.m && f.m[v] != null ? f.m[v] : v) + f.s; }
+function beUpgrade(name, states, version, val) {
+  name = String(name).replace(/^minecraft:/, ''); var st = states || {}, ver = (version | 0) >>> 0;
+  if (!states && val != null && BE_VAL[name]) {
+    var e = BE_VAL[name][val & 0xffff]; if (e === undefined) e = BE_VAL[name][0];
+    if (e !== undefined) { if (Array.isArray(e)) { name = e[0]; e = e[1]; } st = e; ver = 0x010C0000; }
+  }
+  for (var si = 0; si < BE_UPGRADE.length; si++) {
+    var S = BE_UPGRADE[si]; if (ver > S.v) continue;
+    var rs = S.s && S.s[name], k, done = false;
+    if (rs) for (var ri = 0; ri < rs.length && !done; ri++) {
+      var R = rs[ri], ok = true;
+      for (k in R.o || {}) if (!(k in st) || !sameVal(R.o[k], st[k])) { ok = false; break; }
+      if (!ok) continue;
+      var nn = R.nm || beFlat(R.nf, st); if (!nn) continue;
+      var ns = {}; for (k in R.n || {}) ns[k] = R.n[k];
+      (R.c || []).forEach(function (q) { if (q in st) ns[q] = st[q]; });
+      name = nn; st = ns; done = true;
+    }
+    if (done) continue;
+    var nn2 = S.r && S.r[name], o = {}, vp = S.vp && S.vp[name], rp = S.rp && S.rp[name];
+    for (k in st) o[k] = st[k];
+    if (S.a && S.a[name]) for (k in S.a[name]) if (!(k in o)) o[k] = S.a[name][k];
+    if (S.d && S.d[name]) S.d[name].forEach(function (q) { delete o[q]; });
+    var remap = function (q, v) { var ix = vp && vp[q] && S.vi[vp[q]]; if (ix) for (var j = 0; j < ix.length; j++) if (sameVal(ix[j][0], v)) return ix[j][1]; return v; };
+    if (rp) for (k in rp) if (k in o) { var v0 = remap(k, o[k]); delete o[k]; o[rp[k]] = v0; }
+    if (vp) for (k in vp) if (!(rp && k in rp) && k in o) o[k] = remap(k, o[k]);
+    if (!nn2 && S.f && S.f[name]) { nn2 = beFlat(S.f[name], o); if (nn2) delete o[S.f[name].k]; }
+    if (nn2) name = nn2; st = o;
+  }
+  return [name, st];
+}
 function sameVal(a, b) { return String(a) === String(b) || (a === 1 && b === 'true') || (a === 0 && b === 'false'); }
 function cellFromBedrock(name, states) {
   var cands = bedrockIndex()[name] || [];
@@ -139,7 +177,7 @@ function importMcstructure(u8) {
   var map = pal.map(function (e) {
     var n = String(e.name || '').replace(/^minecraft:/, '');
     if (/^(air|structure_void)$/.test(n)) return 0; // vazio de estrutura = "manter o terreno": no editor, vazio
-    var v = cellFromBedrock(n, e.states || {});
+    var up = beUpgrade(n, e.states, e.version, e.val), v = cellFromBedrock(up[0], up[1]); // nomes de versões mais antigas do jogo
     if (!v) unknown[n] = 0;
     return v;
   });
