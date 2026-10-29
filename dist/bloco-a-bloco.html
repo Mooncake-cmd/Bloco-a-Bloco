@@ -97,7 +97,7 @@ details.menu .pop button,details.menu .pop a{flex:none;justify-content:flex-star
 #eraseBtns button{background:var(--line);color:var(--fg)}
 #eraseBtns button[aria-pressed=true]{background:var(--danger);color:#fff}
 #tiltChip input{width:64px;text-align:right}#tiltChip .tiltax small{font-weight:400;opacity:.75}
-#projChip,#walkChip,#tpChip,#ghostChip,#worldChip,#partsChip,#tiltChip,#maskChip,#mixChip,#bioChip,#shape2Chip,#sculptChip,#symChip,#rulerChip,#erodeChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
+#projChip,#walkChip,#tpChip,#ghostChip,#worldChip,#partsChip,#tiltChip,#maskChip,#mixChip,#bioChip,#shape2Chip,#sculptChip,#symChip,#rulerChip,#erodeChip,#waterChip{flex-wrap:wrap;max-width:min(560px,calc(100vw - 40px))}
 .chip .mbtns{display:inline-flex;align-items:center;gap:4px}
 .chip .mbtns button{background:var(--line);color:var(--fg)}
 #crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;z-index:5;background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)}
@@ -126,8 +126,8 @@ body.walking #viewport canvas{cursor:none}
 #chips button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12px;color:var(--muted)}
 #chips button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
 #chips button.mine{border-style:dashed}
-#tools .tbtn{min-width:19px;padding:0}
-#tools .tbtn svg{width:18px;height:18px}
+#tools .tbtn{min-width:18px;padding:0}
+#tools .tbtn svg{width:17px;height:17px}
 .mixbar{display:inline-flex;width:84px;height:14px;border-radius:3px;overflow:hidden;border:1px solid var(--line);vertical-align:middle;margin:0 6px;flex:none}
 .mixbar span{height:100%;image-rendering:pixelated}
 .mixbar.big{display:flex;width:100%;height:22px;margin:0;border-radius:6px}
@@ -404,7 +404,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
       <input type="file" id="packDirIn" webkitdirectory hidden>
     </div>
     <div id="viewport">
-      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="hideChip" hidden><span id="hideTxt"></span><span class="mbtns"><button id="hideAll" title="O mesmo que o comando unhide all">Mostrar todos</button></span></div><div class="chip" id="tiltChip" hidden></div><div class="chip" id="partsChip" hidden><span id="partsTxt"></span><span class="mbtns" id="partsBtns"></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldUnder" aria-pressed="false" title="Desenhar também o que está debaixo da terra (cavernas, minas). Por padrão, só a superfície: o terreno e 3 camadas abaixo dele">Subsolo: escondido</button><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="erodeChip" hidden><b>Erosão</b><span class="mbtns"><b>Raio</b><button id="eroRm" title="Diminuir (-)">−</button><span id="eroR">4</span><button id="eroRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Intensidade</b><button id="eroSm">−</button><span id="eroS">2</span><button id="eroSp">+</button></span><span class="mbtns"><button data-ek="wear" title="Quinas e pontas caem; as faces expostas envelhecem pela tabela (rachado, musgo, oxidado)">Desgaste</button><button data-ek="fall" title="Saliências sem apoio caem e viram entulho no pé da construção">Desmoronar</button><button data-ek="groove" title="Gotas escorrem e cavam sulcos verticais nas paredes e canais no chão">Sulcos</button></span><span class="mbtns"><button id="eroTab" title="Que bloco envelhece em qual, e que entulho cada bloco vira">Tabela…</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
+      <div id="hud-tl"><div class="chip" id="walkChip" hidden><span id="walkTxt"></span><span class="mbtns"><button id="walkExit">Sair</button></span></div><div class="chip" id="tpChip" hidden><span><b>Teleporte</b> clique: a câmera vai ao bloco · <kbd>Shift</kbd> + clique: andar nele</span><span class="mbtns"><button id="tpWalk" title="Entrar em primeira pessoa no ponto que a câmera olha">Primeira pessoa</button></span></div><div class="chip" id="ghostChip" hidden><b>Fantasma</b><span class="mbtns"><button id="ghostOn" aria-pressed="false" title="Mostrar translúcidos os blocos de uma camada de baixo, na altura da camada atual">Desligado</button></span><span id="ghostRef"></span><span class="mbtns"><button id="ghostMinus" title="Referência mais perto">−</button><button id="ghostPlus" title="Referência mais abaixo">+</button></span></div><div class="chip" id="hideChip" hidden><span id="hideTxt"></span><span class="mbtns"><button id="hideAll" title="O mesmo que o comando unhide all">Mostrar todos</button></span></div><div class="chip" id="tiltChip" hidden></div><div class="chip" id="partsChip" hidden><span id="partsTxt"></span><span class="mbtns" id="partsBtns"></span></div><div class="chip" id="worldChip" hidden><span id="worldTxt"></span><span class="mbtns"><button id="worldUnder" aria-pressed="false" title="Desenhar também o que está debaixo da terra (cavernas, minas). Por padrão, só a superfície: o terreno e 3 camadas abaixo dele">Subsolo: escondido</button><button id="worldArea">Trocar área</button><button id="worldExp">Exportar mundo</button></span></div><div class="chip" id="anchorChip" hidden><span id="anchorTxt"></span><button id="anchorCancel">Cancelar</button></div><div class="chip" id="projChip" hidden><b>Lançar</b><span class="mbtns"><button data-pj="arrow" title="Shift + 1">Flecha</button><button data-pj="fire" title="Shift + 2">Flecha em chamas</button><button data-pj="trident" title="Shift + 3">Tridente</button><button data-pj="snowball" title="Shift + 4">Bola de neve</button><button data-pj="egg" title="Shift + 5">Ovo</button></span><span class="mbtns" id="projPowB"><b>Força</b><button id="projMinus" title="Arco menos carregado (-)">−</button><span id="projPow">100%</span><button id="projPlus" title="Arco carregado (+)">+</button></span><span id="projHit" class="mixl"></span><span class="mbtns"><button id="projClr" title="Tira as flechas e tridentes cravados">Recolher</button></span></div><div class="chip" id="tubeChip" hidden><span id="tubeTxt"></span><span class="mbtns"><b>Diâmetro</b><button id="tubeMinus" title="Diminuir (-)">−</button><span id="tubeD">5</span><button id="tubePlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-th="s">Maciço</button><button data-th="h">Oco</button></span><span class="mbtns"><button id="tubeNew" aria-pressed="false" title="O próximo clique começa outra linha (ou o botão do meio do mouse, ou Shift + clique)">Nova linha</button><button id="tubeUp" title="Subir o ponto (Page Up)">▲</button><button id="tubeDown" title="Descer o ponto (Page Down)">▼</button><button id="tubeUndo" title="Backspace">Tirar ponto</button><button id="tubeClear" title="Esc">Limpar</button></span><span class="mbtns"><button id="tubeCarve" title="Apaga os blocos dentro dos tubos (Shift + Enter)">Escavar</button><button id="tubeGo" title="Enter">Gerar</button></span></div><div class="chip" id="fieldChip" hidden><span id="fldTxt"></span><span class="mbtns"><button data-fs="disk">Disco</button><button data-fs="torus">Toro</button><button data-fs="arc">Arco</button><button data-fs="spiral">Espiral</button><button data-fs="shell">Casca</button><button data-fs="funnel">Funil</button></span><span class="mbtns"><b>Plano</b><button data-fp="floor" title="Deitada no chão">Chão</button><button data-fp="face" title="Na face clicada (parede, teto)">Face</button><button data-fp="cam" title="De frente para a câmera">Câmera</button></span><span class="mbtns"><b>Raio</b><button id="fldMinus" title="Diminuir (-)">−</button><span id="fldR">–</span><button id="fldPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button id="fldEdit">Ajustes e gradiente…</button><button id="fldNo" title="Esc">Cancelar</button><button id="fldGo" title="Enter">Gravar</button></span></div><div class="chip" id="brushChip" hidden><b>Pincel</b><span class="mbtns"><b>Tamanho</b><button id="brushMinus" title="Diminuir (-)">−</button><span id="brushR">1</span><button id="brushPlus" title="Aumentar (+)">+</button></span><span class="mbtns" id="brushShapes"><button data-bsh="cube">Cubo</button><button data-bsh="sphere">Esfera</button></span></div><div class="chip" id="eraseChip" hidden><b>Borracha</b><span id="eraseBtns"><button data-es="1">1×1</button><button data-es="2">2×2</button><button data-es="3">3×3</button></span></div><div class="chip" id="maskChip" hidden><span id="maskTxt"></span><span class="mbtns"><b>Raio</b><button id="maskMinus" title="Diminuir (-)">−</button><span id="maskR">2</span><button id="maskPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-ms="sphere">Esfera</button><button data-ms="cube">Cubo</button></span></div><div class="chip" id="bioChip" hidden><b>Bioma</b><select id="bioSel" aria-label="Bioma"></select><span id="bioInfo" class="mixl"></span><span class="mbtns"><b>Raio</b><button id="bioMinus" title="Diminuir (-)">−</button><span id="bioR">4</span><button id="bioPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-bs="ci">Círculo</button><button data-bs="sq">Quadrado</button></span><span class="mbtns"><button id="bioTerra" aria-pressed="true" title="Ao pintar, troca o chão, a cobertura (neve, gelo) e as plantas e faz crescer as árvores do bioma">Transformar o terreno</button><button id="bioErase" title="Tira o bioma pintado: a coluna volta ao bioma original">Apagar</button><button id="bioFill" title="Pinta todas as colunas da área marcada com Selecionar">Pintar a seleção</button><button id="bioPlates" aria-pressed="false" title="Mostra uma placa com a cor de cada bioma em cima das colunas (o mesmo que Projeto > Mostrar biomas)">Placas</button></span></div><div class="chip" id="mixChip" hidden><span id="mixTxt"></span><span class="mbtns"><button id="mixEdit">Editar mistura…</button></span><span class="mbtns"><b>Raio</b><button id="mixMinus" title="Diminuir (-)">−</button><span id="mixR">2</span><button id="mixPlus" title="Aumentar (+)">+</button></span><span class="mbtns"><button data-xs="sphere">Esfera</button><button data-xs="cube">Cubo</button></span><span class="mbtns"><button data-xm="paint" title="Troca só os blocos que já existem">Pintar</button><button data-xm="surface" title="Troca só os blocos com uma face no vazio (a pele do terreno ou da parede)">Superfície</button><button data-xm="fill" title="Põe blocos só nos espaços vazios">Encher</button></span></div><div class="chip" id="shape2Chip" hidden><span class="mbtns"><button data-s2="cyl">Cilindro</button><button data-s2="cone">Cone</button><button data-s2="pyr">Pirâmide</button><button data-s2="dome">Cúpula</button><button data-s2="arch">Arco</button><button data-s2="edge" title="Só as arestas de uma caixa (com 1 de espessura: uma moldura)">Arestas</button></span><span class="mbtns"><button id="shape2Hollow" aria-pressed="false" title="Só a casca (cilindro: tubo sem tampas)">Oco</button></span></div><div class="chip" id="waterChip" hidden><b>Água</b><span class="mbtns"><button data-hk="river" title="Leito em U, raso e comprido: arraste para traçar o rio">Rio</button><button data-hk="lake" title="Bacia de fundo largo">Lago</button><button data-hk="ocean" title="Plataforma e talude fundo, com as regras do mar">Oceano</button></span><span class="mbtns"><b>Raio</b><button id="hydRm" title="Diminuir (-)">−</button><span id="hydR">6</span><button id="hydRp" title="Aumentar (+)">+</button></span><label class="mixl">Nível Y <input type="number" id="hydLvl" placeholder="auto" style="width:64px" title="Altura da superfície da água. Vazio: a do primeiro clique (a água que já existe ali, ou um bloco abaixo do chão)"></label><label class="mixl">Bioma <select id="hydBio" aria-label="Bioma das regras" style="max-width:150px"></select></label><span class="mbtns"><button data-hs="carve" title="Etapa 1: cavar o leito e o barranco">Escavar</button><button data-hs="fill" title="Etapa 2: encher de água até o nível, fechando onde vazaria">Encher</button><button data-hs="deco" title="Etapa 4: margem, fundo e plantas pelo bioma">Decorar</button><button id="hydRules" title="Que blocos e plantas cada bioma põe na margem, no fundo e na superfície">Regras…</button></span></div><div class="chip" id="erodeChip" hidden><b>Erosão</b><span class="mbtns"><b>Raio</b><button id="eroRm" title="Diminuir (-)">−</button><span id="eroR">4</span><button id="eroRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Intensidade</b><button id="eroSm">−</button><span id="eroS">2</span><button id="eroSp">+</button></span><span class="mbtns"><button data-ek="wear" title="Quinas e pontas caem; as faces expostas envelhecem pela tabela (rachado, musgo, oxidado)">Desgaste</button><button data-ek="fall" title="Saliências sem apoio caem e viram entulho no pé da construção">Desmoronar</button><button data-ek="groove" title="Gotas escorrem e cavam sulcos verticais nas paredes e canais no chão">Sulcos</button></span><span class="mbtns"><button id="eroTab" title="Que bloco envelhece em qual, e que entulho cada bloco vira">Tabela…</button></span></div><div class="chip" id="sculptChip" hidden><span class="mbtns"><button data-sm="raise">Elevar</button><button data-sm="lower">Afundar</button><button data-sm="smooth">Suavizar</button><button data-sm="flat">Aplainar</button></span><span class="mbtns"><b>Raio</b><button id="sculptRm" title="Diminuir (-)">−</button><span id="sculptR">5</span><button id="sculptRp" title="Aumentar (+)">+</button></span><span class="mbtns"><b>Força</b><button id="sculptSm">−</button><span id="sculptS">2</span><button id="sculptSp">+</button></span></div><div class="chip" id="symChip" hidden><b>Simetria</b><span class="mbtns"><button data-sa="0">X</button><button data-sa="1">Y</button><button data-sa="2">Z</button></span><span id="symPos"></span><span class="mbtns"><button id="symMinus" title="Mover o plano meio bloco">−½</button><button id="symPlus" title="Mover o plano meio bloco">+½</button><button id="symMid">Centro</button><button id="symOff">Desligar</button></span></div><div class="chip" id="rulerChip" hidden><span id="rulerTxt"></span><span class="mbtns" id="rulerBtns" hidden><button id="rulerNew" title="Solta esta medida e começa outra (botão do meio do mouse ou Shift + clique)">Nova medida</button><button id="rulerUndo" title="Tirar o último ponto">Desfazer ponto</button><button id="rulerClear" title="Esc">Limpar</button></span></div><div class="chip" id="selChip" hidden><span id="selTxt"></span><span id="selBtns"></span></div></div>
       <div id="cleanChip" role="status"><span id="cleanTool"></span><span><kbd>Tab</kbd></span><button id="cleanExit" title="Mostrar as barras de novo (Tab)">Mostrar tudo</button></div>
       <div id="crosshair" hidden></div>
       <div id="hotbar" aria-label="Blocos rápidos"></div>
@@ -671,7 +671,9 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
       layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk, oris[i] < 0 ? null : oris[i]), blk.bst && blk.bst[0]);
       if (bents[i]) posData[String(i)] = entData(bents[i]);
     }
+    // segunda camada: água nos blocos que ficam dentro dela (alga, coral, pepino-do-mar, os "waterlogged")
     const layer1 = new Array(total).fill(-1);
+    for (let i = 0; i < total; i++) if (extra[i] && extra[i].wet) layer1[i] = getPal('minecraft:water', { liquid_depth: { t: 'int', v: 0 } });
     const root = {
       format_version: { t: 'int', v: 1 },
       size: { t: 'list', of: 'int', v: [sx, sy, sz] },
@@ -1284,6 +1286,7 @@ var TOOLS = [
   ['mix', 'Pincel de mistura: vários blocos em porcentagens, sorteados voxel a voxel (Shift + clique põe o bloco clicado na mistura)', 'Q', '<path class="f" d="M3 3h6v6H3zM11 11h6v6h-6z"/><path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/>'],
   ['sculpt', 'Esculpir terreno: elevar, afundar, suavizar ou aplainar com um pincel suave (Shift inverte)', 'K', '<path class="f" d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2v5H2z"/><path d="M2 16c3-1 4-6 7-6s4 3 6 3 2-2 3-2"/><path d="M13 3v5M10.5 5.5L13 3l2.5 2.5"/>'],
   ['erode', 'Pincel de erosão: gasta quinas, faz desmoronar e cava sulcos (raio e intensidade no aviso; segure para continuar)', '', '<path class="f" d="M3 17V8l3-2 2 2 3-3 2 3v9z"/><path d="M3 17V8l3-2 2 2 3-3 2 3v9"/><path d="M9 10v4M11.5 9.5v2"/><path d="M14.5 15.5h3M15.5 13.5h2M16 17h2"/>'],
+  ['water', 'Pincel de água: rios, lagos e oceanos com leito, margens e plantas do bioma (tipo, raio e nível no aviso; arraste para traçar um rio)', '', '<path class="f" d="M2 13c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5v4H2z"/><path d="M2 13c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5M10 2.5c0 0-3.5 4-3.5 6.2a3.5 3.5 0 007 0C13.5 6.5 10 2.5 10 2.5z"/>'],
   ['ruler', 'Régua: medir de um bloco a outro (A até B, B até C...)', 'N', '<path class="f" d="M2 13l11-11 5 5L7 18z"/><path d="M2 13l11-11 5 5L7 18zM6 9l2 2M9 6l2 2M12 3l2 2M4.5 11.5l1 1M7.5 8.5l1 1M10.5 5.5l1 1"/>'],
   ['throw', 'Lançar: flecha, tridente, bola de neve e ovo, com a física do jogo (acertam o alvo, botões e placas de madeira, a linha de armadilha, o sino)', 'W', '<path d="M5 3c6 2 9 6 9 14"/><path d="M5 3L14 17"/><path class="f" d="M12 5l5-1-1 5z"/><path d="M12 5l5-1-1 5M6 14l10-10"/>'],
   ['tp', 'Teleporte: a câmera vai até o bloco clicado', 'J', '<path class="f" d="M5 15.5a5 2 0 0010 0 5 2 0 00-10 0z"/><path d="M5 15.5a5 2 0 0010 0 5 2 0 00-10 0zM10 2v9M6.5 7.5L10 11l3.5-3.5"/>']
@@ -1848,7 +1851,7 @@ var lastShift = false;
 function updatePreview() {
   ghostEdges.visible = false; ghostFill.visible = false; previewInst.count = 0; ghostEdges.scale.set(1, 1, 1);
   if (typeof pasteBoxHide === 'function' && (!pasting || (!hoverT && !pasteFixed))) pasteBoxHide(); // o contorno da cópia só no modo colar
-  mixPreviewReset(); updateEraseChip(); updateBrushChip(); updateTubeChip(); updateFieldChip(); updateProjChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateErodeChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
+  mixPreviewReset(); updateEraseChip(); updateBrushChip(); updateTubeChip(); updateFieldChip(); updateProjChip(); updateMaskChip(); updateMixChip(); updateBioChip(); updateSculptChip(); updateErodeChip(); updateWaterChip(); updateRulerChip(); updateShape2Chip(); $('tpChip').hidden = tool !== 'tp' || !!walk;
   var t = hoverT;
   try { return updatePreview1(t); } finally { if (!updatePreview.sd && shapeDimObj) { shapeDimsClear(); requestRender(); } updatePreview.sd = false; }
 }
@@ -1882,6 +1885,8 @@ function updatePreview1(t) {
     bioPreview(t, accent);
   } else if (et === 'erode') {
     erodePreview(t, accent);
+  } else if (et === 'water') {
+    waterPreview(t, accent);
   } else if (et === 'sculpt') {
     sculptPreview(t, info);
   } else if (et === 'ruler') {
@@ -2151,6 +2156,7 @@ function pressAt(cx, cy, shift) {
   if (et === 'select') selectPress(t);
   else if (et === 'sculpt') { if (t) sculptStart(t, shift); }
   else if (et === 'erode') { if (t) eroStart(t); }
+  else if (et === 'water') { if (t) hydStart(t); }
   else if (et === 'ruler') { rulerAdd(t, shift); }
   else if (et === 'tp') { if (shift && t && (t.hit || t.place)) walkStart(t.hit || [t.place[0], t.place[1] - 1, t.place[2]]); else teleportTo(t); }
   else if (et === 'fill') { fillAt(t, shift); }
@@ -2201,7 +2207,7 @@ function dragAt(cx, cy) {
     var c = stroke.mode === 'place' ? t.place : t.hit;
     if (stroke.mode === 'mix') { mixDrag(t); c = null; }
     if (stroke.mode === 'biome') { bioDrag(t); c = null; }
-    if (stroke.mode === 'sculpt' || stroke.mode === 'erode') c = null; // as pinceladas vêm do relógio do traço
+    if (stroke.mode === 'sculpt' || stroke.mode === 'erode' || stroke.mode === 'water') c = null; // as pinceladas vêm do relógio do traço
     if (stroke.mode === 'tube') { tubeDrag(cx, cy); c = null; } // as pinceladas vêm do relógio do traço, no ponto apontado
     if (stroke.mode === 'mask') { if (c && (!stroke.last || c.join() !== stroke.last.join())) { maskApply(t); stroke.last = c; } c = null; }
     if (c && (!stroke.last || c[0] !== stroke.last[0] || c[1] !== stroke.last[1] || c[2] !== stroke.last[2])) {
@@ -2216,6 +2222,7 @@ function dragAt(cx, cy) {
 function releaseStroke() {
   if (stroke && stroke.mode === 'sculpt') sculptEnd();
   if (stroke && stroke.mode === 'erode') eroEnd();
+  if (stroke && stroke.mode === 'water') hydEnd();
   if (stroke) { var sm = stroke; stroke = null; endBatch(); if (sm.mode === 'mix') mixEnd(sm); if (sm.mode === 'biome') bioEnd(sm); if (sm.mode === 'mask' && maskBi >= 0) toast(sm.n ? sm.n + ' blocos de ' + BLOCKS[maskBi].name + (curBlock() === AIR_BI ? ' apagados.' : ' trocados por ' + BLOCKS[curBlock()].name + '.') : 'Nenhum ' + BLOCKS[maskBi].name + ' dentro do pincel.'); }
 }
 
@@ -3316,6 +3323,8 @@ function shapeExport(b, s, x, y, z) {
   var j = '[' + d.p.map(function (p) { return p[0] + '=' + o[p[0]]; }).join(',') + ']';
   if (!d.p.length) j = '';
   var r = bedrockFromProps(b, o); r.j = j;
+  // dentro da água: no Bedrock, a água vai na segunda camada do bloco (sem ela, o coral morre e a alga fica no seco)
+  r.wet = o.waterlogged === 'true' || /^(seagrass|tall_seagrass|kelp|kelp_plant|bubble_column)$/.test(b.java);
   var bm = /^(\w+?)_bed$/.exec(b.java);
   if (bm && BED_COLORS.indexOf(bm[1]) >= 0) r.ent = { id: 'Bed', color: BED_COLORS.indexOf(bm[1]) };
   if (/command_block$/.test(b.java) && typeof rsCmdEnt === 'function' && x != null) r.ent = rsCmdEnt(x, y, z, b.java); // o comando (src/redstone4.js)
@@ -5134,6 +5143,418 @@ function openEroTable() {
     $('eroOk').onclick = function () { eroTable = { wear: $('eroW').value, debris: $('eroD').value }; eroMaps = null; try { localStorage.setItem('bloco-a-bloco-erosao-tabela', JSON.stringify(eroTable)); } catch (e) {} closeDialog(); var m = eroMapsGet(); toast('Tabela da erosão: ' + m.wear.size + ' regras de desgaste e ' + m.debris.size + ' de entulho.'); };
     $('eroDef').onclick = function () { $('eroW').value = ERO_TABLE_DEF.wear; $('eroD').value = ERO_TABLE_DEF.debris; check(); };
     $('eroNo').onclick = closeDialog;
+  });
+}
+
+/* ---------- Pincel de água: rios, lagos e oceanos com leito, margens e plantas do bioma ---------- */
+/* Cada pincelada (ao clicar e a cada 160 ms com o botão apertado, ligando o ponto anterior ao atual, para um rio sair
+   contínuo) olha as colunas em volta do ponto apontado e faz, nesta ordem (as etapas 1, 2 e 4 podem ser desligadas):
+     1. Escultura do leito: cada coluna a uma distância d do centro tem t = d / (r · (1 + 0,22 · ruído(x, z))) (o ruído
+        deixa a borda orgânica, sem círculo perfeito). Dentro da água (t < 1), o fundo fica a profundidade
+        P(t) = D · perfil(t) · (1 + 0,18 · ruído) abaixo do nível N da água, com D e o perfil do tipo:
+          rio      D = máx(2; 0,45 r)  perfil 1 − t²                         (U arredondado)
+          lago     D = máx(2; 0,6 r)   perfil (1 − t^2,5)^0,7                (bacia de fundo largo)
+          oceano   D = máx(4; 1,1 r)   plataforma até t = 0,55, depois talude (1 − (t − 0,55)/0,45)^1,6
+        e tudo o que é terreno ou vegetação acima do fundo sai (até 2r + 8 acima do nível). Na faixa da margem
+        (1 ≤ t < 1,4), o terreno pode subir até 1 + 0,9 r · (t − 1)/0,4 acima da água: um barranco inclinado, em vez de
+        um paredão. Construções (o que não é terreno nem planta) não são cavadas: a água as contorna.
+     2. Inundação: as células vazias do fundo até o nível viram água parada (fonte). Onde a água encostaria num vazio
+        de fora (um buraco, uma caverna, o fim de um barranco), o pincel fecha com um bloco da margem: a água não vaza.
+     3. Bioma: cada coluna lê o bioma do mundo do jogo (ou o pintado pelo Pincel de bioma) no centro e em 8 pontos a 6
+        blocos; o peso de cada classe (pântano, deserto, oceano quente...) é a fração das amostras (o centro vale 3).
+        Na divisa entre dois biomas, cada bloco sorteia a classe pelo peso: a decoração muda aos poucos. Sem bioma
+        lido (uma construção do zero), vale o bioma escolhido no aviso (Automático = planície).
+     4. Decoração: pela tabela de regras da classe (Regras… no aviso): margem e fundo trocam o terreno exposto
+        (argila, areia, lama, cascalho), e plantas nascem no fundo (algas, algas-marinhas, corais, pepinos-do-mar), na
+        superfície (vitórias-régias), na borda (cana-de-açúcar, capim, samambaias) ou viram gelo. Cada número é a
+        chance em % para cada bloco; o resto fica como está.
+   Um traço é um passo de desfazer; a malha é refeita pela fila de pedaços (rebuildDirty). O nível da água vale para o
+   traço inteiro (água parada é plana): automático, ele sai do primeiro clique (a água já existente ali, ou um bloco
+   abaixo do chão). */
+var hyd = { r: 6, kind: 'lake', bio: -1, lvl: null, carve: true, fill: true, deco: true };
+try { var hyd0 = JSON.parse(localStorage.getItem('bloco-a-bloco-agua') || 'null'); if (hyd0) hyd = Object.assign(hyd, hyd0); } catch (e) {}
+var HYD_KIND_PT = { river: 'Rio', lake: 'Lago', ocean: 'Oceano' };
+function hydDepthMax(kind, r) { return kind === 'river' ? Math.max(2, Math.round(r * 0.45)) : kind === 'lake' ? Math.max(2, Math.round(r * 0.6)) : Math.max(4, Math.round(r * 1.1)); }
+function hydProfile(kind, t) {
+  if (kind === 'river') return 1 - t * t;
+  if (kind === 'lake') return Math.pow(1 - Math.pow(t, 2.5), 0.7);
+  return t < 0.55 ? 1 : Math.pow(1 - (t - 0.55) / 0.45, 1.6);
+}
+/* Ruído de valor 2D (duas oitavas, -1 a 1): grade com sorteio por posição e interpolação suave */
+function hydHash(x, z, s) { var h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263) ^ Math.imul(s | 0, 1442695041); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function hydVal(x, z, s, sc) {
+  var gx = x / sc, gz = z / sc, x0 = Math.floor(gx), z0 = Math.floor(gz), fx = gx - x0, fz = gz - z0, u = fx * fx * (3 - 2 * fx), w = fz * fz * (3 - 2 * fz);
+  var a = hydHash(x0, z0, s), b = hydHash(x0 + 1, z0, s), c = hydHash(x0, z0 + 1, s), d = hydHash(x0 + 1, z0 + 1, s);
+  return (a + (b - a) * u) + ((c + (d - c) * u) - (a + (b - a) * u)) * w;
+}
+function hydNoise(x, z, s) { return (hydVal(x, z, s, 9) * 0.65 + hydVal(x, z, s + 7, 4) * 0.35) * 2 - 1; }
+
+/* ---------- O que o pincel pode cavar e decorar ---------- */
+var HYD_NATURAL = /^(grass_block|dirt|coarse_dirt|rooted_dirt|podzol|mycelium|mud|clay|sand|red_sand|gravel|suspicious_sand|suspicious_gravel|stone|andesite|diorite|granite|tuff|calcite|deepslate|cobbled_deepslate|smooth_basalt|dripstone_block|sandstone|red_sandstone|terracotta|\w+_terracotta|snow_block|powder_snow|moss_block|packed_ice|ice|blue_ice|dirt_path|farmland|soul_sand|soul_soil|netherrack|end_stone|cobblestone|mossy_cobblestone|magma_block|prismarine|\w+_coral_block|\w*_?ore|raw_\w+_block|amethyst_block|budding_amethyst|obsidian)$/;
+var HYD_VEG = /(_leaves|_log|_wood|_stem|_hyphae|mushroom_block|mushroom_stem|^vine$|_vines(_plant)?$|^snow$|^water$|^bubble_column$|^kelp(_plant)?$|seagrass|^lily_pad$|_coral(_wall)?_fan$|_coral$|^sea_pickle$|^sugar_cane$|^bamboo|^cactus$|_propagule$|^moss_carpet$|^pale_moss_carpet$|^pale_hanging_moss$|^glow_lichen$|^hanging_roots$|mangrove_roots$|^cocoa$|^bee_nest$|^pumpkin$|^melon$|^pointed_dripstone$)/;
+var hydKindTab = null; // por bloco: 0 = vazio, 1 = terreno natural, 2 = vegetação (sai junto ao cavar), 3 = construção (fica)
+function hydKindOf(bi) {
+  if (!hydKindTab || hydKindTab.length !== BLOCKS.length) {
+    hydKindTab = new Uint8Array(BLOCKS.length);
+    BLOCKS.forEach(function (b, i) {
+      if (b.isAir) hydKindTab[i] = 0;
+      else if (HYD_NATURAL.test(b.java)) hydKindTab[i] = 1;
+      else if (HYD_VEG.test(b.java) || (b.shape && !b.shape.fc && /(grass|fern|flower|bush|tulip|orchid|allium|bluet|daisy|poppy|dandelion|lily|rose|peony|lilac|sunflower|petals|wildflowers|leaf_litter|dripleaf|sapling|mushroom|roots|sprouts|azalea|spore|berry|pitcher|torchflower|eyeblossom|cornflower)/.test(b.java))) hydKindTab[i] = 2;
+      else hydKindTab[i] = 3;
+    });
+  }
+  return hydKindTab[bi];
+}
+function hydAt(x, y, z) { if (!inB(x, y, z) || y > layerMax()) return 3; var v = gget(x, y, z); return v ? hydKindOf(cellBlock(v)) : 0; }
+function hydIsWater(x, y, z) { if (!inB(x, y, z)) return false; var v = gget(x, y, z); return !!v && BLOCKS[cellBlock(v)].java === 'water'; }
+var hydCells = {};
+function hydCell(nm) { if (!(nm in hydCells)) hydCells[nm] = cellFromName(nm); return hydCells[nm]; }
+
+/* ---------- Bioma: classes e transição ---------- */
+var HYD_CLASS_PT = { temperado: 'temperado', frio: 'frio', gelado: 'gelado', pantano: 'pântano', mangue: 'mangue', selva: 'selva', deserto: 'deserto', mesa: 'mesa (badlands)', savana: 'savana', cogumelo: 'cogumelos', quente: 'quente', morno: 'morno' };
+/* Classe de um bioma: na água salgada (oceano), pela temperatura do mar; na doce (rio, lago), pela paisagem */
+function hydClassOf(id, sea) {
+  var e = BIO_BY_ID[id]; if (!e) return 'temperado';
+  var tg = {}; (e.tags || []).forEach(function (q) { tg[q] = 1; }); var n = e.n, t = e.t;
+  if (sea) {
+    if (/^(deep_)?warm_ocean$/.test(n)) return 'quente';
+    if (/lukewarm/.test(n)) return 'morno';
+    if (tg.frozen || /frozen/.test(n)) return 'gelado';
+    if (tg.cold || /cold/.test(n)) return 'frio';
+    if (tg.ocean) return 'temperado';
+    if (t <= 0.05) return 'gelado'; if (t < 0.3) return 'frio'; if (t >= 0.95) return 'quente'; if (t >= 0.8) return 'morno'; return 'temperado'; // oceano num bioma de terra
+  }
+  if (n === 'mangrove_swamp') return 'mangue';
+  if (tg.swamp) return 'pantano';
+  if (tg.frozen || t <= 0.05) return 'gelado';
+  if (tg.desert) return 'deserto'; if (tg.mesa) return 'mesa'; if (tg.savanna) return 'savana';
+  if (tg.jungle || tg.lush_caves) return 'selva';
+  if (/mushroom/.test(n)) return 'cogumelo';
+  if (tg.cold || t < 0.3) return 'frio';
+  return 'temperado';
+}
+var HYD_RING = [[6, 0], [4, 4], [0, 6], [-4, 4], [-6, 0], [-4, -4], [0, -6], [4, -4]];
+/* Pesos das classes na coluna: centro (peso 3) e 8 pontos a 6 blocos (peso 1 cada) */
+function hydMix(x, z, st) {
+  var k = x + ',' + z, m = st.mix.get(k); if (m) return m;
+  var sea = hyd.kind === 'ocean', w = {}, add = function (id, p) { var c = hydClassOf(id, sea); w[c] = (w[c] || 0) + p; };
+  if (hyd.bio >= 0) add(hyd.bio, 1);
+  else {
+    var b0 = bioAt(x, z); add(b0 < 0 ? 1 : b0, 3);
+    for (var i = 0; i < 8; i++) { var b = bioAt(x + HYD_RING[i][0], z + HYD_RING[i][1]); add(b < 0 ? (b0 < 0 ? 1 : b0) : b, 1); }
+  }
+  var tot = 0, k2; for (k2 in w) tot += w[k2];
+  m = []; for (k2 in w) m.push([k2, w[k2] / tot]);
+  st.mix.set(k, m); return m;
+}
+function hydPickClass(m) { var r = Math.random(), a = 0; for (var i = 0; i < m.length; i++) { a += m[i][1]; if (r < a) return m[i][0]; } return m[m.length - 1][0]; }
+
+/* ---------- Regras de decoração (editáveis) ---------- */
+/* Uma regra por linha: "água classe lugar = bloco %, bloco %". água: doce (rio, lago) ou mar (oceano). Lugares:
+   margem (terreno exposto na beira, do nível da água para cima), fundo (terreno debaixo da água), plantas (no fundo:
+   algas, algas-marinhas, corais, pepinos-do-mar), recife (montinhos de 1 a 3 blocos de coral no fundo), superficie
+   (vitória-régia), borda (plantas no chão da margem; a cana só nasce encostada na água) e gelo (a água da superfície
+   congela). */
+var HYD_RULES_DEF = [
+  '# água classe lugar = bloco %, bloco %   (o resto da chance deixa o bloco como está)',
+  'doce temperado margem = sand 35, gravel 20, clay 15, dirt 20',
+  'doce temperado fundo = sand 40, gravel 35, clay 20',
+  'doce temperado plantas = seagrass 22, tall_seagrass 6, kelp 3',
+  'doce temperado superficie = lily_pad 3',
+  'doce temperado borda = sugar_cane 14, short_grass 18, tall_grass 5',
+  'doce frio margem = gravel 45, sand 25, coarse_dirt 15',
+  'doce frio fundo = gravel 60, sand 20, clay 20',
+  'doce frio plantas = seagrass 14',
+  'doce frio borda = fern 16, sugar_cane 4, large_fern 3',
+  'doce gelado margem = gravel 40, sand 25, snow_block 20',
+  'doce gelado fundo = gravel 70, clay 30',
+  'doce gelado gelo = ice 85',
+  'doce gelado borda = snow 55',
+  'doce pantano margem = clay 45, mud 35, dirt 20',
+  'doce pantano fundo = mud 50, clay 40, dirt 10',
+  'doce pantano plantas = seagrass 30, tall_seagrass 8',
+  'doce pantano superficie = lily_pad 22',
+  'doce pantano borda = sugar_cane 20, short_grass 12, blue_orchid 3',
+  'doce mangue margem = mud 70, muddy_mangrove_roots 12, clay 15',
+  'doce mangue fundo = mud 85, clay 15',
+  'doce mangue plantas = seagrass 25',
+  'doce mangue superficie = lily_pad 6',
+  'doce mangue borda = short_grass 12, sugar_cane 6',
+  'doce selva margem = clay 25, sand 30, dirt 20, moss_block 15',
+  'doce selva fundo = sand 40, clay 40, gravel 20',
+  'doce selva plantas = seagrass 30, tall_seagrass 8, kelp 5',
+  'doce selva superficie = lily_pad 10',
+  'doce selva borda = sugar_cane 18, fern 14, large_fern 4',
+  'doce deserto margem = sand 70, sandstone 12, clay 15',
+  'doce deserto fundo = sand 60, clay 25, gravel 15',
+  'doce deserto borda = sugar_cane 16, dead_bush 6',
+  'doce mesa margem = red_sand 60, clay 20, orange_terracotta 15',
+  'doce mesa fundo = red_sand 50, clay 30, gravel 20',
+  'doce mesa borda = sugar_cane 10, dead_bush 8',
+  'doce savana margem = sand 40, coarse_dirt 20, clay 15, dirt 20',
+  'doce savana fundo = sand 40, gravel 30, clay 30',
+  'doce savana borda = sugar_cane 10, short_grass 20, tall_grass 6',
+  'doce cogumelo margem = mycelium 45, clay 25, dirt 25',
+  'doce cogumelo fundo = clay 50, gravel 50',
+  'doce cogumelo borda = red_mushroom 6, brown_mushroom 6',
+  'mar temperado margem = sand 80, gravel 15',
+  'mar temperado fundo = gravel 45, sand 35, clay 15',
+  'mar temperado plantas = seagrass 26, tall_seagrass 8, kelp 16',
+  'mar morno margem = sand 90, gravel 8',
+  'mar morno fundo = sand 80, gravel 15',
+  'mar morno plantas = seagrass 38, tall_seagrass 10, sea_pickle 2',
+  'mar quente margem = sand 90, sandstone 8',
+  'mar quente fundo = sand 85',
+  'mar quente recife = brain_coral_block 3, tube_coral_block 3, bubble_coral_block 3, fire_coral_block 3, horn_coral_block 3',
+  'mar quente plantas = seagrass 20, brain_coral 3, tube_coral 3, bubble_coral 3, fire_coral 3, horn_coral 3, brain_coral_fan 2, tube_coral_fan 2, bubble_coral_fan 2, fire_coral_fan 2, horn_coral_fan 2, sea_pickle 4',
+  'mar frio margem = gravel 50, sand 45',
+  'mar frio fundo = gravel 70, sand 20, clay 10',
+  'mar frio plantas = seagrass 18, kelp 22',
+  'mar gelado margem = gravel 50, sand 30, snow_block 15',
+  'mar gelado fundo = gravel 80, clay 20',
+  'mar gelado plantas = seagrass 8',
+  'mar gelado gelo = ice 70, packed_ice 15'
+].join('\n');
+var HYD_SLOTS = { margem: 1, fundo: 1, plantas: 1, recife: 1, superficie: 1, borda: 1, gelo: 1 };
+var hydRulesTxt = HYD_RULES_DEF;
+try { var hr0 = localStorage.getItem('bloco-a-bloco-agua-regras'); if (hr0) hydRulesTxt = hr0; } catch (e) {}
+/* Texto → { doce: { classe: { lugar: [[índice do bloco, chance 0..1], ...] } }, mar: {...} } e as linhas com erro */
+function hydParse(txt) {
+  var R = { doce: {}, mar: {} }, bad = [];
+  String(txt || '').split('\n').forEach(function (ln) {
+    ln = ln.replace(/#.*/, '').trim(); if (!ln) return;
+    var m = /^(doce|mar)\s+(\S+)\s+(\S+)\s*=\s*(.+)$/i.exec(ln);
+    if (!m || !HYD_SLOTS[m[3].toLowerCase()] || !HYD_CLASS_PT[m[2].toLowerCase()]) { bad.push(ln); return; }
+    var list = [], ok = true;
+    m[4].split(',').forEach(function (it) {
+      var q = /^\s*(\S+)\s+(\d+(?:[.,]\d+)?)\s*%?\s*$/.exec(it); var bi = q ? blockByText(q[1]) : -1;
+      if (!q || bi < 0) { ok = false; return; }
+      list.push([bi, +q[2].replace(',', '.') / 100]);
+    });
+    if (!ok) { bad.push(ln); return; }
+    var W = R[m[1].toLowerCase()], c = m[2].toLowerCase(); (W[c] = W[c] || {})[m[3].toLowerCase()] = list;
+  });
+  return { rules: R, bad: bad };
+}
+var hydRules = null;
+function hydRulesGet() { if (!hydRules) hydRules = hydParse(hydRulesTxt).rules; return hydRules; }
+/* Sorteia um bloco do lugar (ou -1: fica como está) */
+function hydPick(cls, slot) {
+  var R = hydRulesGet()[hyd.kind === 'ocean' ? 'mar' : 'doce'], L = R[cls] && R[cls][slot]; if (!L) return -1;
+  var r = Math.random(), a = 0; for (var i = 0; i < L.length; i++) { a += L[i][1]; if (r < a) return L[i][0]; } return -1;
+}
+
+/* ---------- Plantas: cada uma do jeito que o jogo a põe ---------- */
+function hydSetIf(x, y, z, cell, st, need) { // need: o que deve estar ali (0 vazio, 'w' água)
+  if (!inB(x, y, z) || y > layerMax()) return false;
+  if (need === 'w' ? !hydIsWater(x, y, z) : gget(x, y, z)) return false;
+  editSet(x, y, z, cell); st.deco++; return true;
+}
+function hydWaterPlant(bi, x, y, z, room, st) { // y: a primeira água acima do fundo; room: quantas células de água acima
+  var j = BLOCKS[bi].java;
+  if (j === 'kelp') { // coluna de alga: corpo (kelp_plant) e a ponta (kelp), de 1 até a superfície
+    var h = 1 + Math.floor(Math.random() * Math.max(1, room - 1)); if (room < 2) h = 1;
+    for (var k = 0; k < h - 1; k++) hydSetIf(x, y + k, z, hydCell('kelp_plant'), st, 'w');
+    hydSetIf(x, y + h - 1, z, hydCell('kelp[age=' + Math.floor(Math.random() * 25) + ']'), st, 'w'); return;
+  }
+  if (j === 'tall_seagrass') { if (room >= 2 && hydSetIf(x, y, z, hydCell('tall_seagrass[half=lower]'), st, 'w')) hydSetIf(x, y + 1, z, hydCell('tall_seagrass[half=upper]'), st, 'w'); else hydSetIf(x, y, z, hydCell('seagrass'), st, 'w'); return; }
+  if (j === 'sea_pickle') { hydSetIf(x, y, z, hydCell('sea_pickle[pickles=' + (1 + Math.floor(Math.random() * 4)) + ',waterlogged=true]'), st, 'w'); return; }
+  hydSetIf(x, y, z, mkCell(bi), st, 'w');
+}
+function hydLandPlant(bi, x, y, z, st, wet) { // y: o ar acima do chão da margem
+  var b = BLOCKS[bi], j = b.java;
+  if (j === 'sugar_cane') { if (!wet) return; var h = 1 + Math.floor(Math.random() * 3); for (var k = 0; k < h; k++) if (!hydSetIf(x, y + k, z, mkCell(bi), st)) break; return; }
+  if (j === 'snow') { hydSetIf(x, y, z, hydCell('snow[layers=1]'), st); return; }
+  if (b.sp && b.sp.some(function (s) { return s[0] === 'half'; })) { // dois blocos de altura
+    if (!gget(x, y + 1, z) && hydSetIf(x, y, z, hydCell(j + '[half=lower]'), st)) hydSetIf(x, y + 1, z, hydCell(j + '[half=upper]'), st); return;
+  }
+  hydSetIf(x, y, z, mkCell(bi), st);
+}
+
+/* ---------- Uma pincelada ---------- */
+var HYD_N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+function hydSmall(v) { var b = v && BLOCKS[cellBlock(v)]; return !!b && !!b.shape && !b.shape.fc && !/(_leaves|_log|_wood|_stem|_hyphae)$/.test(b.java); } // planta pequena (não folha nem tronco)
+/* Água de fora (que já existia, não deste traço): acima do nível do traço, nem ela nem o bloco encostado nela (dos
+   lados ou embaixo) são cavados, e fica uma parede natural; sem isso, um lago mais alto do lado escorreria para o vale */
+function hydForeign(x, y, z, st) { return hydIsWater(x, y, z) && !st.mine.has(idx(x, y, z)); }
+function hydGuarded(x, y, z, st) {
+  if (hydForeign(x, y, z, st) || hydForeign(x, y + 1, z, st)) return true;
+  for (var i = 0; i < 4; i++) if (hydForeign(x + HYD_N4[i][0], y, z + HYD_N4[i][1], st)) return true;
+  return false;
+}
+function hydRemove(x, y, z, st) { editSet(x, y, z, 0); st.carved++; var k = x + ',' + z, o = st.cut.get(k); if (o == null || y < o) st.cut.set(k, y); } // st.cut: o y mais baixo cavado em cada coluna
+function hydDab(c, st) {
+  if (!c) return;
+  var r = hyd.r, kind = hyd.kind, L = st.L, D = hydDepthMax(kind, r), cap = 2 * r + 8, R = Math.ceil(r * 1.4 * 1.25), cols = [];
+  for (var dz = -R; dz <= R; dz++) for (var dx = -R; dx <= R; dx++) {
+    var x = c[0] + dx, z = c[2] + dz; if (!inB(x, 0, z)) continue;
+    var t = Math.hypot(dx, dz) / (r * (1 + 0.22 * hydNoise(x, z, st.seed))); if (t >= 1.4) continue;
+    var q = { x: x, z: z, t: t };
+    if (t < 1) q.floor = Math.max(0, L - Math.max(1, Math.round(D * hydProfile(kind, t) * (1 + 0.18 * hydNoise(x * 1.7 + 31, z * 1.7 - 17, st.seed))))); // no máximo até o fundo do espaço (o y 0 fica de leito)
+    cols.push(q);
+  }
+  // o fundo de uma coluna já cavada neste traço não sobe (passar de novo não aterra o rio)
+  cols.forEach(function (q) { if (q.floor == null) return; var k = q.x + ',' + q.z, o = st.floor.get(k); if (o != null && o < q.floor) q.floor = o; st.floor.set(k, q.floor); });
+  var top = Math.min(SY - 1, L + cap);
+  // 1. escultura do leito e do barranco
+  if (hyd.carve) cols.forEach(function (q) {
+    var lo = q.floor != null ? q.floor + 1 : L + 1 + Math.round(0.9 * r * (q.t - 1) / 0.4) + 1;
+    for (var y = Math.max(0, lo); y <= top; y++) { // de baixo para cima: a planta de cima vê que o chão dela saiu
+      var k = hydAt(q.x, y, q.z); if (!k || k === 3) continue;
+      if (y > L && hydGuarded(q.x, y, q.z, st)) continue;
+      if (k === 1 || (k === 2 && q.floor != null)) hydRemove(q.x, y, q.z, st);
+      else if (k === 2 && hydSmall(gget(q.x, y, q.z)) && !gget(q.x, y - 1, q.z)) hydRemove(q.x, y, q.z, st); // planta que ficou sem chão
+    }
+    // barranco cortado num terreno oco por dentro (como o do Gerar terreno, só uma casca): o chão novo ganha uma pele
+    if (q.floor == null && lo - 1 > L && hydAt(q.x, lo - 1, q.z) === 0 && st.cut.get(q.x + ',' + q.z) === lo) { editSet(q.x, lo - 1, q.z, mkCell(BY_JAVA.dirt)); st.sealed++; }
+  });
+  // 2. inundação: do fundo ao nível, e o fundo e os lados fechados onde haveria vazamento
+  var wet = [];
+  if (hyd.fill) {
+    cols.forEach(function (q) {
+      if (q.floor == null) return;
+      for (var y = Math.max(0, q.floor + 1); y <= L && y <= layerMax(); y++) {
+        var k = hydAt(q.x, y, q.z); if (k === 3 || k === 1) continue; // construção ou terreno que ficou (com Escavar desligado): a água contorna
+        if (!hydIsWater(q.x, y, q.z) || fluidLv(gget(q.x, y, q.z)) !== 0) { editSet(q.x, y, q.z, hydCell('water')); st.water++; } // água corrente que já havia vira parada
+        st.mine.add(idx(q.x, y, q.z));
+        wet.push([q.x, y, q.z]);
+      }
+    });
+    var seal = function (x, y, z) { // vazio encostado na água: fecha com a margem (ou terra)
+      if (!inB(x, y, z) || y > layerMax() || st.floor.has(x + ',' + z) && y > st.floor.get(x + ',' + z)) return;
+      var k = hydAt(x, y, z); if (k !== 0 && k !== 2) return; if (hydIsWater(x, y, z)) return;
+      var bi = hydPick(hydPickClass(hydMix(x, z, st)), y >= L - 1 ? 'margem' : 'fundo'); if (bi < 0 || BLOCKS[bi].shape) bi = BY_JAVA.dirt;
+      editSet(x, y, z, mkCell(bi)); st.sealed++;
+    };
+    wet.forEach(function (p) {
+      for (var i = 0; i < 4; i++) seal(p[0] + HYD_N4[i][0], p[1], p[2] + HYD_N4[i][1]);
+      if (p[1] > 0 && !hydIsWater(p[0], p[1] - 1, p[2])) seal(p[0], p[1] - 1, p[2]);
+    });
+  }
+  // 3 e 4. bioma e decoração (cada coluna uma vez por traço)
+  if (!hyd.deco) return;
+  cols.forEach(function (q) {
+    var key = q.x + ',' + q.z, inW = st.floor.has(key); // coluna que já foi água neste traço nunca vira margem
+    if (inW ? st.decoW.has(key) : st.decoB.has(key)) return;
+    (inW ? st.decoW : st.decoB).add(key);
+    var mix = hydMix(q.x, q.z, st);
+    mix.forEach(function (m) { st.cls[m[0]] = (st.cls[m[0]] || 0) + m[1]; });
+    if (inW) {
+      var fy = L; while (fy > 0 && hydIsWater(q.x, fy - 1, q.z)) fy--; // primeira água acima do fundo
+      var room = L - fy + 1, cls = hydPickClass(mix);
+      // fundo: o terreno debaixo da água e o das paredes laterais submersas
+      if (hydAt(q.x, fy - 1, q.z) === 1) { var b1 = hydPick(cls, 'fundo'); if (b1 >= 0) { editSet(q.x, fy - 1, q.z, mkCell(b1)); st.deco++; } }
+      for (var y = fy; y <= L; y++) for (var i = 0; i < 4; i++) {
+        var nx = q.x + HYD_N4[i][0], nz = q.z + HYD_N4[i][1]; if (hydAt(nx, y, nz) !== 1) continue;
+        var b2 = hydPick(hydPickClass(mix), y >= L - 1 ? 'margem' : 'fundo'); if (b2 >= 0 && !BLOCKS[b2].shape) { editSet(nx, y, nz, mkCell(b2)); st.deco++; }
+      }
+      // recife: um montinho de coral no fundo
+      var rb = hydPick(cls, 'recife'), plantY = fy;
+      if (rb >= 0 && room >= 3) { var h = 1 + Math.floor(Math.random() * Math.min(3, room - 2)); for (var k2 = 0; k2 < h; k2++) if (hydSetIf(q.x, fy + k2, q.z, mkCell(rb), st, 'w')) plantY = fy + k2 + 1; }
+      var pb = hydPick(cls, 'plantas'); if (pb >= 0 && plantY <= L) hydWaterPlant(pb, q.x, plantY, q.z, L - plantY + 1, st);
+      var ice = hydPick(cls, 'gelo');
+      if (ice >= 0 && hydIsWater(q.x, L, q.z)) { editSet(q.x, L, q.z, mkCell(ice)); st.deco++; }
+      else { var sb = hydPick(cls, 'superficie'); if (sb >= 0 && room >= 1 && hydIsWater(q.x, L, q.z)) hydSetIf(q.x, L + 1, q.z, mkCell(sb), st); }
+    } else if (q.t < 1.3) {
+      // margem: o chão da beira (até 2 blocos acima da água) e as plantas dele
+      var y0 = Math.min(layerMax(), L + 3), gy = -1; for (var y3 = y0; y3 >= L - 1; y3--) if (hydAt(q.x, y3, q.z) === 1) { gy = y3; break; }
+      if (gy < 0 || gget(q.x, gy + 1, q.z)) return;
+      var cl2 = hydPickClass(mix), b3 = hydPick(cl2, 'margem'); if (b3 >= 0 && !BLOCKS[b3].shape) { editSet(q.x, gy, q.z, mkCell(b3)); st.deco++; }
+      var wetN = false; for (var i2 = 0; i2 < 4; i2++) if (hydIsWater(q.x + HYD_N4[i2][0], gy, q.z + HYD_N4[i2][1])) wetN = true;
+      var pl = hydPick(hydPickClass(mix), 'borda'); if (pl >= 0) hydLandPlant(pl, q.x, gy + 1, q.z, st, wetN && gy === L);
+    }
+  });
+}
+
+/* ---------- Traço ---------- */
+var hydStroke = null, hydTimer = 0, hydSeed = (Math.random() * 1e9) | 0; // o sorteio da borda do próximo traço (a prévia usa o mesmo)
+function hydCenter(t) { return t && (t.hit || (t.place && [t.place[0], t.place[1] - 1, t.place[2]])); }
+/* Nível automático: a água que já existe no ponto (continua o mesmo lago) ou um bloco abaixo do chão (plantas, folhas
+   e troncos não contam como chão) */
+function hydAutoLevel(c) {
+  var x = c[0], y = c[1], z = c[2];
+  while (y > 0 && hydAt(x, y, z) === 2 && !hydIsWater(x, y, z)) y--; // uma vitória-régia, uma folha: desce até a água ou o chão
+  if (hydIsWater(x, y, z)) { while (hydIsWater(x, y + 1, z)) y++; return y; }
+  return Math.max(1, y - 1);
+}
+/* O nível no aviso e nos avisos é a altura do jogo (num mundo aberto, o y do editor + o fundo da dimensão) */
+function hydYOff() { return wio && wio.area ? wioDim(wio.area.dim).min : 0; }
+function hydLevelFor(c) { return hyd.lvl != null ? Math.max(1, Math.min(SY - 2, hyd.lvl - hydYOff())) : hydAutoLevel(c); }
+function hydStart(t) {
+  var c = hydCenter(t); if (!c) return;
+  if (!hyd.carve && !hyd.fill && !hyd.deco) { toast('Ligue pelo menos uma etapa no aviso: Escavar, Encher ou Decorar.'); return; }
+  hydStroke = { L: hydLevelFor(c), seed: hydSeed, last: c, floor: new Map(), mine: new Set(), cut: new Map(), mix: new Map(), decoW: new Set(), decoB: new Set(), cls: {}, carved: 0, water: 0, sealed: 0, deco: 0 };
+  stroke = { mode: 'water', cells: new Set(), on: true }; beginBatch('Pincel de água'); fluidStop();
+  hydDab(c, hydStroke); requestRender();
+  clearInterval(hydTimer);
+  hydTimer = setInterval(function () {
+    if (!stroke || stroke.mode !== 'water') { clearInterval(hydTimer); return; }
+    var c2 = hydCenter(hoverT), st = hydStroke; if (!c2 || !st) return;
+    // do ponto anterior ao atual, em passos de um terço do raio: o rio sai contínuo mesmo com o mouse rápido
+    var dx = c2[0] - st.last[0], dz = c2[2] - st.last[2], d = Math.hypot(dx, dz); if (d < Math.max(1, hyd.r / 4)) return;
+    var n = Math.ceil(d / Math.max(1, hyd.r / 3));
+    for (var i = 1; i <= n; i++) hydDab([Math.round(st.last[0] + dx * i / n), c2[1], Math.round(st.last[2] + dz * i / n)], st);
+    st.last = c2; updatePreview(); requestRender();
+  }, 160);
+}
+function hydEnd() {
+  clearInterval(hydTimer); hydTimer = 0;
+  var s = hydStroke; hydStroke = null; hydSeed = (Math.random() * 1e9) | 0; if (!s) return;
+  var tot = 0, k; for (k in s.cls) tot += s.cls[k];
+  var bs = Object.keys(s.cls).sort(function (a, b) { return s.cls[b] - s.cls[a]; }).map(function (k3) { return HYD_CLASS_PT[k3] + ' ' + Math.round(100 * s.cls[k3] / tot) + '%'; });
+  var p = []; if (s.carved) p.push(s.carved + ' blocos escavados'); if (s.water) p.push(s.water + ' de água'); if (s.sealed) p.push(s.sealed + ' na beira para a água não vazar'); if (s.deco) p.push(s.deco + ' de margem, fundo e plantas');
+  var gy = s.L + hydYOff();
+  toast(p.length ? HYD_KIND_PT[hyd.kind] + ' no nível Y ' + gy + ': ' + p.join(', ') + (bs.length ? '. Bioma: ' + bs.join(', ') : '') + '. Ctrl+Z desfaz o traço.' : 'Nada mudou: confira o nível da água (Y ' + gy + ') e as etapas ligadas no aviso.', 8000);
+}
+
+/* ---------- Aviso, prévia e regras ---------- */
+function hydSave() { try { localStorage.setItem('bloco-a-bloco-agua', JSON.stringify(hyd)); } catch (e) {} }
+function hydBioOptions() {
+  var o = '<option value="-1">Automático (o do mundo; sem bioma, planície)</option>';
+  BIOMES.filter(function (b) { return b.dim === 0; }).sort(function (a, b) { return a.pt.localeCompare(b.pt); }).forEach(function (b) { o += '<option value="' + b.id + '">' + esc(b.pt) + '</option>'; });
+  return o;
+}
+function updateWaterChip() {
+  var c = $('waterChip'), on = tool === 'water'; c.hidden = !on; if (!on) return;
+  if (!$('hydBio').options.length) $('hydBio').innerHTML = hydBioOptions();
+  $('hydR').textContent = hyd.r; $('hydBio').value = String(hyd.bio);
+  if (document.activeElement !== $('hydLvl')) $('hydLvl').value = hyd.lvl == null ? '' : hyd.lvl;
+  c.querySelectorAll('[data-hk]').forEach(function (b) { b.setAttribute('aria-pressed', String(hyd.kind === b.getAttribute('data-hk'))); });
+  c.querySelectorAll('[data-hs]').forEach(function (b) { b.setAttribute('aria-pressed', String(!!hyd[b.getAttribute('data-hs')])); });
+}
+function setHydR(r) { hyd.r = Math.max(2, Math.min(32, r)); hydSave(); updateWaterChip(); updatePreview(); }
+$('waterChip').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.hasAttribute('data-hk')) hyd.kind = b.getAttribute('data-hk');
+  else if (b.hasAttribute('data-hs')) { var k = b.getAttribute('data-hs'); hyd[k] = !hyd[k]; }
+  else if (b.id === 'hydRm') hyd.r = Math.max(2, hyd.r - 1);
+  else if (b.id === 'hydRp') hyd.r = Math.min(32, hyd.r + 1);
+  else if (b.id === 'hydRules') { openHydRules(); return; }
+  hydSave(); updateWaterChip(); updatePreview();
+});
+$('hydBio').addEventListener('change', function () { hyd.bio = +$('hydBio').value; hydSave(); });
+$('hydLvl').addEventListener('input', function () { var v = $('hydLvl').value.trim(); hyd.lvl = v === '' || isNaN(+v) ? null : Math.round(+v); hydSave(); updatePreview(); });
+/* Prévia: a superfície da água (no nível) das colunas que o pincel enche */
+function waterPreview(t, accent) {
+  var c = hydCenter(t); if (!c) return;
+  var r = hyd.r, L = hydStroke ? hydStroke.L : hydLevelFor(c), m = new THREE.Matrix4(), k = 0, cap = Math.min(previewInst.instanceMatrix.count, 40000), R = Math.ceil(r * 1.25);
+  for (var dz = -R; dz <= R && k < cap; dz++) for (var dx = -R; dx <= R && k < cap; dx++) {
+    var x = c[0] + dx, z = c[2] + dz; if (!inB(x, L, z)) continue;
+    if (Math.hypot(dx, dz) / (r * (1 + 0.22 * hydNoise(x, z, hydStroke ? hydStroke.seed : hydSeed))) >= 1) continue;
+    var y = Math.min(SY - 1, L + 2 * r + 8); while (y > L && (!gget(x, y, z) || (hydAt(x, y, z) === 2 && !hydIsWater(x, y, z)))) y--; // por cima do chão de cada coluna (árvores e plantas não contam)
+    m.makeScale(1, 0.15, 1); m.setPosition(x + 0.5, y + 1.08, z + 0.5); previewInst.setMatrixAt(k++, m);
+  }
+  previewInst.count = k; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(accent);
+}
+function openHydRules() {
+  openDialog('<h3>Regras do Pincel de água</h3><p>Uma regra por linha: <code>água classe lugar = bloco %, bloco %</code>. <b>água</b>: <code>doce</code> (rio e lago) ou <code>mar</code> (oceano). <b>classe</b>: ' + Object.keys(HYD_CLASS_PT).map(function (k) { return '<code>' + k + '</code>'; }).join(', ') + ' (no mar, só temperado, morno, quente, frio e gelado). <b>lugar</b>: <code>margem</code>, <code>fundo</code>, <code>plantas</code>, <code>recife</code>, <code>superficie</code>, <code>borda</code> e <code>gelo</code>. Cada número é a chance em % para cada bloco; o resto fica como está. Nomes do Java, como na barra de status.</p>' +
+    '<textarea id="hydTa" rows="16" spellcheck="false" style="width:100%;font-family:var(--font-mono,monospace);font-size:12px">' + esc(hydRulesTxt) + '</textarea>' +
+    '<p id="hydBad" class="err"></p><div class="row"><button class="btn primary" id="hydOk">Usar</button><button class="btn" id="hydDef">Voltar ao padrão</button><button class="btn" id="hydNo">Cancelar</button></div>', function () {
+    var check = function () { var a = hydParse($('hydTa').value).bad; $('hydBad').textContent = a.length ? 'Linhas com erro (ficam de fora): ' + a.join(' · ') : ''; };
+    $('hydTa').oninput = check; check();
+    $('hydOk').onclick = function () { hydRulesTxt = $('hydTa').value; hydRules = null; try { localStorage.setItem('bloco-a-bloco-agua-regras', hydRulesTxt); } catch (e) {} closeDialog(); var R = hydRulesGet(), n = 0; ['doce', 'mar'].forEach(function (w) { for (var c in R[w]) n += Object.keys(R[w][c]).length; }); toast('Regras do Pincel de água: ' + n + ' em uso.'); };
+    $('hydDef').onclick = function () { $('hydTa').value = HYD_RULES_DEF; check(); };
+    $('hydNo').onclick = closeDialog;
   });
 }
 
@@ -13481,6 +13902,8 @@ function wioBase(dec, cells0, cells1, i, beds, wx, wy, wz) {
   return v;
 }
 /* Entrada de paleta (NBT) para uma célula do editor, na posição dada (as formas dependem dos vizinhos) */
+var wioWetC = new Map();
+function wioWet(v) { if (!v) return false; var r = wioWetC.get(v); if (r === undefined) { var b = BLOCKS[cellBlock(v)]; r = !!(b && b.shape && cellBlock(v) !== PRES_BI && shapeExport(b, cellOri(v)).wet); wioWetC.set(v, r); } return r; }
 function wioEntry(v, x, y, z, C) {
   if (!v) return wioAir();
   C = C || wio;
@@ -13724,7 +14147,12 @@ async function wioCommit(prog) {
         var e = wioEntry(cur, ex, ey, ez), er = e.raw || e, es = wioStr(er), pi = pidx0.get(es);
         if (pi === undefined) { pi = L0.pal.length; L0.pal.push(er); pidx0.set(es, pi); }
         L0.idx[i] = pi;
-        if (L1) { if (air1 < 0) { air1 = L1.pal.findIndex(function (q) { return wioCellOf(q) === 0; }); if (air1 < 0) { air1 = L1.pal.length; L1.pal.push(air); } } L1.idx[i] = air1; }
+        var wet = wioWet(cur); // alga, coral, pepino-do-mar: a água vai na segunda camada
+        if (wet && !L1) { L1 = { idx: new Uint16Array(4096), pal: [air] }; dec.layers.push(L1); air1 = 0; }
+        if (L1) {
+          if (air1 < 0) { air1 = L1.pal.findIndex(function (q) { return wioCellOf(q) === 0; }); if (air1 < 0) { air1 = L1.pal.length; L1.pal.push(air); } }
+          if (wet) { var wr = wioEntry(cellFromName('water'), ex, ey, ez), wk = L1.pal.indexOf(wr); if (wk < 0) { wk = L1.pal.length; L1.pal.push(wr); } L1.idx[i] = wk; } else L1.idx[i] = air1;
+        }
         removed.add(wx + ',' + wy + ',' + wz); hcols.add(x + ',' + z);
         if (e.ent) added.push(nbtRootLE(wioEntTags(e.ent, wx, wy, wz)));
         ch = true; res.blocks++;
@@ -15351,6 +15779,7 @@ window.addEventListener('keydown', function (e) {
   if (tool === 'mix' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setMixR(mix.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'sculpt' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setSculptR(sculpt.r + (k === '-' ? -1 : 1)); return; }
   if (tool === 'erode' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setEroR(ero.r + (k === '-' ? -1 : 1)); return; }
+  if (tool === 'water' && !e.ctrlKey && !e.metaKey && (k === '-' || k === '=' || k === '+')) { setHydR(hyd.r + (k === '-' ? -1 : 1)); return; }
   if (k === 'x' && !e.ctrlKey && !e.metaKey && !e.altKey) { toggleSymChip(); return; }
   if (k === 'd' && !e.ctrlKey && !e.metaKey && !e.altKey) { setMeasure(!measureOn); toast(measureOn ? 'Medidas visíveis.' : 'Medidas escondidas.'); return; }
   if (k === 'p' && !$('symChip').hidden && !e.ctrlKey && !e.metaKey) { symAtTarget(hoverT); return; }

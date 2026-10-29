@@ -492,6 +492,8 @@ function shapeExport(b, s, x, y, z) {
   var j = '[' + d.p.map(function (p) { return p[0] + '=' + o[p[0]]; }).join(',') + ']';
   if (!d.p.length) j = '';
   var r = bedrockFromProps(b, o); r.j = j;
+  // dentro da água: no Bedrock, a água vai na segunda camada do bloco (sem ela, o coral morre e a alga fica no seco)
+  r.wet = o.waterlogged === 'true' || /^(seagrass|tall_seagrass|kelp|kelp_plant|bubble_column)$/.test(b.java);
   var bm = /^(\w+?)_bed$/.exec(b.java);
   if (bm && BED_COLORS.indexOf(bm[1]) >= 0) r.ent = { id: 'Bed', color: BED_COLORS.indexOf(bm[1]) };
   if (/command_block$/.test(b.java) && typeof rsCmdEnt === 'function' && x != null) r.ent = rsCmdEnt(x, y, z, b.java); // o comando (src/redstone4.js)

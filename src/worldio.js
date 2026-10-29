@@ -390,6 +390,8 @@ function wioBase(dec, cells0, cells1, i, beds, wx, wy, wz) {
   return v;
 }
 /* Entrada de paleta (NBT) para uma célula do editor, na posição dada (as formas dependem dos vizinhos) */
+var wioWetC = new Map();
+function wioWet(v) { if (!v) return false; var r = wioWetC.get(v); if (r === undefined) { var b = BLOCKS[cellBlock(v)]; r = !!(b && b.shape && cellBlock(v) !== PRES_BI && shapeExport(b, cellOri(v)).wet); wioWetC.set(v, r); } return r; }
 function wioEntry(v, x, y, z, C) {
   if (!v) return wioAir();
   C = C || wio;
@@ -633,7 +635,12 @@ async function wioCommit(prog) {
         var e = wioEntry(cur, ex, ey, ez), er = e.raw || e, es = wioStr(er), pi = pidx0.get(es);
         if (pi === undefined) { pi = L0.pal.length; L0.pal.push(er); pidx0.set(es, pi); }
         L0.idx[i] = pi;
-        if (L1) { if (air1 < 0) { air1 = L1.pal.findIndex(function (q) { return wioCellOf(q) === 0; }); if (air1 < 0) { air1 = L1.pal.length; L1.pal.push(air); } } L1.idx[i] = air1; }
+        var wet = wioWet(cur); // alga, coral, pepino-do-mar: a água vai na segunda camada
+        if (wet && !L1) { L1 = { idx: new Uint16Array(4096), pal: [air] }; dec.layers.push(L1); air1 = 0; }
+        if (L1) {
+          if (air1 < 0) { air1 = L1.pal.findIndex(function (q) { return wioCellOf(q) === 0; }); if (air1 < 0) { air1 = L1.pal.length; L1.pal.push(air); } }
+          if (wet) { var wr = wioEntry(cellFromName('water'), ex, ey, ez), wk = L1.pal.indexOf(wr); if (wk < 0) { wk = L1.pal.length; L1.pal.push(wr); } L1.idx[i] = wk; } else L1.idx[i] = air1;
+        }
         removed.add(wx + ',' + wy + ',' + wz); hcols.add(x + ',' + z);
         if (e.ent) added.push(nbtRootLE(wioEntTags(e.ent, wx, wy, wz)));
         ch = true; res.blocks++;

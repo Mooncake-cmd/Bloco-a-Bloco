@@ -38,4 +38,9 @@ function check(ok,msg){ if(!ok){ console.error('FALHOU: '+msg); process.exitCode
   check(furn&&furn.states['minecraft:cardinal_direction']==='south'&&furn.version===18168865,'mcstructure: fornalha para o sul com versão do esquema');
   check(bar&&bar.states.facing_direction===1&&bar.states.open_bit===0,'mcstructure: barril de pé e fechado');
   check(f2.length===vox.length,'mcstructure: todos os blocos presentes');
+  // alga e coral (formas com wet, do editor): a água vai na segunda camada; o resto fica sem
+  const vw=[[0,0,0,idx('stone')],[1,0,0,idx('stone'),null,{bn:'kelp',bs:{age:{t:'int',v:3}},wet:true}],[2,0,0,idx('stone'),null,{bn:'brain_coral_fan',bs:{},wet:true}]];
+  const mw=nbt.simplify((await nbt.parse(Buffer.from(await E.exportMcstructure(vw,BL,{preserveTerrain:true})),'little')).parsed);
+  const Pw=mw.structure.palette.default.block_palette, L1=mw.structure.block_indices[1], nm=i=>i<0?null:Pw[i].name;
+  check(nm(L1[0])===null&&nm(L1[1])==='minecraft:water'&&nm(L1[2])==='minecraft:water','mcstructure: água na segunda camada da alga e do coral (e não na pedra)');
 })().catch(e=>{console.error('ERRO',e);process.exit(1)});

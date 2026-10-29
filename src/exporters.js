@@ -226,7 +226,9 @@
       layer0[i] = getPal('minecraft:' + blk.bedrock, bedrockStates(blk, oris[i] < 0 ? null : oris[i]), blk.bst && blk.bst[0]);
       if (bents[i]) posData[String(i)] = entData(bents[i]);
     }
+    // segunda camada: água nos blocos que ficam dentro dela (alga, coral, pepino-do-mar, os "waterlogged")
     const layer1 = new Array(total).fill(-1);
+    for (let i = 0; i < total; i++) if (extra[i] && extra[i].wet) layer1[i] = getPal('minecraft:water', { liquid_depth: { t: 'int', v: 0 } });
     const root = {
       format_version: { t: 'int', v: 1 },
       size: { t: 'list', of: 'int', v: [sx, sy, sz] },
