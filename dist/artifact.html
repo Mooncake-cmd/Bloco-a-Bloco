@@ -13918,7 +13918,7 @@ function wioArea() {
     (!A && blockCount ? ' A construção que está no editor agora será substituída pela área: salve antes em Projeto → Salvar projeto se quiser guardá-la.' : '') + '</p>' +
     '<div class="row"><label>Centro X<input type="number" id="wmX"></label><label>Centro Z<input type="number" id="wmZ"></label><label>Tamanho<select id="wmS">' + sizes + '</select></label><button class="btn" id="wmMe">Onde estou</button><button class="btn" id="wmBig" title="O mundo inteiro em tela cheia, com zoom de verdade, biomas, grade dos chunks e as coordenadas do Nether">Mapa em tela cheia</button></div>' +
     '<div class="row" id="wmFreeRow" hidden><label>De X<input type="number" id="wmFx0"></label><label>Z<input type="number" id="wmFz0"></label><label>Até X<input type="number" id="wmFx1"></label><label>Z<input type="number" id="wmFz1"></label>' +
-    '<span class="pen">Arraste no mapa para desenhar a área (o botão direito move o mapa; um clique leva a área até ali). Ela se ajusta aos chunks; até ' + WIO_MAX + ' blocos de cada lado.</span></div>' +
+    '<span class="pen">Arraste no mapa para desenhar a área (o botão direito move o mapa; um clique leva a área até ali). Ela se ajusta aos chunks e pode ter qualquer tamanho (até ' + MAX_SIDE.toLocaleString('pt-BR') + ' blocos de cada lado, o limite do editor).</span></div>' +
     '<div class="info" id="wmInfo"></div>' +
     '<div class="row"><button class="btn primary" id="wmGo">Carregar área</button><button class="btn" id="wmNo">' + (A ? 'Fechar' : 'Cancelar') + '</button></div>',
     function () {
@@ -13939,9 +13939,9 @@ function wioArea() {
       $('wmNo').onclick = closeDialog;
       $('wmBig').onclick = function () { closeDialog(); openWorldMap(); };
       function area() {
-        if (st.free) { // os cantos do retângulo, ajustados aos chunks (cada lado entre 16 e WIO_MAX)
+        if (st.free) { // os cantos do retângulo, ajustados aos chunks (cada lado entre 16 e MAX_SIDE: a área livre não tem o limite da lista)
           var F = st.free, ax = Math.floor(Math.min(F.x0, F.x1) / 16) * 16, az = Math.floor(Math.min(F.z0, F.z1) / 16) * 16;
-          var w = Math.max(16, Math.min(WIO_MAX, Math.ceil((Math.max(F.x0, F.x1) + 1) / 16) * 16 - ax)), d = Math.max(16, Math.min(WIO_MAX, Math.ceil((Math.max(F.z0, F.z1) + 1) / 16) * 16 - az));
+          var w = Math.max(16, Math.min(MAX_SIDE, Math.ceil((Math.max(F.x0, F.x1) + 1) / 16) * 16 - ax)), d = Math.max(16, Math.min(MAX_SIDE, Math.ceil((Math.max(F.z0, F.z1) + 1) / 16) * 16 - az));
           return [ax, az, w, d];
         }
         var s = st.size, x0 = Math.round((st.cx - s / 2) / 16) * 16, z0 = Math.round((st.cz - s / 2) / 16) * 16;
@@ -13960,7 +13960,9 @@ function wioArea() {
         for (var x = a[0] >> 4; x < (a[0] + a[2]) >> 4; x++) for (var z = a[1] >> 4; z < (a[1] + a[3]) >> 4; z++) { cols++; var c = wio.dims[st.dim].get(x + ',' + z); if (c && c.ok) ok++; }
         if (st.free) freeSync();
         $('wmInfo').innerHTML = D.name + ': X ' + a[0] + ' a ' + (a[0] + a[2] - 1) + ', Z ' + a[1] + ' a ' + (a[1] + a[3] - 1) + ', altura ' + D.min + ' a ' + (D.min + D.h - 1) + (st.free ? ' (' + a[2] + ' × ' + a[3] + ')' : '') +
-          '<br>' + ok + ' de ' + cols + ' chunks já gerados pelo jogo' + (ok < cols ? ' (os outros ficam vazios e o que for construído neles não vai para o mundo)' : '') + '.';
+          '<br>' + ok.toLocaleString('pt-BR') + ' de ' + cols.toLocaleString('pt-BR') + ' chunks já gerados pelo jogo' + (ok < cols ? ' (os outros ficam vazios e o que for construído neles não vai para o mundo)' : '') + '.' +
+          // maior que a lista: carrega igual, mas avisa do peso (o terreno de 512 × 512 costuma ter de 15 a 35 milhões de blocos)
+          (a[2] > WIO_MAX || a[3] > WIO_MAX ? '<br><b>Área grande:</b> ' + (ok / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' vezes o terreno de 512 × 512 (que costuma ter de 15 a 35 milhões de blocos). Carregar, editar e exportar demoram mais e usam mais memória; no computador, conte com algo como 100 milhões de blocos, e no celular, 20 a 50 milhões. Passando disso, a página pode fechar sozinha (as mudanças já exportadas ficam).' : '');
         $('wmGo').disabled = !ok;
         if (document.activeElement !== $('wmX')) $('wmX').value = Math.round(st.cx);
         if (document.activeElement !== $('wmZ')) $('wmZ').value = Math.round(st.cz);
