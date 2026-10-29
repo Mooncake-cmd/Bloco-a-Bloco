@@ -100,8 +100,9 @@ async function tabLoad() {
   wio = null; sel = null; selA = null; pasting = false; anchor = null; anchor2 = null;
   var ok = false;
   try { ok = await wioRestore(); } catch (e) { ok = false; }
+  if (ok === 'parado') ok = 'vazio';
   if (!ok) { busy('Abrindo a aba…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
-  if (ok) { try { await histLoad(); } catch (e) {} }
+  if (ok && ok !== 'vazio') { try { await histLoad(); } catch (e) {} }
   if (!ok) { newWorld(32, 32, 32); dirtyAll(); }
   var t = tabCur();
   if (t && t.cam) { Object.assign(cam, t.cam); updateCamera(); } else resetCamera();
@@ -129,6 +130,9 @@ async function tabNew() {
   toast('Aba nova: uma construção vazia. Abra um projeto, uma estrutura ou um mundo do jogo nela pelo menu Projeto. As outras abas continuam como estavam.', 6000);
 }
 function tabClose(id) {
+  if (wioRestoring && id === tabs.cur && !tabs.busy) { // fechando a aba enquanto o mundo dela é lido: para a leitura e fecha depois
+    if (tabClose.ask === id && Date.now() - tabClose.t <= 4000) { wioRestoreStop().then(function () { tabClose.ask = id; tabClose.t = Date.now(); tabClose(id); }); return; }
+  }
   if (tabs.busy) return;
   var t = tabs.list.filter(function (q) { return q.id === id; })[0]; if (!t) return;
   var now = Date.now();

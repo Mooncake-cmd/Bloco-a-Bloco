@@ -724,18 +724,38 @@ function wioSaveSession(withFile) {
 }
 function wioForget() { return idbDo('readwrite', function (st) { st.delete('wio:file'); st.delete('wio:patches'); st.delete('wio:meta'); }).catch(function () {}); }
 /* Ao abrir a página: se havia um mundo aberto, abre de novo o arquivo guardado e a mesma área, e põe por cima os
-   pedaços editados que o salvamento automático guardou */
+   pedaços editados que o salvamento automático guardou. Um mundo grande leva um tempo: o aviso tem o botão "Não abrir o
+   mundo", e Novo (limpar tudo) ou fechar a aba no meio também param a leitura (wioRestoreStop). Parado, o mundo é
+   esquecido de vez (com as mudanças dele que não foram exportadas) e devolve 'parado': a página começa vazia. */
+var wioRestoring = null;
+function wioRestoreStop() {
+  var R = wioRestoring; if (!R || R.stop) return R ? R.done : Promise.resolve();
+  R.stop = true; busy('Parando a leitura do mundo…', null); return R.done;
+}
+async function wioForgetAll() { // o mundo e o que foi guardado da área dele (construção e linha do tempo)
+  await wioForget();
+  await idbDo('readwrite', function (st) { st.delete(IDBKeyRange.bound('w:', 'w:\uffff')); st.delete(IDBKeyRange.bound('h:', 'h:\uffff')); }).catch(function () {});
+}
 async function wioRestore() {
+  if (wioRestoring) await wioRestoring.done;
+  var R = { stop: false }; R.done = new Promise(function (r) { R.end = r; });
+  wioRestoring = R;
+  try { return await wioRestoreRun(R); } finally { wioRestoring = null; R.end(); }
+}
+async function wioRestoreRun(R) {
   var meta = await idbDo('readonly', function (st) { return st.get('wio:meta'); }).catch(function () { return null; });
   if (!meta || !meta.area) return false;
   var file = await idbDo('readonly', function (st) { return st.get('wio:file'); }).catch(function () { return null; });
   var pat = await idbDo('readonly', function (st) { return st.get('wio:patches'); }).catch(function () { return null; });
   if (!file) { wioForget(); return false; }
   var kept = typeof tabWioTake === 'function' ? tabWioTake() : null; // o mundo já lido por esta aba (src/tabs.js)
+  var nm = meta.name || 'guardado', stopBtn = { label: 'Não abrir o mundo', title: 'Fecha o mundo ' + nm + ' sem ler: as mudanças nele que não foram exportadas se perdem', fn: wioRestoreStop };
+  var step = function (msg, f) { if (R.stop) throw { parado: true }; busy(msg, f, stopBtn); }; // a leitura para no próximo passo
   try {
-    busy('Abrindo de novo o mundo ' + (meta.name || '') + '…', null);
+    step('Abrindo de novo o mundo ' + nm + '…', null);
     if (kept) wio = kept;
-    else wio = await wioOpenFile(file, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
+    else wio = await wioOpenFile(file, function (i, n) { step('Lendo o mundo ' + nm + ': ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
+    if (R.stop) throw { parado: true };
     if (!kept) (meta.pres || []).forEach(function (s) {
       var raw = unb64(s);
       if (wio.java) { var key = new TextDecoder().decode(raw); wio.presMap.set(key, wio.pres.length); wio.pres.push({ raw: raw, name: key.replace(/\[.*$/, ''), key: key }); }
@@ -745,7 +765,8 @@ async function wioRestore() {
     if (!kept && wio.leg) { wio.legKeep = meta.legKeep !== false; wio.legVer = meta.legVer || ''; if (meta.oldCheat) wio.oldCheat = 1; (meta.presLeg || []).forEach(function (c, i) { if (c != null && wio.pres[i]) { wio.pres[i].leg = c; wio.presMap.set('leg:' + c, i); } }); }
     if (meta.files && !kept) { wio.files = new Map(); Object.keys(meta.files).forEach(function (nm) { wio.files.set(nm, unb64(meta.files[nm])); }); if (meta.name) wio.name = meta.name; }
     var A = meta.area;
-    await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { busy('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
+    await wioLoadArea(A.dim, A.x0, A.z0, A.w, A.d, function (i, n) { step('Carregando a área: ' + i + ' de ' + n + ' chunks', i / n); });
+    if (R.stop) throw { parado: true };
     var recs = await idbDo('readonly', function (st) { return st.getAll(IDBKeyRange.bound('w:c:', 'w:c:\uffff')); }).catch(function () { return []; });
     var wm = await idbDo('readonly', function (st) { return st.get('w:meta'); }).catch(function () { return null; });
     (recs || []).forEach(function (r) {
@@ -769,7 +790,9 @@ async function wioRestore() {
     verCounter++; dirtyAll(); renderHotbar(); renderList(); wioChip();
     return true;
   } catch (e) {
-    wio = null; wioForget(); toast('Não foi possível abrir de novo o mundo guardado: ' + (e.message || e), 9000);
+    wio = null;
+    if (e && e.parado) { await wioForgetAll(); wioLoading = true; try { newWorld(32, 32, 32); } finally { wioLoading = false; } dirtyAll(); resetCamera(); changed(); updateStatus(); wioChip(); /* o que a leitura já tinha posto no editor sai junto */ toast('O mundo ' + nm + ' foi fechado sem ler. Para abrir de novo, use Projeto → Abrir mundo do jogo.', 8000); return 'parado'; }
+    wioForget(); toast('Não foi possível abrir de novo o mundo guardado: ' + (e.message || e), 9000);
     return false;
   } finally { busyEnd(); }
 }

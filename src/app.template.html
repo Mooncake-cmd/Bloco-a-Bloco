@@ -262,6 +262,8 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 #toast.show{opacity:1}
 #busy{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:70;width:min(360px,calc(100% - 32px));padding:12px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px;font-size:13px}
 #busy .bl{display:flex;align-items:center;gap:10px}
+#busy .bl #busyTxt{flex:1}
+#busyBtn{flex:none;padding:4px 10px;font-size:12px}
 #busy .sp{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
 #busy .bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
 #busy .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
@@ -428,7 +430,7 @@ body.clean #hud-tl{max-width:calc(100% - 340px)} /* não passa por baixo do avis
 </div>
 <div id="cmdBox" hidden><div id="cmdSug" hidden></div><div class="cmdrow"><span class="cmdsl">/</span><input type="text" id="cmdIn" autocomplete="off" spellcheck="false" aria-label="Comando" placeholder="delblock stone"><button class="tbtn txt" id="cmdGo" title="Enter">Executar</button><button class="tbtn" id="cmdX" title="Esc" aria-label="Fechar">×</button></div><div id="cmdOut"></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
-<div id="busy" role="status" aria-live="polite" hidden><div class="bl"><span class="sp"></span><span id="busyTxt"></span></div><div class="bar"><i id="busyBar"></i></div></div>
+<div id="busy" role="status" aria-live="polite" hidden><div class="bl"><span class="sp"></span><span id="busyTxt"></span><button class="btn" id="busyBtn" hidden></button></div><div class="bar"><i id="busyBar"></i></div></div>
 <div id="overlayRoot"></div>
 
 %%THREE%%
@@ -2356,6 +2358,7 @@ function loadProject(o) {
   return miss;
 }
 function newWorld(sx, sy, sz) {
+  if (wioRestoring && !wioLoading) wioRestoreStop(); // Novo no meio da leitura do mundo guardado: para e esquece
   if (wio && !wioLoading) wioEnd('As mudanças que não foram exportadas se perderam.');
   SX = sx; SY = sy; SZ = sz;
   worldReset(); worldDirty.clear(); worldClear = true; blockCount = 0; verCounter++; lightFull = true; lightSet.clear();
@@ -2426,8 +2429,9 @@ function toast(msg, ms) {
   clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, ms || 2600);
 }
 /* Aviso que fica na tela enquanto uma tarefa longa roda (frac entre 0 e 1, ou null sem barra) */
-function busy(msg, frac) {
+function busy(msg, frac, btn) { // btn: { label, title, fn } (um botão no aviso, como o de parar a leitura do mundo)
   $('busy').hidden = false; $('busyTxt').textContent = msg;
+  var b = $('busyBtn'); b.hidden = !btn; if (btn) { b.textContent = btn.label; b.title = btn.title || ''; b.onclick = btn.fn; }
   $('busyBar').parentNode.hidden = frac == null;
   if (frac != null) $('busyBar').style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%';
 }
@@ -2956,6 +2960,7 @@ if (!THREE_OK) {
 } else {
   start();
 }
+var framing = false;
 async function start() {
   try { await loadShapes(); } catch (e) { toast('Não foi possível carregar os blocos que não são cubos: ' + (e.message || e), 8000); }
   renderList(); renderHotbar();
@@ -2968,14 +2973,15 @@ async function start() {
   loadPacks().then(function () { if (packs.length) applyTextures(); });
   var ok = false;
   if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }
-  if (!ok) ok = await wioRestore();
+  if (!ok) { requestAnimationFrame(frame); framing = true; ok = await wioRestore(); } // a cena já desenha enquanto o mundo é lido (sem tela preta)
+  if (ok === 'parado') ok = 'vazio';
   if (!ok) { busy('Abrindo a construção salva…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
-  if (ok) { try { await histLoad(); } catch (e) {} } // a linha do tempo volta junto com a construção
+  if (ok && ok !== 'vazio') { try { await histLoad(); } catch (e) {} } // a linha do tempo volta junto com a construção
   if (!ok) { newWorld(SX, SY, SZ); buildSample(); dirtyAll(); }
   resetCamera(); changed(); updateStatus();
   setRsTime(rsTime); rsDayUpdate(true); // sensores de luz na hora guardada
   if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
-  requestAnimationFrame(frame);
+  if (!framing) requestAnimationFrame(frame);
   window.__bab = { ev: function (src) { return eval(src); }, name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rulerVis: function () { return !!(rulerObj && rulerObj.visible); }, measVis: function () { return !!measureObj; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
 }
 })();
