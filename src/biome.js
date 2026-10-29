@@ -403,6 +403,6 @@ async function bioCommit() {
     }
     wio.patches.set(hk, bioEncode3D(r.hm, r.subs));
   }
-  wio.bioEdited.clear(); if (wio.maps) wio.maps[dim] = null; if (wio.bmaps) wio.bmaps[dim] = null;
+  wio.bioEdited.clear(); wioMapReset(dim); if (wio.bmaps) wio.bmaps[dim] = null;
   return n;
 }

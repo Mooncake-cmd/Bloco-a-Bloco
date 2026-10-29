@@ -8198,7 +8198,7 @@ async function bioCommit() {
     }
     wio.patches.set(hk, bioEncode3D(r.hm, r.subs));
   }
-  wio.bioEdited.clear(); if (wio.maps) wio.maps[dim] = null; if (wio.bmaps) wio.bmaps[dim] = null;
+  wio.bioEdited.clear(); wioMapReset(dim); if (wio.bmaps) wio.bmaps[dim] = null;
   return n;
 }
 
@@ -13549,9 +13549,25 @@ function wioColor(v) {
   if (t) c = [c[0] * (t >> 16 & 255) / 255, c[1] * (t >> 8 & 255) / 255, c[2] * (t & 255) / 255];
   return c;
 }
-async function wioMap(dim, prog) {
-  if (wio.java) return jwMap(dim, prog);
-  if (wio.maps[dim]) return wio.maps[dim];
+/* Visão geral de uma dimensão. Pedida pela janela de área e pelo mapa do mundo: um desenho em andamento é
+   compartilhado (wio.mapsP), e todos os que pediram recebem a mesma contagem, continuando de onde estava, em vez de
+   começar outro desenho do zero ao mesmo tempo. Uma gravação no meio (wioMapReset) descarta o desenho, que não fica guardado. */
+function wioMap(dim, prog) {
+  var w = wio;
+  if (w.maps[dim]) return Promise.resolve(w.maps[dim]);
+  var P = (w.mapsP || (w.mapsP = []))[dim];
+  if (!P) {
+    P = w.mapsP[dim] = { progs: [], last: null };
+    P.p = (w.java ? jwMap : wioMapDraw)(dim, function (i, n) { P.last = [i, n]; P.progs.forEach(function (f) { f(i, n); }); }).then(function (m) {
+      if (w.mapsP[dim] === P) { w.mapsP[dim] = null; w.maps[dim] = m; }
+      return m;
+    }, function (e) { if (w.mapsP[dim] === P) w.mapsP[dim] = null; throw e; });
+  }
+  if (prog) { P.progs.push(prog); if (P.last) prog(P.last[0], P.last[1]); }
+  return P.p;
+}
+function wioMapReset(dim) { if (wio.maps) wio.maps[dim] = null; if (wio.mapsP) wio.mapsP[dim] = null; }
+async function wioMapDraw(dim, prog) {
   var cols = Array.from(wio.dims[dim].values()).filter(function (c) { return c.ok; });
   if (!cols.length) return null;
   var x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
@@ -13603,7 +13619,7 @@ async function wioMap(dim, prog) {
     var f = a > b2 ? 1.12 : a < b2 ? 0.86 : 1;
     for (var ch = 0; ch < 3; ch++) img.data[o2 * 4 + ch] = Math.min(255, img.data[o2 * 4 + ch] * f);
   }
-  return (wio.maps[dim] = { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
+  return { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min };
 }
 
 /* ---------- Carregar uma área no editor ---------- */
@@ -13717,7 +13733,7 @@ async function wioCommit(prog) {
     if (legConv) await legFinishConvert(cx, cz, dim, ecx, ecz, D);
   }
   wio.edited.clear(); bentDirty.clear();
-  wio.maps[dim] = null;
+  wioMapReset(dim);
   return res;
 }
 
@@ -14463,8 +14479,7 @@ async function jwChunk(dim, cx, cz) {
 function jwSections(t) { var s = nbtVal(t.v, 'sections'); return s ? s.a : []; }
 
 /* ---------- Mapa visto de cima ---------- */
-async function jwMap(dim, prog) {
-  if (wio.maps[dim]) return wio.maps[dim];
+async function jwMap(dim, prog) { // pelo wioMap (src/worldio.js), que guarda o resultado
   var cols = Array.from(wio.dims[dim].values()).filter(function (c) { return c.ok; });
   if (!cols.length) return null;
   var x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
@@ -14512,7 +14527,7 @@ async function jwMap(dim, prog) {
     var f = a > b2 ? 1.12 : a < b2 ? 0.86 : 1;
     for (var ch = 0; ch < 3; ch++) img.data[o2 * 4 + ch] = Math.min(255, img.data[o2 * 4 + ch] * f);
   }
-  return (wio.maps[dim] = { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
+  return { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min };
 }
 
 /* ---------- Carregar uma área ---------- */
@@ -14611,7 +14626,7 @@ async function jwCommit(prog) {
     jwPut(dim, cx, cz, t, true);
   }
   wio.edited.clear(); bentDirty.clear();
-  wio.maps[dim] = null;
+  wioMapReset(dim);
   return res;
 }
 /* Biomas pintados: o Java guarda um bioma a cada 4 x 4 x 4 blocos; cada quadrado de 4 x 4 colunas fica com o bioma

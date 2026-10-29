@@ -227,8 +227,7 @@ async function jwChunk(dim, cx, cz) {
 function jwSections(t) { var s = nbtVal(t.v, 'sections'); return s ? s.a : []; }
 
 /* ---------- Mapa visto de cima ---------- */
-async function jwMap(dim, prog) {
-  if (wio.maps[dim]) return wio.maps[dim];
+async function jwMap(dim, prog) { // pelo wioMap (src/worldio.js), que guarda o resultado
   var cols = Array.from(wio.dims[dim].values()).filter(function (c) { return c.ok; });
   if (!cols.length) return null;
   var x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
@@ -276,7 +275,7 @@ async function jwMap(dim, prog) {
     var f = a > b2 ? 1.12 : a < b2 ? 0.86 : 1;
     for (var ch = 0; ch < 3; ch++) img.data[o2 * 4 + ch] = Math.min(255, img.data[o2 * 4 + ch] * f);
   }
-  return (wio.maps[dim] = { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min });
+  return { img: img, bimg: bimg, bid: bid, bcnt: bcnt, x0: x0 * 16, z0: z0 * 16, sc: sc, w: W2, h: H2, min: D.min };
 }
 
 /* ---------- Carregar uma área ---------- */
@@ -375,7 +374,7 @@ async function jwCommit(prog) {
     jwPut(dim, cx, cz, t, true);
   }
   wio.edited.clear(); bentDirty.clear();
-  wio.maps[dim] = null;
+  wioMapReset(dim);
   return res;
 }
 /* Biomas pintados: o Java guarda um bioma a cada 4 x 4 x 4 blocos; cada quadrado de 4 x 4 colunas fica com o bioma
