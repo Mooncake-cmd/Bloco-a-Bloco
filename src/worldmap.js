@@ -395,7 +395,7 @@ function wmInfo() {
   if (wm.dim === 0) conv = ' · <b>no Nether</b>: X <b>' + Math.floor(x / 8) + '</b>, Z <b>' + Math.floor(z / 8) + '</b>';
   else if (wm.dim === 1) conv = ' · <b>no mundo normal</b>: X <b>' + x * 8 + '</b>, Z <b>' + z * 8 + '</b>';
   var bn = wmBioName(a.bio), bl = wmBlockName(a);
-  el.innerHTML = '<span>' + D.name + ': X <b>' + x + '</b>, Z <b>' + z + '</b>' + (a.h != null ? ', Y ' + a.h : '') + conv + '</span>' +
+  el.innerHTML = '<span>' + D.name + ': X <b>' + x + '</b>' + (a.h != null ? ', Y <b>' + a.h + '</b>' : '') + ', Z <b>' + z + '</b>' + conv + '</span>' +
     '<span class="mixl">chunk ' + (x >> 4) + ', ' + (z >> 4) + ' · região r.' + (x >> 9) + '.' + (z >> 9) + (bn ? ' · ' + esc(bn) : '') + (bl ? ' · ' + esc(bl) : '') + '</span>' +
     ' <span class="mbtns"><button id="wmvCopy">Copiar</button><button id="wmvLoad" title="Abrir a janela de área com o centro aqui">Carregar área aqui</button></span>';
   $('wmvCopy').onclick = function () {
@@ -446,7 +446,7 @@ function wmBind() {
     // janela flutuante: o bioma debaixo do ponteiro
     var w = wmToWorld(p[0], p[1]), a2 = wmAt(w[0], w[1]), bn = wmBioName(a2.bio), tip = $('wmvTip');
     tip.hidden = false;
-    tip.innerHTML = (bn ? '<b>' + esc(bn) + '</b><br>' : '<b>Sem bioma lido</b><br>') + 'X ' + a2.x + ', Z ' + a2.z + (a2.h != null ? ' · Y ' + a2.h : '') +
+    tip.innerHTML = (bn ? '<b>' + esc(bn) + '</b><br>' : '<b>Sem bioma lido</b><br>') + 'X ' + a2.x + (a2.h != null ? ', Y ' + a2.h : '') + ', Z ' + a2.z +
       (a2.v || a2.o ? '<br>' + esc(wmBlockName(a2)) : '');
     var r = cv.getBoundingClientRect(), tx = e.clientX - r.left + 16, tz = e.clientY - r.top + 16;
     if (tx + tip.offsetWidth > r.width - 8) tx = e.clientX - r.left - tip.offsetWidth - 12;
