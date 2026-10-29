@@ -30,6 +30,10 @@ nav.toc .brand{font:700 20px/1.1 var(--display);letter-spacing:-.02em;margin-bot
 nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;counter-reset:t}
 nav.toc a{display:flex;gap:8px;padding:5px 8px;border-radius:6px;color:var(--fg);text-decoration:none}
 nav.toc a:hover{background:var(--panel)}
+nav.toc .tocpart{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 8px 4px}
+.part{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border-top:2px solid var(--accent);padding-top:10px;margin:24px 0 -8px}
+.tbl td.dt{white-space:nowrap;font-family:var(--mono);font-size:13px;color:var(--muted)}
+@media (max-width:640px){table.bugs thead{display:none}table.bugs,table.bugs tbody,table.bugs tr,table.bugs td{display:block;width:auto}table.bugs tr{padding:10px 12px;border-bottom:1px solid var(--line)}table.bugs td{border:0;padding:2px 0}table.bugs td[data-l]::before{content:attr(data-l);display:block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:8px}}
 nav.toc a span{font:500 12px var(--mono);color:var(--muted);min-width:22px;padding-top:2px}
 main{min-width:0;display:flex;flex-direction:column;gap:56px}
 header.cover{display:flex;flex-direction:column;gap:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
@@ -93,6 +97,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
 <div class="wrap">
 <nav class="toc" aria-label="Capítulos">
   <div class="brand">Bloco a Bloco</div>
+  <div class="tocpart">Funções do site</div>
   <ol>
     <li><a href="#tela"><span>01</span>A tela</a></li>
     <li><a href="#comecar"><span>02</span>Do zero ao jogo</a></li>
@@ -113,13 +118,17 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><a href="#atalhos"><span>17</span>Atalhos</a></li>
     <li><a href="#limites"><span>18</span>Limites conhecidos</a></li>
   </ol>
+  <div class="tocpart">Bugs corrigidos</div>
+  <ol>
+    <li><a href="#bugs"><span>19</span>Bugs corrigidos</a></li>
+  </ol>
 </nav>
 
 <main>
 <header class="cover">
   <div class="eyebrow">Manual de uso · outubro de 2026 · <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/">abrir o editor</a></div>
   <h1>Guia do Bloco a Bloco</h1>
-  <p class="lead">O editor 3D de construções de Minecraft que roda no navegador: monte bloco a bloco, veja com as texturas do seu pacote e leve para o jogo como <code>.mcstructure</code> (Bedrock) ou <code>.schem</code> (Java). Este guia passa por todas as funções do site, com capturas da própria tela.</p>
+  <p class="lead">O editor 3D de construções de Minecraft que roda no navegador: monte bloco a bloco, veja com as texturas do seu pacote e leve para o jogo como <code>.mcstructure</code> (Bedrock) ou <code>.schem</code> (Java). Este guia tem duas partes: as <a href="#tela">funções do site</a>, com capturas da própria tela, e a lista dos <a href="#bugs">bugs corrigidos</a>.</p>
   <p>Endereço: <a href="https://mooncake-cmd.github.io/Bloco-a-Bloco/" target="_blank" rel="noopener">mooncake-cmd.github.io/Bloco-a-Bloco</a>. Funciona no Chrome e no Edge, no computador e no celular, sem instalar nada e sem conta.</p>
   <div class="facts">
     <div class="fact"><b>1.230</b><span>blocos na paleta: todos do Bedrock 1.26, menos os 160 da Education Edition (mais 64 variantes de parede usadas sozinhas)</span></div>
@@ -129,6 +138,8 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
   </div>
 </header>
+
+<div class="part" id="funcoes">Parte 1 · Funções do site</div>
 
 <section id="tela">
   <h2><span class="n">01</span>A tela</h2>
@@ -1499,12 +1510,41 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Dados de entidade</td><td>Itens em baús, texto de placas e comandos não são exportados nem importados. No Bedrock, baús lado a lado podem virar dois simples.</td></tr>
       <tr><td>Textura sem equivalente</td><td>Algumas texturas raras (ghast seco, contorno do pó de redstone, composteira) não existem no pacote do Bedrock e aparecem com a cor média. Os blocos da Education Edition usam a cor ou a textura do vidro e da tocha comuns. Texturas animadas usam o primeiro quadro.</td></tr>
       <tr><td>Primeira pessoa</td><td>Precisa de teclado e mouse (no celular dá para olhar arrastando, mas não andar). Lajes, escadas e cercas contam como bloco inteiro (o degrau de 1 bloco é subido sozinho); portas e portões deixam passar abertos ou fechados.</td></tr>
-      <tr><td>Mundo do jogo</td><td>Bedrock (.mcworld) e Java 1.18 ou mais novo (.zip com a pasta do mundo). No máximo 512 × 512 por vez (troque de área para editar mais); uma estrutura do mapa com mais de 512 blocos de lado (contando a folga, que diminui até 0 para caber) não cabe numa área: Carregar área aqui não carrega, e Colar aqui cola em partes (uma área por vez). A cópia inteira fica na memória do navegador enquanto as partes são coladas (uma de 600 × 600 × 180 ocupa uns 260 MB: no celular, pode faltar memória), e se a página recarregar no meio, é preciso começar de novo (as partes já coladas ficam). Só a superfície: o terreno natural é reconhecido pelo nome do bloco (pedra, terra, areia, cascalho, terracota...; arenito e obsidiana não contam, por serem comuns em construções), então uma construção feita desses blocos conta como terreno, e o que estiver mais de 3 camadas abaixo dela fica escondido (Subsolo mostra). Cavernas abertas para o céu só aparecem até 3 camadas abaixo da borda. Mundos da Pocket Edition (até a 1.0, inclusive os da 0.2 à 0.8 com chunks.dat) abrem mantendo o formato antigo ou convertendo (veja Mundos antigos do Bedrock); pedaços de versões intermediárias sem leitura ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Blocos gravados com os nomes de versões anteriores do Bedrock (antes da 1.21 a grama era <code>grass</code>, as folhas eram <code>leaves</code> com o tipo num estado, e antes da 1.13 o tipo era só um número) são traduzidos para os nomes de hoje com as tabelas de atualização de blocos do projeto BedrockBlockUpgradeSchema; o mesmo vale para um .mcstructure antigo. Sem isso, um mundo salvo, por exemplo, na 1.18 mostrava a grama e as folhas como blocos desconhecidos (roxos). Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Conferido no servidor oficial do Bedrock (1.26): um mundo gerado pelo jogo, editado e exportado pelo site abre sem erros, com os blocos e os estados iguais. O mundo do Java foi conferido com a amulet-core, não no jogo. Mundos grandes: os arquivos de registro do banco (os <code>.log</code> da pasta <code>db</code>) são lidos aos poucos e cada chunk fica guardado comprimido até a área dele ser carregada; em testes, um mundo da Pocket Edition 0.11 com 3.072 × 3.072 blocos gerados (3 GB de <code>.log</code>) abriu com uns 330 MB de memória (antes eram 3,2 GB, e o celular mostrava “Array buffer allocation failed”), mas leva um a dois minutos para abrir. Chunks do Java comprimidos com LZ4 (opção de alguns servidores) não abrem. Teste sempre numa cópia do mundo.</td></tr>
+      <tr><td>Mundo do jogo</td><td>Bedrock (.mcworld) e Java 1.18 ou mais novo (.zip com a pasta do mundo). No máximo 512 × 512 por vez (troque de área para editar mais); uma estrutura do mapa com mais de 512 blocos de lado (contando a folga, que diminui até 0 para caber) não cabe numa área: Carregar área aqui não carrega, e Colar aqui cola em partes (uma área por vez). A cópia inteira fica na memória do navegador enquanto as partes são coladas (uma de 600 × 600 × 180 ocupa uns 260 MB: no celular, pode faltar memória), e se a página recarregar no meio, é preciso começar de novo (as partes já coladas ficam). Só a superfície: o terreno natural é reconhecido pelo nome do bloco (pedra, terra, areia, cascalho, terracota...; arenito e obsidiana não contam, por serem comuns em construções), então uma construção feita desses blocos conta como terreno, e o que estiver mais de 3 camadas abaixo dela fica escondido (Subsolo mostra). Cavernas abertas para o céu só aparecem até 3 camadas abaixo da borda. Mundos da Pocket Edition (até a 1.0, inclusive os da 0.2 à 0.8 com chunks.dat) abrem mantendo o formato antigo ou convertendo (veja Mundos antigos do Bedrock); pedaços de versões intermediárias sem leitura ficam de fora (abrir o mundo no jogo uma vez e exportar de novo resolve). Blocos gravados com os nomes de versões anteriores do Bedrock (antes da 1.21 a grama era <code>grass</code>, as folhas eram <code>leaves</code> com o tipo num estado, e antes da 1.13 o tipo era só um número) são traduzidos para os nomes de hoje com as tabelas de atualização de blocos do projeto BedrockBlockUpgradeSchema; o mesmo vale para um .mcstructure antigo. Um baú colocado pelo site entra vazio e placas novas ficam sem texto. Conferido no servidor oficial do Bedrock (1.26): um mundo gerado pelo jogo, editado e exportado pelo site abre sem erros, com os blocos e os estados iguais. O mundo do Java foi conferido com a amulet-core, não no jogo. Mundos grandes: os arquivos de registro do banco (os <code>.log</code> da pasta <code>db</code>) são lidos aos poucos e cada chunk fica guardado comprimido até a área dele ser carregada; em testes, um mundo da Pocket Edition 0.11 com 3.072 × 3.072 blocos gerados (3 GB de <code>.log</code>) abriu com uns 330 MB de memória, mas leva um a dois minutos para abrir. Chunks do Java comprimidos com LZ4 (opção de alguns servidores) não abrem. Teste sempre numa cópia do mundo.</td></tr>
       <tr><td>Biomas</td><td>O pincel pinta a coluna inteira com um bioma só (não dá para pôr uma caverna exuberante embaixo de uma planície). Só o topo do bloco de grama muda de cor: a lateral continua com a cor do pacote. A vegetação do Transformar o terreno imita o jogo, mas não é igual ao gerador do Minecraft (sem estruturas, lagos, cogumelos de pântano ou blocos de abelha). Áreas de nascimento de estruturas (saqueadores, bruxas da cabana, blazes, guardiões) não podem ser criadas: o jogo ignora as feitas fora da geração (testado). O .mcstructure e o .schem não levam bioma; só o mundo exportado.</td></tr>
-      <tr><td>Importação</td><td>Nomes de versões antigas (Java antes da 1.13, nomes antigos do Bedrock) e o .schematic do MCEdit não abrem. A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
+      <tr><td>Importação</td><td>Nomes do Java de antes da 1.13 e o .schematic do MCEdit não abrem (os nomes antigos do Bedrock são traduzidos para os de hoje). A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
       <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>
       <tr><td>Crafter</td><td>Gira só nas quatro direções horizontais.</td></tr>
       <tr><td>Fornalhas e âncoras de projetos antigos</td><td>Voltam com a frente para o norte; gire de novo com <kbd>T</kbd>.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<div class="part" id="parte-bugs">Parte 2 · Bugs corrigidos</div>
+
+<section id="bugs">
+  <h2><span class="n">19</span>Bugs corrigidos</h2>
+  <p>Os problemas que apareceram no site depois de uma função estar pronta, em ordem de data (outubro de 2026). Correções feitas durante a criação de uma função, antes de ela chegar ao site, não entram.</p>
+  <div class="tbl"><table class="bugs">
+    <thead><tr><th>Data</th><th>Onde</th><th>O que acontecia</th><th>O que mudou</th></tr></thead>
+    <tbody>
+      <tr><td class="dt">14/10</td><td><b>Botão Medidas</b></td><td data-l="O que acontecia">Desligar o botão Medidas não escondia de verdade as medidas na tela, e as da régua continuavam aparecendo fora da ferramenta.</td><td data-l="O que mudou">O botão passou a desligar todas as medidas.</td></tr>
+      <tr><td class="dt">15/10</td><td><b>Planta da camada</b></td><td data-l="O que acontecia">Em paredes finas, a mesma medida aparecia duas vezes, a de fora e a de dentro.</td><td data-l="O que mudou">Mostra só o lado maior.</td></tr>
+      <tr><td class="dt">15/10</td><td><b>Planta da camada</b></td><td data-l="O que acontecia">As pontas das paredes ficavam sem número, e alguns números ficavam um por cima do outro.</td><td data-l="O que mudou">As pontas voltaram a ter número, e os números não se sobrepõem mais.</td></tr>
+      <tr><td class="dt">15/10</td><td><b>Régua</b></td><td data-l="O que acontecia">A régua só funcionava com o botão Medidas ligado.</td><td data-l="O que mudou">Voltou a funcionar independente do botão (corrigida junto com as setas da Camada).</td></tr>
+      <tr><td class="dt">15/10</td><td><b>Formas</b></td><td data-l="O que acontecia">A prévia da altura das formas sumia quando o ponteiro saía do espaço.</td><td data-l="O que mudou">A prévia fica na tela até a forma ser terminada.</td></tr>
+      <tr><td class="dt">16/10</td><td><b>Exportação para o Bedrock</b></td><td data-l="O que acontecia">Alavanca no chão ou no teto virada para o sul ou o leste saía ligada quando estava desligada, e o funil saía travado. Achado ao conferir a exportação no servidor oficial do Bedrock.</td><td data-l="O que mudou">As duas saem certas, conferidas bloco a bloco no servidor.</td></tr>
+      <tr><td class="dt">17/10</td><td><b>Menu Projeto</b></td><td data-l="O que acontecia">Numa tela baixa, o fim do menu Projeto ficava cortado, sem como chegar nele.</td><td data-l="O que mudou">O menu rola quando não cabe na altura da tela.</td></tr>
+      <tr><td class="dt">17/10</td><td><b>Cores de blocos</b></td><td data-l="O que acontecia">A serra do cortador de pedra, o bambu e os caldeirões de lava e de neve fofa apareciam verdes; o caldeirão com água e a coluna de bolhas, sem a cor da água.</td><td data-l="O que mudou">Cada um com a cor certa (corrigido junto com o cortador de pedra antigo).</td></tr>
+      <tr><td class="dt">17/10</td><td><b>Clique em escadas e alçapões</b></td><td data-l="O que acontecia">Uma das 8 direções de cada escada e 6 dos 16 estados do alçapão não podiam ser selecionados, girados nem receber blocos em cima.</td><td data-l="O que mudou">Todos os lados respondem ao clique.</td></tr>
+      <tr><td class="dt">20/10</td><td><b>Biblioteca</b></td><td data-l="O que acontecia">Uma construção do mundo do Java com um bloco que o editor não conhece dava “Arquivo NBT inválido” e não colava em lugar nenhum; blocos do Bedrock colados num mundo do Java viravam ar sem aviso.</td><td data-l="O que mudou">Cola de novo; entre Java e Bedrock, esses blocos ficam de fora com aviso.</td></tr>
+      <tr><td class="dt">28/10</td><td><b>Sugestões da caixa de comandos</b></td><td data-l="O que acontecia">Ao digitar parte do nome de um bloco (por exemplo, <code>delblock dio</code>), o site não sugeria o bloco para completar com <kbd>Tab</kbd>.</td><td data-l="O que mudou">A caixa sugere comandos e blocos enquanto você digita (Tab, setas ou clique).</td></tr>
+      <tr><td class="dt">28/10</td><td><b>Mundos da Pocket Edition 0.2 a 0.8</b></td><td data-l="O que acontecia">Um mundo editado ficava preso em “Generating world” no jogo 0.5: o jogo procura o nascimento numa coluna com bloco na altura 63 e não para de procurar enquanto não acha.</td><td data-l="O que mudou">Ao exportar, o site põe uma pedra ali quando falta.</td></tr>
+      <tr><td class="dt">28/10</td><td><b>Mapa no modo Biomas</b></td><td data-l="O que acontecia">Os biomas não eram destacados nos chunks no formato antigo.</td><td data-l="O que mudou">A visão geral também lê o bioma desses chunks.</td></tr>
+      <tr><td class="dt">29/10</td><td><b>Mundos grandes</b></td><td data-l="O que acontecia">Um mundo de 3.072 × 3.072 blocos ocupava 3,2 GB de memória, e o navegador mostrava “Array buffer allocation failed”.</td><td data-l="O que mudou">Os chunks ficam guardados comprimidos até serem carregados: o mesmo mundo abre com uns 330 MB.</td></tr>
+      <tr><td class="dt">29/10</td><td><b>Blocos roxos em mundos salvos em versões anteriores</b></td><td data-l="O que acontecia">Num mundo salvo, por exemplo, na 1.18, a grama, as folhas, os troncos e as flores apareciam roxos (desconhecidos), porque o Bedrock mudou o nome desses blocos depois.</td><td data-l="O que mudou">Os nomes antigos são traduzidos para os de hoje (também num .mcstructure antigo).</td></tr>
+      <tr><td class="dt">29/10</td><td><b>Mundo antigo já aberto numa versão nova</b></td><td data-l="O que acontecia">A janela deixava “Manter o formato antigo” marcado mesmo num mundo que já não abre nas versões antigas; mantendo, um bloco mais novo colocado num chunk antigo viraria ar ao exportar.</td><td data-l="O que mudou">O site percebe esse caso, diz a versão e deixa Converter marcado.</td></tr>
+      <tr><td class="dt">29/10</td><td><b>Contagem duplicada no mapa</b></td><td data-l="O que acontecia">Trocar entre a janela de área e o mapa do mundo enquanto a visão geral era desenhada começava outro desenho do zero, e a contagem alternava entre dois números.</td><td data-l="O que mudou">Um desenho só: a contagem continua de onde estava.</td></tr>
     </tbody>
   </table></div>
 </section>
