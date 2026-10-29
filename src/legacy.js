@@ -28,6 +28,19 @@ function legInit() {
     if (c && !legBackBi.has(cellBlock(c))) legBackBi.set(cellBlock(c), q[0]);
   });
   legLightOf = new Int16Array(BLOCKS.length * 2).fill(-1);
+  // flor alta (175): no arquivo, a metade de cima é só o dado 8 (o tipo fica na de baixo; ver legCodeAt). A tabela dá
+  // a metade de cima de cada tipo nos dados 6 a 11, que só existem no editor: de volta para o arquivo, todas são 8.
+  for (var t = 0; t < 6; t++) { var cu = legCells[(175 << 4) | (6 + t)]; if (cu > 0) legBack.set(cu, (175 << 4) | 8); }
+}
+/* Código (número << 4 | dado) do bloco na posição i de um chunk antigo. A metade de cima da flor alta (175 com o dado
+   8 ou mais) não diz o tipo: ele vem da metade de baixo (girassol, lilás, grama alta, samambaia grande, roseira,
+   peônia = 0 a 5), e o código fica 175:6 a 175:11, o de cada tipo na tabela. Sem a de baixo, os 3 bits de baixo. */
+function legCodeAt(raw, i) {
+  var id = raw[i], mb = raw[LEG_OFF.meta + (i >> 1)], meta = i & 1 ? mb >> 4 : mb & 15;
+  if (id !== 175 || meta < 8) return (id << 4) | meta;
+  var t = meta & 7;
+  if (i & 127) { var j = i - 1, mj = raw[LEG_OFF.meta + (j >> 1)], bm = j & 1 ? mj >> 4 : mj & 15; if (raw[j] === 175 && bm < 8) t = bm; }
+  return (175 << 4) | (6 + (t > 5 ? 2 : t));
 }
 /* célula do editor para um código (número << 4 | dados) */
 function legCell(code) {
@@ -72,7 +85,7 @@ function legLoadColumn(raw, a, b, ymin) {
     var eyy = (oy >> 4) + ey, ch = newChunk(a, eyy, b);
     for (var x = 0; x < 16; x++) for (var z = 0; z < 16; z++) for (var y = 0; y < 16; y++) {
       var wy = ey * 16 + y, i = (x << 11) | (z << 7) | wy, id = raw[i]; if (!id) continue;
-      var mb = raw[LEG_OFF.meta + (i >> 1)], meta = i & 1 ? mb >> 4 : mb & 15, v = legCell((id << 4) | meta); if (!v) continue;
+      var v = legCell(legCodeAt(raw, i)); if (!v) continue;
       var pi = ch.map.get(v);
       if (pi === undefined) { pi = ch.pal.length; if (pi === 256) ch.d = Uint16Array.from(ch.d); ch.pal.push(v); ch.map.set(v, pi); }
       ch.d[(y << 8) | (z << 4) | x] = pi; ch.n++;
@@ -129,8 +142,8 @@ function legChunkBytes(orig, ecx, ecz, LR) {
   for (var x = 0; x < 16; x++) for (var z = 0; z < 16; z++) {
     var ex = (ecx << 4) + x, ez = (ecz << 4) + z, top = 0;
     for (var y = 0; y < 128; y++) {
-      var v = gget(ex, y, ez), i = (x << 11) | (z << 7) | y, code, oc = orig && orig.length >= LEG_LEN ? (orig[i] << 4) | (i & 1 ? orig[LEG_OFF.meta + (i >> 1)] >> 4 : orig[LEG_OFF.meta + (i >> 1)] & 15) : 0;
-      code = oc && legCell(oc) === v ? oc : legCode(v); // o que não mudou volta com o código de antes (água parada 9 e corrente 8 viram a mesma água no editor)
+      var v = gget(ex, y, ez), i = (x << 11) | (z << 7) | y, code, hasO = orig && orig.length >= LEG_LEN, ocRaw = hasO ? (orig[i] << 4) | (i & 1 ? orig[LEG_OFF.meta + (i >> 1)] >> 4 : orig[LEG_OFF.meta + (i >> 1)] & 15) : 0, oc = hasO ? legCodeAt(orig, i) : 0;
+      code = oc && legCell(oc) === v ? ocRaw : legCode(v); // o que não mudou volta com o código de antes (água parada 9 e corrente 8 viram a mesma água no editor)
       if (code > 0 && code !== oc && ((wio.old && !legOldTile(code >> 4)) || (wio.legVer === '011' && LEG_011_TILES.indexOf(code >> 4) < 0))) code = -1; // bloco que a versão do jogo não tem
       if (code < 0) { lost++; code = 0; }
       if (code) { out[i] = code >> 4; var m = code & 15, bi = LEG_OFF.meta + (i >> 1); out[bi] |= i & 1 ? m << 4 : m; if (legLight(v) & 15) top = y + 1; }
@@ -256,7 +269,7 @@ function legTops(raw) {
   if (!raw || raw.length < LEG_LEN) return { v: v, h: h, b: b };
   for (var q = 0; q < 256; q++) {
     var x = q & 15, z = q >> 4; b[q] = raw[LEG_OFF.bio + q * 4];
-    for (var y = 127; y >= 0; y--) { var i = (x << 11) | (z << 7) | y; if (!raw[i]) continue; var mb = raw[LEG_OFF.meta + (i >> 1)], c = legCell((raw[i] << 4) | (i & 1 ? mb >> 4 : mb & 15)); if (!c) continue; v[q] = c; h[q] = y; break; }
+    for (var y = 127; y >= 0; y--) { var i = (x << 11) | (z << 7) | y; if (!raw[i]) continue; var c = legCell(legCodeAt(raw, i)); if (!c) continue; v[q] = c; h[q] = y; break; }
   }
   return { v: v, h: h, b: b };
 }
