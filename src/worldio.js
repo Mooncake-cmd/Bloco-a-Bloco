@@ -144,7 +144,7 @@ function ldbManifest(data) {
   return m;
 }
 /* Indexa o banco: para cada chave, onde está o valor mais novo. read(nome) devolve os bytes do arquivo da pasta db/. */
-async function ldbOpen(names, read, prog) {
+async function ldbOpen(names, read, prog, stream) {
   var db = { idx: new Map(), tables: [], cache: new Map(), maxSeq: 0, maxFile: 0 };
   var num = function (n) { var m = /^(\d+)\.(log|ldb|sst)$/.exec(n); return m ? +m[1] : -1; };
   names.forEach(function (n) { var k = num(n) > 0 ? num(n) : (/^MANIFEST-(\d+)$/.exec(n) || [0, 0])[1] | 0; if (k > db.maxFile) db.maxFile = k; });
@@ -176,21 +176,99 @@ async function ldbOpen(names, read, prog) {
     done++;
   }
   for (var li = 0; li < logs.length; li++) {
+    if (stream) { await ldbLogStream(db, await stream(logs[li]), put, function (f) { if (prog) prog(done + f, total); }); done++; continue; }
     ldbLogRecords(await read(logs[li])).forEach(function (rec) {
-      var seq = wioI32(rec, 0) >>> 0, seqHi = wioI32(rec, 4) >>> 0, q = seqHi * 4294967296 + seq, cnt = wioI32(rec, 8) >>> 0, p = 12, v;
-      for (var i = 0; i < cnt && p < rec.length; i++, q++) {
-        var t = rec[p++]; v = wioVar(rec, p); var k = wioStr(rec.subarray(v[1], v[1] + v[0])); p = v[1] + v[0];
-        if (t === 1) { v = wioVar(rec, p); put(k, { f: -1, val: rec.slice(v[1], v[1] + v[0]), q: q, t: 1 }); p = v[1] + v[0]; }
-        else put(k, { f: -1, val: null, q: q, t: 0 });
-      }
+      ldbBatch(rec, put, function (o, l) { return { f: -1, val: rec.slice(o, o + l) }; });
     });
     done++; if (prog) prog(done, total);
   }
   return db;
 }
+/* Um lote do .log: sequência, quantidade e as gravações (1 = valor, 0 = apagada). ref(posição, tamanho) diz onde fica o valor. */
+function ldbBatch(rec, put, ref) {
+  var seq = wioI32(rec, 0) >>> 0, seqHi = wioI32(rec, 4) >>> 0, q = seqHi * 4294967296 + seq, cnt = wioI32(rec, 8) >>> 0, p = 12, v;
+  for (var i = 0; i < cnt && p < rec.length; i++, q++) {
+    var t = rec[p++]; v = wioVar(rec, p); var k = wioStr(rec.subarray(v[1], v[1] + v[0])); p = v[1] + v[0];
+    if (t === 1) { v = wioVar(rec, p); var r = ref(v[1], v[0]); r.q = q; r.t = 1; put(k, r); p = v[1] + v[0]; }
+    else put(k, { f: -1, val: null, q: q, t: 0 });
+  }
+}
+/* .log lido aos poucos, sem montar o arquivo inteiro: cada valor grande fica guardado comprimido de novo e só é
+   descomprimido quando o chunk é carregado (ldbGet). Um mundo com gigabytes de .log (como os chunks gerados para
+   a Pocket Edition 0.11) abre com uma fração da memória. */
+async function ldbLogStream(db, st, put, prog) {
+  var B = 32768, reader = st.getReader(), pend = [], pendN = 0, fpos = 0, jobs = [];
+  var lrec = null, lsz = 0;
+  function finish(rec) {
+    ldbBatch(rec, put, function (o, l) {
+      if (l <= 512) return { f: -1, val: rec.slice(o, o + l) };
+      var r = { f: -3, z: null }; jobs.push([r, rec.slice(o, o + l)]); return r;
+    });
+  }
+  function block(blk) { // um bloco de 32 KB do .log
+    var p = 0;
+    while (p + 7 <= blk.length) {
+      var ln = blk[p + 4] | blk[p + 5] << 8, t = blk[p + 6], pay = blk.subarray(p + 7, p + 7 + ln); p += 7 + ln;
+      if (t === 0 && ln === 0) return false;
+      if (t === 1) finish(pay);
+      else if (t === 2) { lrec = [pay]; lsz = ln; }
+      else if ((t === 3 || t === 4) && lrec) { lrec.push(pay); lsz += ln; if (t === 4) { finish(wioCat(lrec)); lrec = null; } }
+    }
+    return true;
+  }
+  var busy = [];
+  async function flush() { // até um lote por worker em andamento ao mesmo tempo
+    var js = jobs; jobs = []; if (!js.length) return;
+    busy.push(ldbDeflateMany(js.map(function (j) { return j[1]; })).then(function (zs) { js.forEach(function (j, i) { j[0].z = zs[i]; }); }));
+    if (busy.length >= ldbPool().n) await busy.shift();
+  }
+  var go = true;
+  for (;;) {
+    var rd = await reader.read();
+    if (rd.done) break;
+    pend.push(rd.value); pendN += rd.value.length;
+    if (pendN < B) continue;
+    var all = pend.length === 1 ? pend[0] : wioCat(pend), off = 0;
+    for (; off + B <= all.length; off += B) { if (go) go = block(all.slice(off, off + B)); fpos += B; }
+    pend = off < all.length ? [all.slice(off)] : []; pendN = all.length - off;
+    if (jobs.length >= 32) await flush();
+    if (prog) prog(Math.min(0.99, fpos / (fpos + 64 * B)));
+  }
+  if (pendN && go) block(pend.length === 1 ? pend[0] : wioCat(pend));
+  await flush(); await Promise.all(busy);
+}
+async function ldbDeflate(u) {
+  return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+}
+/* Workers para comprimir em paralelo (a compressão é o que mais demora ao abrir um .log grande); sem worker, comprime aqui mesmo */
+var ldbPoolW = null;
+function ldbPool() {
+  if (ldbPoolW) return ldbPoolW;
+  var n = Math.max(1, Math.min(4, ((typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 2) - 1)), ws = [], url = null;
+  try {
+    url = URL.createObjectURL(new Blob(['onmessage = async function (e) { var z = await Promise.all(e.data.v.map(function (u) { return new Response(new Blob([u]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer().then(function (b) { return new Uint8Array(b); }); })); postMessage({ id: e.data.id, z: z }, z.map(function (u) { return u.buffer; })); };'], { type: 'text/javascript' }));
+    for (var i = 0; i < n; i++) ws.push(new Worker(url));
+  } catch (e) { ws = []; }
+  ldbPoolW = { n: ws.length || 2, ws: ws, next: 0, id: 0, wait: new Map() };
+  ws.forEach(function (w) {
+    w.onmessage = function (e) { var f = ldbPoolW.wait.get(e.data.id); ldbPoolW.wait.delete(e.data.id); f[0](e.data.z); };
+    w.onerror = function () { ldbPoolW.ws = []; ldbPoolW.wait.forEach(function (f) { f[1](); }); ldbPoolW.wait.clear(); };
+  });
+  return ldbPoolW;
+}
+async function ldbDeflateMany(us) {
+  var P = ldbPool();
+  if (P.ws.length) {
+    try {
+      return await new Promise(function (ok, no) { var id = ++P.id, w = P.ws[P.next++ % P.ws.length]; P.wait.set(id, [ok, no]); w.postMessage({ id: id, v: us }); });
+    } catch (e) { return Promise.all(us.map(ldbDeflate)); } // o worker falhou: comprime aqui
+  }
+  return Promise.all(us.map(ldbDeflate));
+}
 async function ldbGet(db, k) {
   var r = db.idx.get(k); if (!r || r.t !== 1) return null;
-  if (r.f < 0) return r.val;
+  if (r.f === -1) return r.val;
+  if (r.f === -3) return ldbInflate(r.z, 4); // valor de .log guardado comprimido (ldbLogStream)
   var ck = r.f + ':' + r.o, blk = db.cache.get(ck);
   if (blk) { db.cache.delete(ck); db.cache.set(ck, blk); }
   else {
@@ -360,7 +438,7 @@ async function wioOpenFile(file, prog) {
   if (f.java) return jwOpen(f, prog);
   if (f.old) return legOldOpen(f);
   var dbNames = zip.paths.filter(function (p) { return p.indexOf(pre + 'db/') === 0 && p.indexOf('/', pre.length + 3) < 0; }).map(function (p) { return p.slice(pre.length + 3); });
-  var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog);
+  var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog, zip.stream && function (n) { return zip.stream(pre + 'db/' + n); });
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
     patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0 };
   try { var nm = new TextDecoder().decode(await zip.read(pre + 'levelname.txt')).trim(); if (nm) w.name = nm; } catch (e) {}

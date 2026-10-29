@@ -15,7 +15,7 @@ function unzip(buf) {
   return out;
 }
 const root = path.join(__dirname, '..');
-const ctx = { console, TextDecoder, TextEncoder, Blob, Response, DecompressionStream, Uint8Array, DataView, Map, Set, Math, String, Number, JSON, Array, Object, Promise };
+const ctx = { console, TextDecoder, TextEncoder, Blob, Response, DecompressionStream, CompressionStream, ReadableStream, Uint8Array, DataView, Map, Set, Math, String, Number, JSON, Array, Object, Promise };
 vm.createContext(ctx);
 ctx.MCExport = require(path.join(root, 'src/exporters.js'));
 vm.runInContext(fs.readFileSync(path.join(root, 'src/import.js'), 'utf8'), ctx);
@@ -51,6 +51,16 @@ vm.runInContext(fs.readFileSync(path.join(root, 'src/worldio.js'), 'utf8'), ctx)
   check(v1 && v1.length === big.length && v1.every((x, i) => x === big[i]), 'registro: valor de 70 KB (mais de um bloco de 32 KB) lido de volta igual');
   check(v2 === null, 'registro: chave apagada some');
   check((await ctx.ldbGet(db2, ctx.wioKey(1, 1, 0, 0x2f, 3))) !== null, 'registro: as outras chaves continuam');
+  // .log lido aos poucos (mundos com .log enormes): pedaços de tamanho qualquer, os mesmos valores
+  const stream = async n => new ReadableStream({ start(c) { const u = files['db/' + n]; for (let i = 0; i < u.length; i += 5000) c.enqueue(u.slice(i, i + 5000)); c.close(); } });
+  const db3 = await ctx.ldbOpen(names.concat(['000099.log']), read, null, stream);
+  let eq = db3.idx.size === db2.idx.size, big3 = 0;
+  for (const [k, r] of db2.idx) {
+    const a = await ctx.ldbGet(db2, k), b = await ctx.ldbGet(db3, k);
+    if ((a === null) !== (b === null) || (a && (a.length !== b.length || !a.every((x, i) => x === b[i])))) { eq = false; break; }
+    if (db3.idx.get(k).f === -3) big3++;
+  }
+  check(eq && big3 > 0, '.log lido aos poucos: as mesmas chaves e valores, os grandes guardados comprimidos (' + big3 + ')');
   // mundo novo: level.dat do modelo com nome, gerador plano e ponto de nascimento trocados; MANIFEST legível
   ctx.atob = s => Buffer.from(s, 'base64').toString('latin1');
   ctx.NW_LEVEL = fs.readFileSync(path.join(root, 'data/leveldat-plano.dat')).toString('base64');

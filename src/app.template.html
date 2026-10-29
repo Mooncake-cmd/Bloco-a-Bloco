@@ -1845,6 +1845,14 @@ async function openZip(blob) {
     info: function (path) { return ents.get(path); },
     // os bytes comprimidos como estão (para copiar a entrada para outro .zip sem descomprimir)
     rawSlice: async function (path) { var en = ents.get(path), st = await dataStart(en); return blob.slice(st, st + en.c); },
+    // os bytes descomprimidos aos poucos (entradas grandes, sem montar tudo na memória)
+    stream: async function (path) {
+      var en = ents.get(path); if (!en) throw new Error('Arquivo não encontrado no .zip: ' + path);
+      var st = await dataStart(en), raw = blob.slice(st, st + en.c);
+      if (en.m === 0) return raw.stream();
+      if (en.m === 8) return raw.stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      throw new Error('Compressão de ZIP não suportada.');
+    },
     read: async function (path) {
       var en = ents.get(path);
       if (!en) throw new Error('Arquivo não encontrado no .zip: ' + path);
