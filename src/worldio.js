@@ -442,7 +442,7 @@ async function wioOpenFile(file, prog) {
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
     patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0 };
   try { var nm = new TextDecoder().decode(await zip.read(pre + 'levelname.txt')).trim(); if (nm) w.name = nm; } catch (e) {}
-  try { var ld = await zip.read(pre + 'level.dat'), lo = nbtRead(ld.subarray(8), true); if (lo.LevelName) w.name = lo.LevelName; w.spawn = [lo.SpawnX | 0, lo.SpawnZ | 0]; } catch (e) {}
+  try { var ld = await zip.read(pre + 'level.dat'), lo = nbtRead(ld.subarray(8), true); if (lo.LevelName) w.name = lo.LevelName; w.spawn = [lo.SpawnX | 0, lo.SpawnZ | 0]; if (Array.isArray(lo.lastOpenedWithVersion)) w.lastVer = lo.lastOpenedWithVersion.slice(0, 3).join('.'); } catch (e) {}
   // chunks de cada dimensão: os que existem (chave de versão) e os sub-chunks guardados
   db.idx.forEach(function (r, k) {
     if (r.t !== 1) return;
@@ -457,6 +457,8 @@ async function wioOpenFile(file, prog) {
     var c = w.dims[d].get(ck); if (!c) { c = { x: x, z: z, ok: false, subs: [] }; w.dims[d].set(ck, c); }
     if (y === null) { c.ok = true; if (tg === 0x30) { c.leg = true; w.leg = (w.leg || 0) + 1; } } else c.subs.push(y > 127 ? y - 256 : y);
   });
+  // mundo antigo que já foi aberto numa versão nova do jogo: parte dos chunks já está no formato novo
+  if (w.leg) { w.legNew = 0; w.dims.forEach(function (m) { m.forEach(function (c) { if (c.ok && !c.leg) w.legNew++; }); }); }
   try {
     var pl = await ldbGet(db, '~local_player');
     if (pl) { var po = nbtRead(pl, true); if (po.Pos) w.player = { dim: po.DimensionId | 0, x: Math.floor(po.Pos[0]), z: Math.floor(po.Pos[2]) }; }
@@ -779,7 +781,7 @@ async function wioOpen(file) {
     if (!w.dims.some(function (m) { return m.size; })) throw new Error(w.java ? 'Este mundo do Java não tem chunks (pasta region vazia).' : 'Este mundo não tem chunks no formato atual do Bedrock.');
     // outro mundo que estava aberto é trocado por este (o que não foi exportado dele se perde)
     if (wio && (wio.patches.size || wio.edited.size)) setTimeout(function () { toast('O mundo anterior foi fechado sem exportar.', 6000); }, 4000);
-    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(!!w.old); w.legVer = legChooseMode.ver || ''; } // mundo no formato antigo: manter ou converter (src/legacy.js)
+    if (w.leg) { busyEnd(); w.legKeep = await legChooseMode(!!w.old, w.legNew ? { n: w.legNew, ver: w.lastVer } : null); w.legVer = legChooseMode.ver || ''; } // mundo no formato antigo: manter ou converter (src/legacy.js)
     wio = w;
     await wioSaveSession(true);
     busyEnd();

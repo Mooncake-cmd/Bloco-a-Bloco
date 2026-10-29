@@ -158,13 +158,17 @@ function legEntity(ent, wx, wy, wz) {
   return wioEntTags(o, wx, wy, wz);
 }
 /* Escolha do modo, ao abrir um mundo antigo */
-function legChooseMode(old) {
+/* mix: o mundo já foi aberto numa versão nova do jogo ({ n: chunks já no formato novo, ver: lastOpenedWithVersion do
+   level.dat }). Ele não abre mais nas versões antigas: Converter já vem marcado, e manter faria os blocos novos dos chunks
+   antigos editados virarem ar. */
+function legChooseMode(old, mix) {
   return new Promise(function (res) {
-    openDialog('<h3>Mundo no formato antigo</h3><p>Este mundo foi gravado por uma versão antiga do Minecraft Bedrock (Pocket Edition ' + (old ? '0.2 a 0.8, com o mundo de 256 × 256 blocos' : 'até a 1.0') + '): os blocos vão até a altura 127 e são guardados por número. O site lê o mundo do jeito que ele é. Ao exportar:</p>' +
-      '<label class="check"><input type="radio" name="legM" value="keep" checked><span><b>Manter o formato antigo</b> (para jogar na versão antiga): o editor tem a altura 0 a 127 e os blocos da época; um bloco que não existia vira ar ao exportar (o aviso conta quantos). A luz dos chunks editados é calculada de novo.</span></label>' +
-      '<label class="check"><input type="radio" name="legM" value="conv"><span><b>Converter para o formato atual</b> (para jogar na versão de hoje): o editor tem a altura 0 a 255 e todos os blocos; os chunks editados saem num formato que o jogo atual atualiza sozinho, como faz com os outros, e ao abrir ele cria a parte de baixo do mundo (-64 a 0). O mundo deixa de abrir nas versões antigas.</span></label>' +
-      (old ? '' : '<label class="nberow"><span>Versão do jogo em que você vai jogar<br><small class="mixl">mantendo o formato antigo, os blocos e itens que ela não tem viram ar</small></span><select id="legVer"><option value="011">0.9 a 0.11</option><option value="10">0.12 a 1.0</option></select></label>') +
+    openDialog('<h3>Mundo no formato antigo</h3>' + (mix ? '<p><b>Este mundo já foi aberto numa versão mais nova do jogo' + (mix.ver && !/^0(\.0)*$/.test(mix.ver) ? ' (' + esc(mix.ver) + ')' : '') + ':</b> ' + mix.n.toLocaleString('pt-BR') + ' chunks já estão no formato novo, e ele não abre mais nas versões antigas. Os outros chunks, os que ainda não foram visitados nessa versão, continuam no formato antigo. Por isso “Converter” já vem marcado: mantendo o formato antigo, um bloco mais novo (deepslate, cobre, cerejeira...) colocado num desses chunks viraria ar ao exportar.</p><p>Ao exportar:</p>' : '<p>Este mundo foi gravado por uma versão antiga do Minecraft Bedrock (Pocket Edition ' + (old ? '0.2 a 0.8, com o mundo de 256 × 256 blocos' : 'até a 1.0') + '): os blocos vão até a altura 127 e são guardados por número. O site lê o mundo do jeito que ele é. Ao exportar:</p>') +
+      '<label class="check"><input type="radio" name="legM" value="keep"' + (mix ? '' : ' checked') + '><span><b>Manter o formato antigo</b> (para jogar na versão antiga): o editor tem a altura 0 a 127 e os blocos da época; um bloco que não existia vira ar ao exportar (o aviso conta quantos). A luz dos chunks editados é calculada de novo.</span></label>' +
+      '<label class="check"><input type="radio" name="legM" value="conv"' + (mix ? ' checked' : '') + '><span><b>Converter para o formato atual</b> (para jogar na versão de hoje): o editor tem a altura 0 a 255 e todos os blocos; os chunks editados saem num formato que o jogo atual atualiza sozinho, como faz com os outros, e ao abrir ele cria a parte de baixo do mundo (-64 a 0). O mundo deixa de abrir nas versões antigas.</span></label>' +
+      (old ? '' : '<label class="nberow" id="legVerRow"' + (mix ? ' hidden' : '') + '><span>Versão do jogo em que você vai jogar<br><small class="mixl">mantendo o formato antigo, os blocos e itens que ela não tem viram ar</small></span><select id="legVer"><option value="011">0.9 a 0.11</option><option value="10">0.12 a 1.0</option></select></label>') +
       '<div class="row"><button class="btn primary" id="legOk">Continuar</button></div>', function () {
+      document.querySelectorAll('[name=legM]').forEach(function (r) { r.onchange = function () { if ($('legVerRow')) $('legVerRow').hidden = r.value === 'conv' && r.checked; }; });
       $('legOk').onclick = function () { var v = (document.querySelector('[name=legM]:checked') || {}).value; legChooseMode.ver = $('legVer') ? $('legVer').value : ''; closeDialog(); res(v !== 'conv'); };
     });
   });
