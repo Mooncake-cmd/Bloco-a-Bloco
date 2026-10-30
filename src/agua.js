@@ -2,13 +2,16 @@
 /* Cada pincelada (ao clicar e a cada 160 ms com o botão apertado, ligando o ponto anterior ao atual, para um rio sair
    contínuo) olha as colunas em volta do ponto apontado e faz, nesta ordem (as etapas 1, 2 e 4 podem ser desligadas):
      1. Escultura do leito: cada coluna a uma distância d do centro tem t = d / (r · (1 + 0,22 · ruído(x, z))) (o ruído
-        deixa a borda orgânica, sem círculo perfeito). Dentro da água (t < 1), o fundo fica a profundidade
-        P(t) = D · perfil(t) · (1 + 0,18 · ruído) abaixo do nível N da água, com D e o perfil do tipo:
-          rio      D = máx(2; 0,45 r)  perfil 1 − t²                         (U arredondado)
-          lago     D = máx(2; 0,6 r)   perfil (1 − t^2,5)^0,7                (bacia de fundo largo)
-          oceano   D = máx(4; 1,1 r)   plataforma até t = 0,55, depois talude (1 − (t − 0,55)/0,45)^1,6
+        deixa a borda orgânica, sem círculo perfeito). Dentro da água (t < 1), a distância até a borda é e = r (1 − t),
+        e o fundo fica a P = mín(Pmáx; a + s · e) · (1 + 0,15 · ruído) abaixo do nível da água: um barranco que desce
+        s blocos por bloco até um fundo plano. Os números foram medidos em mundos gerados pelo servidor oficial 1.26.52
+        (scripts/medir-agua.js: a profundidade média pela distância até a terra, em milhares de colunas):
+          rio            a 1,6   s 1,1   Pmáx 10    (rio: 2,7 4,2 5,2 6,4 7,3 8,4 9,4 9,8 10,0 10,4...)
+          lago           a 1,2   s 1,0   Pmáx 6     (o jogo não tem lago: as lagoas da taiga e da planície)
+          oceano         a 1,4   s 1,3   Pmáx 15    (oceano: 2,4 4,0 5,2 6,2 9,0 10,5 11,8 12,7 13,8 14,9 e plano)
+          oceano fundo   a 1,4   s 1,3   Pmáx 24    (oceanos fundos: 23 a 26)
         e tudo o que é terreno ou vegetação acima do fundo sai (até 2r + 8 acima do nível). Na faixa da margem
-        (1 ≤ t < 1,4), o terreno pode subir até 1 + 0,9 r · (t − 1)/0,4 acima da água: um barranco inclinado, em vez de
+        (1 ≤ t < 1,4), o terreno pode subir até 0,9 r · (t − 1)/0,4 acima da água (na beira, no nível dela, onde a cana nasce): um barranco inclinado, em vez de
         um paredão. Construções (o que não é terreno nem planta) não são cavadas: a água as contorna.
      2. Inundação: as células vazias do fundo até o nível viram água parada (fonte). Onde a água encostaria num vazio
         de fora (um buraco, uma caverna, o fim de um barranco), o pincel fecha com um bloco da margem: a água não vaza.
@@ -25,13 +28,11 @@
    abaixo do chão). */
 var hyd = { r: 6, kind: 'lake', bio: -1, lvl: null, carve: true, fill: true, deco: true };
 try { var hyd0 = JSON.parse(localStorage.getItem('bloco-a-bloco-agua') || 'null'); if (hyd0) hyd = Object.assign(hyd, hyd0); } catch (e) {}
-var HYD_KIND_PT = { river: 'Rio', lake: 'Lago', ocean: 'Oceano' };
-function hydDepthMax(kind, r) { return kind === 'river' ? Math.max(2, Math.round(r * 0.45)) : kind === 'lake' ? Math.max(2, Math.round(r * 0.6)) : Math.max(4, Math.round(r * 1.1)); }
-function hydProfile(kind, t) {
-  if (kind === 'river') return 1 - t * t;
-  if (kind === 'lake') return Math.pow(1 - Math.pow(t, 2.5), 0.7);
-  return t < 0.55 ? 1 : Math.pow(1 - (t - 0.55) / 0.45, 1.6);
-}
+var HYD_KIND_PT = { river: 'Rio', lake: 'Lago', ocean: 'Oceano', deep: 'Oceano fundo' };
+var HYD_BED = { river: [1.6, 1.1, 10], lake: [1.2, 1.0, 6], ocean: [1.4, 1.3, 15], deep: [1.4, 1.3, 24] }; // a, s, Pmáx
+function hydSea() { return hyd.kind === 'ocean' || hyd.kind === 'deep'; }
+/* Profundidade a e blocos da borda */
+function hydDepth(kind, e) { var B = HYD_BED[kind] || HYD_BED.lake; return Math.min(B[2], B[0] + B[1] * e); }
 /* Ruído de valor 2D (duas oitavas, -1 a 1): grade com sorteio por posição e interpolação suave */
 function hydHash(x, z, s) { var h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263) ^ Math.imul(s | 0, 1442695041); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 function hydVal(x, z, s, sc) {
@@ -89,7 +90,7 @@ var HYD_RING = [[6, 0], [4, 4], [0, 6], [-4, 4], [-6, 0], [-4, -4], [0, -6], [4,
 /* Pesos das classes na coluna: centro (peso 3) e 8 pontos a 6 blocos (peso 1 cada) */
 function hydMix(x, z, st) {
   var k = x + ',' + z, m = st.mix.get(k); if (m) return m;
-  var sea = hyd.kind === 'ocean', w = {}, add = function (id, p) { var c = hydClassOf(id, sea); w[c] = (w[c] || 0) + p; };
+  var sea = hydSea(), w = {}, add = function (id, p) { var c = hydClassOf(id, sea); w[c] = (w[c] || 0) + p; };
   if (hyd.bio >= 0) add(hyd.bio, 1);
   else {
     var b0 = bioAt(x, z); add(b0 < 0 ? 1 : b0, 3);
@@ -103,73 +104,81 @@ function hydPickClass(m) { var r = Math.random(), a = 0; for (var i = 0; i < m.l
 
 /* ---------- Regras de decoração (editáveis) ---------- */
 /* Uma regra por linha: "água classe lugar = bloco %, bloco %". água: doce (rio, lago) ou mar (oceano). Lugares:
-   margem (terreno exposto na beira, do nível da água para cima), fundo (terreno debaixo da água), plantas (no fundo:
-   algas, algas-marinhas, corais, pepinos-do-mar), recife (montinhos de 1 a 3 blocos de coral no fundo), superficie
-   (vitória-régia), borda (plantas no chão da margem; a cana só nasce encostada na água) e gelo (a água da superfície
-   congela). */
+   margem (o chão da beira, do nível da água até 2 acima), fundo (o chão debaixo da água), plantas (no fundo: algas,
+   algas-marinhas, corais, pepinos-do-mar), recife (formações de coral vivo que começam no fundo: cogumelo, árvore e
+   garra, como no jogo, com corais, leques e pepinos-do-mar em volta), crosta (manchas de coral morto e pedra no fundo),
+   superficie (vitória-régia, em manchas), borda (plantas no chão da margem; a cana só nasce encostada na água) e gelo
+   (a água da superfície congela; abaixo de 100%, em manchas). A cana só nasce no chão da margem que fica no nível da
+   água (como no jogo), então a chance na regra é maior que a medida: no deserto, 14% dá os 6,5% medidos. O padrão saiu de mundos gerados pelo servidor oficial
+   1.26.52 (scripts/medir-agua.js): a fração das colunas de cada bioma com cada bloco. Exemplos medidos: no rio, o fundo
+   é cascalho 61%, terra 20%, areia 14%, e 14% das colunas têm alga-marinha (42% delas alta); no pântano, 3,2% da
+   superfície tem vitória-régia; no deserto, 6,5% da margem tem cana; no oceano quente, 24% das colunas têm bloco de
+   coral (2,6 em média, 25% morto). Onde o jogo não tem o que medir (lago, selva, savana, mesa, cogumelos), vale o do
+   bioma mais parecido. */
 var HYD_RULES_DEF = [
   '# água classe lugar = bloco %, bloco %   (o resto da chance deixa o bloco como está)',
-  'doce temperado margem = sand 35, gravel 20, clay 15, dirt 20',
-  'doce temperado fundo = sand 40, gravel 35, clay 20',
-  'doce temperado plantas = seagrass 22, tall_seagrass 6, kelp 3',
-  'doce temperado superficie = lily_pad 3',
-  'doce temperado borda = sugar_cane 14, short_grass 18, tall_grass 5',
-  'doce frio margem = gravel 45, sand 25, coarse_dirt 15',
-  'doce frio fundo = gravel 60, sand 20, clay 20',
-  'doce frio plantas = seagrass 14',
-  'doce frio borda = fern 16, sugar_cane 4, large_fern 3',
-  'doce gelado margem = gravel 40, sand 25, snow_block 20',
-  'doce gelado fundo = gravel 70, clay 30',
-  'doce gelado gelo = ice 85',
-  'doce gelado borda = snow 55',
-  'doce pantano margem = clay 45, mud 35, dirt 20',
-  'doce pantano fundo = mud 50, clay 40, dirt 10',
-  'doce pantano plantas = seagrass 30, tall_seagrass 8',
-  'doce pantano superficie = lily_pad 22',
-  'doce pantano borda = sugar_cane 20, short_grass 12, blue_orchid 3',
-  'doce mangue margem = mud 70, muddy_mangrove_roots 12, clay 15',
-  'doce mangue fundo = mud 85, clay 15',
-  'doce mangue plantas = seagrass 25',
-  'doce mangue superficie = lily_pad 6',
-  'doce mangue borda = short_grass 12, sugar_cane 6',
-  'doce selva margem = clay 25, sand 30, dirt 20, moss_block 15',
-  'doce selva fundo = sand 40, clay 40, gravel 20',
-  'doce selva plantas = seagrass 30, tall_seagrass 8, kelp 5',
-  'doce selva superficie = lily_pad 10',
-  'doce selva borda = sugar_cane 18, fern 14, large_fern 4',
-  'doce deserto margem = sand 70, sandstone 12, clay 15',
-  'doce deserto fundo = sand 60, clay 25, gravel 15',
-  'doce deserto borda = sugar_cane 16, dead_bush 6',
-  'doce mesa margem = red_sand 60, clay 20, orange_terracotta 15',
-  'doce mesa fundo = red_sand 50, clay 30, gravel 20',
-  'doce mesa borda = sugar_cane 10, dead_bush 8',
-  'doce savana margem = sand 40, coarse_dirt 20, clay 15, dirt 20',
-  'doce savana fundo = sand 40, gravel 30, clay 30',
-  'doce savana borda = sugar_cane 10, short_grass 20, tall_grass 6',
-  'doce cogumelo margem = mycelium 45, clay 25, dirt 25',
-  'doce cogumelo fundo = clay 50, gravel 50',
-  'doce cogumelo borda = red_mushroom 6, brown_mushroom 6',
-  'mar temperado margem = sand 80, gravel 15',
-  'mar temperado fundo = gravel 45, sand 35, clay 15',
-  'mar temperado plantas = seagrass 26, tall_seagrass 8, kelp 16',
-  'mar morno margem = sand 90, gravel 8',
-  'mar morno fundo = sand 80, gravel 15',
-  'mar morno plantas = seagrass 38, tall_seagrass 10, sea_pickle 2',
-  'mar quente margem = sand 90, sandstone 8',
-  'mar quente fundo = sand 85',
-  'mar quente recife = brain_coral_block 3, tube_coral_block 3, bubble_coral_block 3, fire_coral_block 3, horn_coral_block 3',
-  'mar quente plantas = seagrass 20, brain_coral 3, tube_coral 3, bubble_coral 3, fire_coral 3, horn_coral 3, brain_coral_fan 2, tube_coral_fan 2, bubble_coral_fan 2, fire_coral_fan 2, horn_coral_fan 2, sea_pickle 4',
-  'mar frio margem = gravel 50, sand 45',
-  'mar frio fundo = gravel 70, sand 20, clay 10',
-  'mar frio plantas = seagrass 18, kelp 22',
-  'mar gelado margem = gravel 50, sand 30, snow_block 15',
-  'mar gelado fundo = gravel 80, clay 20',
-  'mar gelado plantas = seagrass 8',
-  'mar gelado gelo = ice 70, packed_ice 15'
+  '# medido no servidor oficial 1.26.52 (scripts/medir-agua.js); selva, savana, mesa e cogumelos seguem o mais parecido',
+  'doce temperado margem = sand 18',
+  'doce temperado fundo = gravel 61, dirt 20, sand 14, clay 1',
+  'doce temperado plantas = seagrass 8, tall_seagrass 6',
+  'doce temperado borda = short_grass 4.4, sugar_cane 1.5, fern 1.5',
+  'doce frio margem = gravel 20, sand 6',
+  'doce frio fundo = dirt 42, sand 27, gravel 24, clay 6',
+  'doce frio plantas = seagrass 2, tall_seagrass 1',
+  'doce frio borda = short_grass 1.4, sugar_cane 1.5',
+  'doce gelado fundo = dirt 46, sand 26, stone 17, gravel 5, clay 3',
+  'doce gelado plantas = seagrass 11, tall_seagrass 5',
+  'doce gelado gelo = ice 100',
+  'doce gelado borda = snow 15',
+  'doce pantano fundo = dirt 75, clay 5, gravel 4, mud 1',
+  'doce pantano plantas = seagrass 6, tall_seagrass 8',
+  'doce pantano superficie = lily_pad 3.2',
+  'doce pantano borda = short_grass 7, firefly_bush 1.5, sugar_cane 1',
+  'doce mangue margem = mud 95',
+  'doce mangue fundo = mud 66, dirt 11, clay 3',
+  'doce mangue plantas = seagrass 8, tall_seagrass 10',
+  'doce mangue superficie = lily_pad 3.4',
+  'doce mangue borda = short_grass 2',
+  'doce selva margem = sand 18',
+  'doce selva fundo = gravel 61, dirt 20, sand 14, clay 1',
+  'doce selva plantas = seagrass 8, tall_seagrass 6',
+  'doce selva borda = short_grass 4.4, fern 3, sugar_cane 1.5',
+  'doce deserto margem = sand 90, sandstone 10',
+  'doce deserto fundo = sand 62, gravel 33',
+  'doce deserto plantas = seagrass 4, tall_seagrass 2',
+  'doce deserto borda = sugar_cane 14, tall_dry_grass 1',
+  'doce mesa margem = red_sand 90',
+  'doce mesa fundo = red_sand 62, gravel 33',
+  'doce mesa plantas = seagrass 4, tall_seagrass 2',
+  'doce mesa borda = sugar_cane 1.4, dead_bush 1',
+  'doce savana margem = sand 18',
+  'doce savana fundo = gravel 61, dirt 20, sand 14, clay 1',
+  'doce savana plantas = seagrass 8, tall_seagrass 6',
+  'doce savana borda = short_grass 6, sugar_cane 1.5',
+  'doce cogumelo fundo = gravel 61, dirt 20, sand 14, clay 1',
+  'doce cogumelo plantas = seagrass 8, tall_seagrass 6',
+  'mar temperado margem = sand 93, sandstone 5',
+  'mar temperado fundo = gravel 88, dirt 4, sand 3',
+  'mar temperado plantas = seagrass 10, tall_seagrass 4, kelp 5',
+  'mar morno margem = sand 93, sandstone 5',
+  'mar morno fundo = sand 94',
+  'mar morno plantas = seagrass 16, tall_seagrass 7, kelp 5',
+  'mar quente margem = sand 93, sandstone 5',
+  'mar quente fundo = sand 85, gravel 11',
+  'mar quente plantas = seagrass 13, tall_seagrass 5, sea_pickle 0.5, brain_coral 0.4, tube_coral 0.4, bubble_coral 0.4, fire_coral 0.4, horn_coral 0.4, brain_coral_fan 0.4, tube_coral_fan 0.4, bubble_coral_fan 0.4, fire_coral_fan 0.4, horn_coral_fan 0.4',
+  'mar quente recife = brain_coral_block 0.65, tube_coral_block 0.65, bubble_coral_block 0.65, fire_coral_block 0.65, horn_coral_block 0.65',
+  'mar quente crosta = dead_brain_coral_block 0.25, dead_tube_coral_block 0.25, dead_bubble_coral_block 0.25, dead_fire_coral_block 0.25, dead_horn_coral_block 0.25',
+  'mar frio margem = sand 70, gravel 25',
+  'mar frio fundo = gravel 91, dirt 4, sand 3',
+  'mar frio plantas = seagrass 7, tall_seagrass 3, kelp 5',
+  'mar gelado margem = gravel 25',
+  'mar gelado fundo = stone 74, diorite 6, andesite 5, gravel 3, granite 2',
+  'mar gelado plantas = seagrass 0.3, tall_seagrass 0.2',
+  'mar gelado gelo = ice 35'
 ].join('\n');
-var HYD_SLOTS = { margem: 1, fundo: 1, plantas: 1, recife: 1, superficie: 1, borda: 1, gelo: 1 };
+var HYD_SLOTS = { margem: 1, fundo: 1, plantas: 1, recife: 1, crosta: 1, superficie: 1, borda: 1, gelo: 1 };
 var hydRulesTxt = HYD_RULES_DEF;
-try { var hr0 = localStorage.getItem('bloco-a-bloco-agua-regras'); if (hr0) hydRulesTxt = hr0; } catch (e) {}
+try { var hr0 = localStorage.getItem('bloco-a-bloco-agua-regras2'); if (hr0) hydRulesTxt = hr0; } catch (e) {}
 /* Texto → { doce: { classe: { lugar: [[índice do bloco, chance 0..1], ...] } }, mar: {...} } e as linhas com erro */
 function hydParse(txt) {
   var R = { doce: {}, mar: {} }, bad = [];
@@ -192,20 +201,20 @@ var hydRules = null;
 function hydRulesGet() { if (!hydRules) hydRules = hydParse(hydRulesTxt).rules; return hydRules; }
 /* Sorteia um bloco do lugar (ou -1: fica como está) */
 function hydPick(cls, slot) {
-  var R = hydRulesGet()[hyd.kind === 'ocean' ? 'mar' : 'doce'], L = R[cls] && R[cls][slot]; if (!L) return -1;
+  var R = hydRulesGet()[hydSea() ? 'mar' : 'doce'], L = R[cls] && R[cls][slot]; if (!L) return -1;
   var r = Math.random(), a = 0; for (var i = 0; i < L.length; i++) { a += L[i][1]; if (r < a) return L[i][0]; } return -1;
 }
 
 /* ---------- Plantas: cada uma do jeito que o jogo a põe ---------- */
 function hydSetIf(x, y, z, cell, st, need) { // need: o que deve estar ali (0 vazio, 'w' água)
-  if (!inB(x, y, z) || y > layerMax()) return false;
+  if (!cell || !inB(x, y, z) || y > layerMax()) return false; // !cell: nome que o site não conhece (não apaga nada)
   if (need === 'w' ? !hydIsWater(x, y, z) : gget(x, y, z)) return false;
   editSet(x, y, z, cell); st.deco++; return true;
 }
 function hydWaterPlant(bi, x, y, z, room, st) { // y: a primeira água acima do fundo; room: quantas células de água acima
   var j = BLOCKS[bi].java;
-  if (j === 'kelp') { // coluna de alga: corpo (kelp_plant) e a ponta (kelp), de 1 até a superfície
-    var h = 1 + Math.floor(Math.random() * Math.max(1, room - 1)); if (room < 2) h = 1;
+  if (j === 'kelp') { // coluna de alga: corpo (kelp_plant) e a ponta (kelp); no jogo, a altura média é 58% da profundidade
+    var h = Math.max(1, Math.min(room - 1, Math.round(room * (0.2 + 0.75 * Math.random())))); if (room < 2) h = 1;
     for (var k = 0; k < h - 1; k++) hydSetIf(x, y + k, z, hydCell('kelp_plant'), st, 'w');
     hydSetIf(x, y + h - 1, z, hydCell('kelp[age=' + Math.floor(Math.random() * 25) + ']'), st, 'w'); return;
   }
@@ -215,12 +224,66 @@ function hydWaterPlant(bi, x, y, z, room, st) { // y: a primeira água acima do 
 }
 function hydLandPlant(bi, x, y, z, st, wet) { // y: o ar acima do chão da margem
   var b = BLOCKS[bi], j = b.java;
-  if (j === 'sugar_cane') { if (!wet) return; var h = 1 + Math.floor(Math.random() * 3); for (var k = 0; k < h; k++) if (!hydSetIf(x, y + k, z, mkCell(bi), st)) break; return; }
+  if (j === 'sugar_cane') { if (!wet) return; var rh = Math.random(), h = rh < 0.4 ? 2 : rh < 0.85 ? 3 : 4; /* no jogo, de 2 a 4 (mais 2 e 3) */ for (var k = 0; k < h; k++) if (!hydSetIf(x, y + k, z, mkCell(bi), st)) break; return; }
   if (j === 'snow') { hydSetIf(x, y, z, hydCell('snow[layers=1]'), st); return; }
   if (b.sp && b.sp.some(function (s) { return s[0] === 'half'; })) { // dois blocos de altura
     if (!gget(x, y + 1, z) && hydSetIf(x, y, z, hydCell(j + '[half=lower]'), st)) hydSetIf(x, y + 1, z, hydCell(j + '[half=upper]'), st); return;
   }
   hydSetIf(x, y, z, mkCell(bi), st);
+}
+
+/* ---------- Corais: formações vivas (como as do jogo: cogumelo, árvore e garra) e crosta morta ---------- */
+/* Cada bloco de coral vivo posto pela formação: em cima, com água, 25% de coral ou leque (meio a meio) e 5% de
+   pepino-do-mar; em cada lado com água, 20% de leque de parede virado para fora (como CoralFeature.placeCoralBlock) */
+var HYD_FACE = { '1,0': 'east', '-1,0': 'west', '0,1': 'south', '0,-1': 'north' };
+function hydCoralBlock(x, y, z, kind, st, L) {
+  if (y > L || !hydSetIf(x, y, z, hydCell(kind + '_coral_block'), st, 'w')) return false;
+  var r = Math.random();
+  if (r < 0.25) hydSetIf(x, y + 1, z, hydCell(kind + (Math.random() < 0.5 ? '_coral' : '_coral_fan')), st, 'w');
+  else if (r < 0.3) hydSetIf(x, y + 1, z, hydCell('sea_pickle[pickles=' + (1 + Math.floor(Math.random() * 4)) + ',waterlogged=true]'), st, 'w');
+  for (var i = 0; i < 4; i++) if (Math.random() < 0.2) { var d = HYD_N4[i]; hydSetIf(x + d[0], y, z + d[1], hydCell(kind + '_coral_wall_fan[facing=' + HYD_FACE[d[0] + ',' + d[1]] + ']'), st, 'w'); }
+  return true;
+}
+function hydRand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function hydCoral(bi, x, y, z, st, L) { // y: a primeira água acima do fundo
+  var kind = BLOCKS[bi].java.replace(/_coral_block$/, ''), f = Math.random(), i, j, k;
+  if (f < 1 / 3) { // cogumelo: uma caixa de 3 a 5 de lado, sem as quinas e com buracos
+    var w = hydRand(3, 5), h = hydRand(3, 6), d = hydRand(3, 5), ox = x - (w >> 1), oz = z - (d >> 1);
+    for (i = 0; i < w; i++) for (j = 0; j < h; j++) for (k = 0; k < d; k++) {
+      var e = (i === 0 || i === w - 1) + (j === 0 || j === h - 1) + (k === 0 || k === d - 1); if (e >= 2 && Math.random() < 0.9) continue; // tira as arestas
+      if (Math.random() < 0.1) continue;
+      hydCoralBlock(ox + i, y + j, oz + k, kind, st, L);
+    }
+  } else if (f < 2 / 3) { // árvore: tronco de 1 a 3 e 2 a 4 galhos que sobem para os lados
+    var th = hydRand(1, 4); for (j = 0; j < th; j++) hydCoralBlock(x, y + j, z, kind, st, L);
+    var dirs = HYD_N4.slice().sort(function () { return Math.random() - 0.5; }).slice(0, hydRand(2, 4));
+    dirs.forEach(function (dd) { var bx = x + dd[0], by = y + th, bz = z + dd[1], n = hydRand(2, 6); for (var q = 0; q < n; q++) { hydCoralBlock(bx, by, bz, kind, st, L); by++; if (Math.random() < 0.5) { bx += dd[0]; bz += dd[1]; } } });
+  } else { // garra: um bloco no meio e 2 a 3 braços que saem para os lados e sobem
+    hydCoralBlock(x, y, z, kind, st, L);
+    var arms = HYD_N4.slice().sort(function () { return Math.random() - 0.5; }).slice(0, hydRand(2, 3));
+    arms.forEach(function (dd) { var bx = x, by = y, bz = z, out = hydRand(1, 2), up = hydRand(2, 5), q; for (q = 0; q < out; q++) { bx += dd[0]; bz += dd[1]; hydCoralBlock(bx, by, bz, kind, st, L); } for (q = 0; q < up; q++) { by++; hydCoralBlock(bx, by, bz, kind, st, L); } });
+  }
+}
+/* Crosta: uma mancha achatada de coral morto (70%) e pedra (andesito, diorito, granito) no fundo, raio de 1 a 3 */
+function hydCrust(bi, x, fy, z, st, L) {
+  var rr = hydRand(1, 3), dead = BLOCKS[bi].java, stones = ['andesite', 'diorite', 'granite'];
+  for (var dz = -rr; dz <= rr; dz++) for (var dx = -rr; dx <= rr; dx++) {
+    if (dx * dx + dz * dz > rr * rr + 1 || Math.random() < 0.15) continue;
+    var cx = x + dx, cz = z + dz, y = fy; while (y > 0 && hydIsWater(cx, y - 1, cz)) y--; // o fundo de cada coluna
+    if (y > L || !hydIsWater(cx, y, cz)) continue;
+    var layers = Math.random() < 0.6 ? 2 : 1;
+    for (var k = 0; k < layers; k++) hydSetIf(cx, y + k, cz, hydCell(Math.random() < 0.7 ? dead : stones[Math.floor(Math.random() * 3)]), st, 'w');
+  }
+}
+/* Manchas: a superfície (vitória-régia) e o gelo abaixo de 100% vêm em grupos, não espalhados (no jogo, as
+   vitórias-régias nascem em volta de pontos e o gelo segue a temperatura): numa mancha (cerca de 30% da área) a chance
+   é a da regra ÷ 0,3; fora dela, nada. A média fica a da regra. */
+function hydPatchPick(cls, slot, x, z, st) {
+  var R = hydRulesGet()[hydSea() ? 'mar' : 'doce'], Lr = R[cls] && R[cls][slot]; if (!Lr) return -1;
+  var tot = 0; Lr.forEach(function (q) { tot += q[1]; });
+  var f = tot >= 0.99 ? 1 : (hydVal(x, z, st.seed + 101, 5) > 0.62 ? 1 / 0.3 : 0), r = Math.random(), a = 0;
+  for (var i = 0; i < Lr.length; i++) { a += Lr[i][1] * f; if (r < a) return Lr[i][0]; }
+  return -1;
 }
 
 /* ---------- Uma pincelada ---------- */
@@ -237,12 +300,12 @@ function hydGuarded(x, y, z, st) {
 function hydRemove(x, y, z, st) { editSet(x, y, z, 0); st.carved++; var k = x + ',' + z, o = st.cut.get(k); if (o == null || y < o) st.cut.set(k, y); } // st.cut: o y mais baixo cavado em cada coluna
 function hydDab(c, st) {
   if (!c) return;
-  var r = hyd.r, kind = hyd.kind, L = st.L, D = hydDepthMax(kind, r), cap = 2 * r + 8, R = Math.ceil(r * 1.4 * 1.25), cols = [];
+  var r = hyd.r, kind = hyd.kind, L = st.L, cap = 2 * r + 8, R = Math.ceil(r * 1.4 * 1.25), cols = [];
   for (var dz = -R; dz <= R; dz++) for (var dx = -R; dx <= R; dx++) {
     var x = c[0] + dx, z = c[2] + dz; if (!inB(x, 0, z)) continue;
     var t = Math.hypot(dx, dz) / (r * (1 + 0.22 * hydNoise(x, z, st.seed))); if (t >= 1.4) continue;
     var q = { x: x, z: z, t: t };
-    if (t < 1) q.floor = Math.max(0, L - Math.max(1, Math.round(D * hydProfile(kind, t) * (1 + 0.18 * hydNoise(x * 1.7 + 31, z * 1.7 - 17, st.seed))))); // no máximo até o fundo do espaço (o y 0 fica de leito)
+    if (t < 1) q.floor = Math.max(0, L - Math.max(1, Math.round(hydDepth(kind, r * (1 - t)) * (1 + 0.15 * hydNoise(x * 1.7 + 31, z * 1.7 - 17, st.seed))))); // no máximo até o fundo do espaço (o y 0 fica de leito)
     cols.push(q);
   }
   // o fundo de uma coluna já cavada neste traço não sobe (passar de novo não aterra o rio)
@@ -250,7 +313,7 @@ function hydDab(c, st) {
   var top = Math.min(SY - 1, L + cap);
   // 1. escultura do leito e do barranco
   if (hyd.carve) cols.forEach(function (q) {
-    var lo = q.floor != null ? q.floor + 1 : L + 1 + Math.round(0.9 * r * (q.t - 1) / 0.4) + 1;
+    var lo = q.floor != null ? q.floor + 1 : L + 1 + Math.round(0.9 * r * (q.t - 1) / 0.4); // na beira, o chão fica no nível da água (onde a cana nasce)
     for (var y = Math.max(0, lo); y <= top; y++) { // de baixo para cima: a planta de cima vê que o chão dela saiu
       var k = hydAt(q.x, y, q.z); if (!k || k === 3) continue;
       if (y > L && hydGuarded(q.x, y, q.z, st)) continue;
@@ -297,16 +360,17 @@ function hydDab(c, st) {
       // fundo: o terreno debaixo da água e o das paredes laterais submersas
       if (hydAt(q.x, fy - 1, q.z) === 1) { var b1 = hydPick(cls, 'fundo'); if (b1 >= 0) { editSet(q.x, fy - 1, q.z, mkCell(b1)); st.deco++; } }
       for (var y = fy; y <= L; y++) for (var i = 0; i < 4; i++) {
-        var nx = q.x + HYD_N4[i][0], nz = q.z + HYD_N4[i][1]; if (hydAt(nx, y, nz) !== 1) continue;
+        var nx = q.x + HYD_N4[i][0], nz = q.z + HYD_N4[i][1]; if (hydAt(nx, y, nz) !== 1 || st.floor.has(nx + ',' + nz)) continue; // só a parede de fora (não o gelo nem o fundo de outra coluna da água)
         var b2 = hydPick(hydPickClass(mix), y >= L - 1 ? 'margem' : 'fundo'); if (b2 >= 0 && !BLOCKS[b2].shape) { editSet(nx, y, nz, mkCell(b2)); st.deco++; }
       }
-      // recife: um montinho de coral no fundo
-      var rb = hydPick(cls, 'recife'), plantY = fy;
-      if (rb >= 0 && room >= 3) { var h = 1 + Math.floor(Math.random() * Math.min(3, room - 2)); for (var k2 = 0; k2 < h; k2++) if (hydSetIf(q.x, fy + k2, q.z, mkCell(rb), st, 'w')) plantY = fy + k2 + 1; }
-      var pb = hydPick(cls, 'plantas'); if (pb >= 0 && plantY <= L) hydWaterPlant(pb, q.x, plantY, q.z, L - plantY + 1, st);
-      var ice = hydPick(cls, 'gelo');
+      // recife (formação de coral vivo) ou crosta (coral morto e pedra), ou uma planta no fundo
+      var rb = room >= 3 ? hydPick(cls, 'recife') : -1, cb = rb < 0 && room >= 2 ? hydPick(cls, 'crosta') : -1;
+      if (rb >= 0) hydCoral(rb, q.x, fy, q.z, st, L - 1);
+      else if (cb >= 0) hydCrust(cb, q.x, fy, q.z, st, L - 1);
+      else { var pb = hydPick(cls, 'plantas'); if (pb >= 0) hydWaterPlant(pb, q.x, fy, q.z, room, st); }
+      var ice = hydPatchPick(cls, 'gelo', q.x, q.z, st);
       if (ice >= 0 && hydIsWater(q.x, L, q.z)) { editSet(q.x, L, q.z, mkCell(ice)); st.deco++; }
-      else { var sb = hydPick(cls, 'superficie'); if (sb >= 0 && room >= 1 && hydIsWater(q.x, L, q.z)) hydSetIf(q.x, L + 1, q.z, mkCell(sb), st); }
+      else { var sb = hydPatchPick(cls, 'superficie', q.x, q.z, st); if (sb >= 0 && room >= 1 && hydIsWater(q.x, L, q.z)) hydSetIf(q.x, L + 1, q.z, mkCell(sb), st); }
     } else if (q.t < 1.3) {
       // margem: o chão da beira (até 2 blocos acima da água) e as plantas dele
       var y0 = Math.min(layerMax(), L + 3), gy = -1; for (var y3 = y0; y3 >= L - 1; y3--) if (hydAt(q.x, y3, q.z) === 1) { gy = y3; break; }
@@ -399,12 +463,12 @@ function waterPreview(t, accent) {
   previewInst.count = k; previewInst.instanceMatrix.needsUpdate = true; previewInst.material.color.copy(accent);
 }
 function openHydRules() {
-  openDialog('<h3>Regras do Pincel de água</h3><p>Uma regra por linha: <code>água classe lugar = bloco %, bloco %</code>. <b>água</b>: <code>doce</code> (rio e lago) ou <code>mar</code> (oceano). <b>classe</b>: ' + Object.keys(HYD_CLASS_PT).map(function (k) { return '<code>' + k + '</code>'; }).join(', ') + ' (no mar, só temperado, morno, quente, frio e gelado). <b>lugar</b>: <code>margem</code>, <code>fundo</code>, <code>plantas</code>, <code>recife</code>, <code>superficie</code>, <code>borda</code> e <code>gelo</code>. Cada número é a chance em % para cada bloco; o resto fica como está. Nomes do Java, como na barra de status.</p>' +
+  openDialog('<h3>Regras do Pincel de água</h3><p>Uma regra por linha: <code>água classe lugar = bloco %, bloco %</code>. <b>água</b>: <code>doce</code> (rio e lago) ou <code>mar</code> (oceano). <b>classe</b>: ' + Object.keys(HYD_CLASS_PT).map(function (k) { return '<code>' + k + '</code>'; }).join(', ') + ' (no mar, só temperado, morno, quente, frio e gelado). <b>lugar</b>: <code>margem</code>, <code>fundo</code>, <code>plantas</code>, <code>recife</code> (formações de coral vivo), <code>crosta</code> (coral morto e pedra), <code>superficie</code>, <code>borda</code> e <code>gelo</code>. Cada número é a chance em % para cada bloco; o resto fica como está. Nomes do Java, como na barra de status. O padrão foi medido em mundos gerados pelo servidor oficial do Bedrock 1.26.52.</p>' +
     '<textarea id="hydTa" rows="16" spellcheck="false" style="width:100%;font-family:var(--font-mono,monospace);font-size:12px">' + esc(hydRulesTxt) + '</textarea>' +
     '<p id="hydBad" class="err"></p><div class="row"><button class="btn primary" id="hydOk">Usar</button><button class="btn" id="hydDef">Voltar ao padrão</button><button class="btn" id="hydNo">Cancelar</button></div>', function () {
     var check = function () { var a = hydParse($('hydTa').value).bad; $('hydBad').textContent = a.length ? 'Linhas com erro (ficam de fora): ' + a.join(' · ') : ''; };
     $('hydTa').oninput = check; check();
-    $('hydOk').onclick = function () { hydRulesTxt = $('hydTa').value; hydRules = null; try { localStorage.setItem('bloco-a-bloco-agua-regras', hydRulesTxt); } catch (e) {} closeDialog(); var R = hydRulesGet(), n = 0; ['doce', 'mar'].forEach(function (w) { for (var c in R[w]) n += Object.keys(R[w][c]).length; }); toast('Regras do Pincel de água: ' + n + ' em uso.'); };
+    $('hydOk').onclick = function () { hydRulesTxt = $('hydTa').value; hydRules = null; try { localStorage.setItem('bloco-a-bloco-agua-regras2', hydRulesTxt); } catch (e) {} closeDialog(); var R = hydRulesGet(), n = 0; ['doce', 'mar'].forEach(function (w) { for (var c in R[w]) n += Object.keys(R[w][c]).length; }); toast('Regras do Pincel de água: ' + n + ' em uso.'); };
     $('hydDef').onclick = function () { $('hydTa').value = HYD_RULES_DEF; check(); };
     $('hydNo').onclick = closeDialog;
   });

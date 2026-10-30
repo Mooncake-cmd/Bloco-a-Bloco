@@ -201,6 +201,10 @@ Biomas, na 1.26.52: pintar planície nevada num chunk de planície faz nascer er
 
 Resultado na 1.26.52: desligado igual; ligado igual em todos os circuitos (só a metade de cima da porta: o jogo guarda `open_bit` só na de baixo). O teste achou e corrigiu a alavanca no chão/teto exportada invertida e o funil exportado travado.
 
+## Medir a água do jogo (Pincel de água)
+
+`scripts/medir-agua.js <pasta do mundo> <áreas.txt> [raio]` lê um mundo gerado pelo servidor oficial do Bedrock e mede, por bioma, cada coluna de água (profundidade, bloco do fundo, a planta no fundo, a altura das algas, vitória-régia e gelo na superfície, blocos de coral) e cada coluna de margem (o chão e a planta em cima, a altura da cana), mais a profundidade pela distância até a terra (o perfil do leito). As áreas são linhas `nome x z`; para achá-las, no console do servidor: `execute positioned 0 64 0 run locate biome minecraft:warm_ocean`, e `tickingarea add` com retângulos de até 10 × 10 chunks alinhados aos chunks (com `tick-distance` maior que 4, o servidor gera mais chunks em volta). Os números padrão de `src/agua.js` (o perfil do leito e a tabela de regras) saíram daí, com o servidor 1.26.52: 10 áreas de rio, pântano, mangue, deserto e oceanos, mais de 90 mil colunas de água.
+
 ## Gerar os blocos (`npm run blocks`)
 
 `scripts/gen_blocks.js` (cubos) e `scripts/gen_shapes.js` (formas) montam `data/blocks.json` e `data/shapes.json` a partir do minecraft-data (Java 1.21.11 e 26.1, Bedrock 1.26.51), do minecraft-assets 26.1 e do pacote oficial do Bedrock. O `gen_shapes.js` precisa de `BEDROCK_SAMPLES_DIR` apontando para o bedrock-samples 1.26.50 ou mais novo extraído (`resource_pack/textures/blocks`, `resource_pack/textures/terrain_texture.json`, `metadata/vanilladata_modules/mojang-blocks.json`): de lá saem as texturas e os estados dos blocos que só o Bedrock tem e que o minecraft-data ainda não traz.

@@ -1,5 +1,5 @@
 // Capturas do Pincel de água: o aviso com a prévia, um rio traçado nas colinas, um lago na divisa entre pântano e
-// deserto (a decoração muda aos poucos), um oceano quente com corais e a janela das regras. Também confere o desfazer
+// deserto (a decoração muda aos poucos), o recife de um oceano quente (com a água escondida) e a janela das regras. Também confere o desfazer
 // (o traço inteiro volta) e que a água não vaza (nenhuma água corrente depois de a simulação andar).
 // node scripts/guia/hidro.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
@@ -48,11 +48,11 @@ const [URL, PACK, OUT] = process.argv.slice(2);
   await shot('hidro-transicao.jpg', 96, 152, 0.0, 1.05, 62);
   // oceano quente (bioma escolhido no aviso, num lugar sem bioma lido): recifes, corais e pepinos-do-mar
   await stroke('ocean', 11, 40, [[150, 60], [160, 70]]);
-  // de perto, na parte rasa: o coral mais alto (perto da superfície, onde chega luz)
-  const cor = JSON.parse(await ev(`(function(){ var best = null; forEachBlock(function (x, y, z, v) { var j = BLOCKS[cellBlock(v)].java; if (x > 135 && z > 45 && /_coral(_fan|_block)?$|sea_pickle/.test(j) && (!best || y > best[1])) best = [x, y, z]; }); return JSON.stringify(best); })()`));
-  console.log('coral mais raso', cor);
-  await ev(`Object.assign(cam, { yaw: 0.9, pitch: 0.45, dist: 22, tx: ${cor[0]}, ty: ${cor[1]}, tz: ${cor[2]} }); updateCamera(); updateView(true); requestRender()`);
+  // o recife: a água escondida (comando hide water), para ver as formações de coral, a crosta e os corais
+  await ev(`cmdRun('hide water')`);
+  await ev(`Object.assign(cam, { yaw: 0.75, pitch: 0.5, dist: 34, tx: 152, ty: 30, tz: 62 }); updateCamera(); updateView(true); requestRender()`);
   await settle(); await p.screenshot({ path: path.join(OUT, 'hidro-oceano.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 54, width: 972, height: 718 } });
+  await ev(`cmdRun('unhide all')`);
   await p.waitForTimeout(5000);
   console.log('água corrente depois da simulação (vazamento):', await flowing());
   // a janela das regras
