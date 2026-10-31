@@ -1,5 +1,5 @@
-// Capturas do gerador de terreno para o guia: a janela (com a prévia) e um mosaico com os 8 tipos gerados em volta da
-// casa de exemplo (a imagem de relevo é um morro redondo feito aqui).
+// Capturas do gerador de terreno para o guia: a janela (com a prévia), a janela em volta da seleção (com o aviso) e o
+// resultado, e um mosaico com os 8 tipos gerados em volta da casa de exemplo (a imagem de relevo é um morro redondo feito aqui).
 // node scripts/guia/terreno.js <url do editor> <pacote Bedrock .zip> <pasta de saída>
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const fs = require('fs'), path = require('path');
@@ -19,6 +19,16 @@ eval(fs.readFileSync(__dirname + '/demo.inc', 'utf8'));
   const d = await p.evaluate(() => { const r = document.querySelector('.dialog').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
   await p.screenshot({ path: path.join(OUT, 'terreno-janela.jpg'), type: 'jpeg', quality: 85, clip: { x: d[0] - 8, y: d[1] - 8, width: d[2] + 16, height: d[3] + 16 } });
   await ev(`closeDialog()`);
+  // em volta da seleção: a seleção é a casa; a janela com o aviso e o resultado (a borda gerada, o miolo como está)
+  await ev(`(function(){ var bb = bbox(); sel = selFrom([bb.minX, bb.minY, bb.minZ], [bb.maxX, bb.maxY, bb.maxZ]); selRefresh(); tr.where = 'ring'; tr.margin = 24; })()`);
+  await ev(`openTerrain()`); await p.waitForTimeout(600);
+  const d2 = await p.evaluate(() => { const r = document.querySelector('.dialog').getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; });
+  await p.screenshot({ path: path.join(OUT, 'terreno-volta.jpg'), type: 'jpeg', quality: 85, clip: { x: d2[0] - 8, y: d2[1] - 8, width: d2[2] + 16, height: d2[3] + 16 } });
+  await ev(`closeDialog()`);
+  await ev(`(async function(){ await trGenerate(Object.assign({}, tr, { where: 'ring', margin: 24, type: 'colinas', A: 16, S: 45, seaOn: false, seed: 77, bio: 'auto', deco: true })); clearSel(); var bb = bbox(); Object.assign(cam, { yaw: 0.7, pitch: 0.55, dist: Math.max(bb.w, bb.l) * 1.1, tx: bb.minX + bb.w / 2, ty: bb.minY + bb.h / 3, tz: bb.minZ + bb.l / 2 }); updateCamera(); requestRender(); })()`);
+  await p.waitForFunction(() => window.__bab.ev('dirty.size') === 0, null, { timeout: 120000 }); await p.waitForTimeout(1500); await hide();
+  await p.screenshot({ path: path.join(OUT, 'terreno-volta-3d.jpg'), type: 'jpeg', quality: 82, clip: { x: 0, y: 92, width: 972, height: 680 } });
+  await ev(`undo(); tr.where = 'build'; tr.margin = 40`);
   // imagem de relevo: um morro redondo
   await ev(`(function(){ var n = 64, g = new Float32Array(n * n); for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) g[y * n + x] = Math.pow(Math.max(0, 1 - Math.hypot(x - 32, y - 32) / 32), 0.7); trImg = { g: g, w: n, h: n }; })()`);
   const tiles = [];

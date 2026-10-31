@@ -52,18 +52,24 @@ function trSmooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * 
    P: { where, type, A, S, sea, seaOn, rough, seed, margin }; step > 1 só para a prévia. */
 function trPlan(P, step) {
   step = step || 1;
-  var bb = bbox(), x0, z0, x1, z1;
-  if (P.where === 'sel' && sel) { var s0 = trSelBox(); x0 = s0[0]; z0 = s0[2]; x1 = s0[3]; z1 = s0[5]; }
+  var bb = bbox(), x0, z0, x1, z1, S0 = (P.where === 'sel' || P.where === 'ring') && sel ? trSelBox() : null;
+  if (P.where === 'sel' && S0) { x0 = S0[0]; z0 = S0[2]; x1 = S0[3]; z1 = S0[5]; }
+  else if (P.where === 'ring' && S0) { x0 = S0[0] - P.margin; z0 = S0[2] - P.margin; x1 = S0[3] + P.margin; z1 = S0[5] + P.margin; }
   else if (P.where === 'build' && bb) { x0 = bb.minX - P.margin; z0 = bb.minZ - P.margin; x1 = bb.maxX + P.margin; z1 = bb.maxZ + P.margin; }
   else { x0 = 0; z0 = 0; x1 = SX - 1; z1 = SZ - 1; }
   var w = Math.ceil((x1 - x0 + 1) / step), l = Math.ceil((z1 - z0 + 1) / step), n = w * l;
-  // pegada: colunas com algum bloco (a construção), na resolução do plano
-  var foot = new Uint8Array(n), fx0 = 1e9, fz0 = 1e9, fx1 = -1e9, fz1 = -1e9, any = false;
-  if (bb) forEachBlock(function (x, y, z) {
-    var i = Math.floor((x - x0) / step), k = Math.floor((z - z0) / step);
-    if (i < 0 || k < 0 || i >= w || k >= l) return;
-    if (!foot[k * w + i]) { foot[k * w + i] = 1; any = true; if (i < fx0) fx0 = i; if (i > fx1) fx1 = i; if (k < fz0) fz0 = k; if (k > fz1) fz1 = k; }
-  });
+  // pegada: o que fica como está e o terreno contorna. Em volta da construção: as colunas com algum bloco; em volta da
+  // seleção: as colunas da seleção. Nos outros (dentro da seleção, espaço inteiro), nada: tudo o que está na área sai.
+  var foot = new Uint8Array(n), fx0 = 1e9, fz0 = 1e9, fx1 = -1e9, fz1 = -1e9, any = false, clear = P.where !== 'build';
+  var mark = function (i, k) { if (i < 0 || k < 0 || i >= w || k >= l) return; if (!foot[k * w + i]) { foot[k * w + i] = 1; any = true; if (i < fx0) fx0 = i; if (i > fx1) fx1 = i; if (k < fz0) fz0 = k; if (k > fz1) fz1 = k; } };
+  if (P.where === 'build' && bb) forEachBlock(function (x, y, z) { mark(Math.floor((x - x0) / step), Math.floor((z - z0) / step)); });
+  if (P.where === 'ring' && S0) for (var sx = S0[0]; sx <= S0[3]; sx += step) for (var sz = S0[2]; sz <= S0[5]; sz += step) mark(Math.floor((sx - x0) / step), Math.floor((sz - z0) / step));
+  // o que vai ser apagado: as colunas fora da pegada com algum bloco (árvores, construções, o chão de um mundo)
+  var surf = [], clearCols = 0;
+  if (clear) for (var ck = 0; ck < l; ck++) for (var ci = 0; ci < w; ci++) {
+    if (foot[ck * w + ci]) continue; var gx = x0 + ci * step, gz = z0 + ck * step; if (!inB(gx, 0, gz)) continue;
+    var ty = trGround(gx, gz); if (ty >= 0) { clearCols++; if ((ci + ck) % 3 === 0) surf.push(ty); }
+  }
   // distância até a construção (em blocos), para o terreno ir até a base dela
   var dist = new Float32Array(n).fill(1e9);
   if (any) {
@@ -135,18 +141,26 @@ function trPlan(P, step) {
   }
   var sea = P.seaOn && T.sea !== null ? P.sea : null;
   if (sea !== null && sea - 1 < minH) minH = Math.min(minH, sea - 1);
-  // altura: o chão da construção fica logo abaixo do bloco mais baixo dela; sem construção, o fundo mais baixo fica em y 4
-  var G = any && bb ? bb.minY - 1 : TR_SHELL - minH, needBelow = TR_SHELL - minH; // a casca do ponto mais fundo cabe no espaço
+  // altura: o chão da construção fica logo abaixo do bloco mais baixo dela (em volta da seleção, logo abaixo da
+  // seleção); numa área com chão (um mundo do jogo), na altura do meio do chão que já existe; sem nada, o fundo mais
+  // baixo fica em y 4
+  surf.sort(function (a, b) { return a - b; });
+  var G = P.where === 'ring' && S0 ? S0[1] - 1 : any && bb ? bb.minY - 1 : surf.length ? surf[surf.length >> 1] : TR_SHELL - minH, needBelow = TR_SHELL - minH; // a casca do ponto mais fundo cabe no espaço
   var dy = Math.max(0, needBelow - G), dx = Math.max(0, -x0), dz = Math.max(0, -z0);
   var top = G + dy + Math.max(maxH, sea === null ? 0 : sea) + 14; // árvores em cima
   var nsx = Math.max(SX + dx, x1 + dx + 1), nsy = Math.min(MAX_Y, Math.max(SY + dy, top + 1)), nsz = Math.max(SZ + dz, z1 + dz + 1);
-  return { x0: x0, z0: z0, x1: x1, z1: z1, w: w, l: l, step: step, foot: foot, dist: dist, hm: hm, riv: riv, any: any, G: G, sea: sea,
+  return { x0: x0, z0: z0, x1: x1, z1: z1, w: w, l: l, step: step, foot: foot, dist: dist, hm: hm, riv: riv, any: any, G: G, sea: sea, clear: clear, clearCols: clearCols * step * step,
     minH: minH, maxH: maxH, dx: dx, dy: dy, dz: dz, sx: nsx, sy: nsy, sz: nsz, grow: nsx !== SX || nsy !== SY || nsz !== SZ || dx || dy || dz };
 }
 
+/* O chão de uma coluna: o bloco mais alto que não é planta, folha, tronco nem água (-1: coluna vazia) */
+function trGround(x, z) {
+  for (var y = SY - 1; y >= 0; y--) { var v = gget(x, y, z); if (!v) continue; var j = BLOCKS[cellBlock(v)].java; if (/(_leaves|_log|_wood|_stem|^water$|^lava$)/.test(j) || (BLOCKS[cellBlock(v)].shape && !BLOCKS[cellBlock(v)].shape.fc)) continue; return y; }
+  return -1;
+}
 /* Bioma de cada coluna: debaixo d'água, beira d'água, alto da montanha, ou o escolhido (automático/misto) */
 function trBiomeOf(P, pl, i, k, hgt, slope, shore) {
-  var T = TR_TYPES[P.type], j = k * pl.w + i, base = P.bio === 'auto' ? T.bio : P.bio;
+  var T = TR_TYPES[P.type], j = k * pl.w + i, base = P.bio === 'auto' || P.bio === 'mundo' ? T.bio : P.bio;
   if (base === 'misto') { // clima pelo ruído: frio, temperado ou quente; seco ou úmido
     var bx = (pl.x0 + i * pl.step) / 160, bz = (pl.z0 + k * pl.step) / 160, te = trFbm(bx, bz, P.seed + 55, 0.5), hu = trFbm(bx, bz, P.seed + 77, 0.5);
     base = te < 0.4 ? (hu < 0.5 ? 'ice_plains' : 'taiga') : te < 0.6 ? (hu < 0.4 ? 'plains' : hu < 0.6 ? 'forest' : 'birch_forest') : (hu < 0.4 ? 'desert' : hu < 0.55 ? 'savanna' : 'jungle');
@@ -198,19 +212,27 @@ async function trGenerate(P) {
   var hAt = function (i, k) { return i < 0 || k < 0 || i >= w || k >= l ? null : pl.hm[k * w + i]; };
   var nearWater = function (i, k) { for (var a = -3; a <= 3; a++) for (var b = -3; b <= 3; b++) { var h2 = hAt(i + a, k + b); if (h2 !== null && h2 < sea) return true; } return false; };
   var st = { bare: !P.deco, noTree: function (x, z) { var i = x - pl.x0, k = z - pl.z0; return pl.dist[k * w + i] < 4; } };
-  var savedSym = symBusy, groups = {}, cols = 0, ROWS = Math.max(1, Math.floor(20000 / w));
+  var savedSym = symBusy, groups = {}, cols = 0, removed = 0, ROWS = Math.max(1, Math.floor(20000 / w));
   busy('Gerando o terreno…', 0);
   beginBatch('Gerar terreno: ' + T.n); batch.noFlow = true; symBusy = true;
   try {
     for (var k = 0; k < l; k++) {
       for (var i = 0; i < w; i++) {
         var x = pl.x0 + i, z = pl.z0 + k; if (!inB(x, 0, z)) continue;
+        if (P.where === 'ring' && pl.foot[k * w + i]) continue; // em volta da seleção: o miolo fica como está
         var j = k * w + i, hgt = pl.hm[j], top = Math.min(SY - 1, G + hgt), y;
         var slope = 0; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var h2 = hAt(i + d[0], k + d[1]); if (h2 !== null) slope = Math.max(slope, Math.abs(h2 - hgt)); });
         var under = sea !== null && hgt < sea, shore = sea !== null && !under && hgt <= sea + 1 && nearWater(i, k);
         // casca: TR_SHELL blocos, ou mais nas encostas, até um abaixo do topo da vizinha mais baixa (o lado não fica oco)
         var low = top - TR_SHELL + 1;
         [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var h2 = hAt(i + d[0], k + d[1]); if (h2 !== null && G + h2 < low) low = G + h2; });
+        if (pl.clear && !pl.foot[j]) {
+          // o terreno não poupa nada: da casca para cima, tudo o que está na coluna sai (árvores, casas, o chão antigo)
+          for (y = Math.max(0, low); y < SY; y++) if (gget(x, y, z)) { editSet(x, y, z, 0); removed++; }
+          // e a casca encosta no chão que fica embaixo (num mundo, sem vão entre o terreno novo e o chão antigo)
+          var yb = low - 1; while (yb >= 0 && yb >= low - 64 && !gget(x, yb, z)) yb--;
+          if (yb >= 0 && yb >= low - 64) for (y = yb + 1; y < low; y++) editSet(x, y, z, cStone);
+        }
         for (y = Math.max(0, low); y <= top; y++) {
           if (gget(x, y, z)) continue;
           var c = y === top ? cGrass : y >= top - 3 ? cDirt : cStone;
@@ -219,8 +241,8 @@ async function trGenerate(P) {
           editSet(x, y, z, c);
         }
         if (under) for (y = top + 1; y <= Math.min(SY - 1, G + sea); y++) if (!gget(x, y, z)) editSet(x, y, z, cWater);
-        var bn = trBiomeOf(P, pl, i, k, hgt, slope, shore), id = trBio(bn);
-        bioSet(x, z, id);
+        var ow = P.bio === 'mundo' ? bioAt(x, z) : -1, id = ow >= 0 ? ow : trBio(trBiomeOf(P, pl, i, k, hgt, slope, shore));
+        if (ow < 0) bioSet(x, z, id); // o bioma do mundo fica como está (só decora pelo bioma de cada coluna)
         if (!pl.foot[j]) (groups[id] || (groups[id] = [])).push(x, z);
         cols++;
       }
@@ -234,13 +256,14 @@ async function trGenerate(P) {
   } finally { symBusy = savedSym; endBatch(); busyEnd(); }
   dirtyAll(); requestRender(); updateStatus();
   var tt = st.terra || {};
-  toast(T.n + ': ' + cols.toLocaleString('pt-BR') + ' colunas' + (tt.arvores ? ', ' + tt.arvores + ' árvores' : '') + (grew ? '. O espaço cresceu para ' + SX + ' × ' + SY + ' × ' + SZ : '') + '. Ctrl+Z desfaz.', 7000);
+  toast(T.n + ': ' + cols.toLocaleString('pt-BR') + ' colunas' + (removed ? ', ' + removed.toLocaleString('pt-BR') + ' blocos que estavam na área apagados' : '') + (tt.arvores ? ', ' + tt.arvores + ' árvores' : '') + (grew ? '. O espaço cresceu para ' + SX + ' × ' + SY + ' × ' + SZ : '') + '. Ctrl+Z desfaz.', 7000);
 }
 
 /* Prévia de cima: cor pela altura, água, areia, neve e pedra; a construção em vermelho */
 function trPreview(P, cv) {
   var big = 0, bb = bbox();
   if (P.where === 'sel' && sel) { var s0 = trSelBox(); big = Math.max(s0[3] - s0[0], s0[5] - s0[2]) + 1; }
+  else if (P.where === 'ring' && sel) { var s1 = trSelBox(); big = Math.max(s1[3] - s1[0], s1[5] - s1[2]) + 1 + 2 * P.margin; }
   else if (P.where === 'build' && bb) big = Math.max(bb.w, bb.l) + 2 * P.margin;
   else big = Math.max(SX, SZ);
   var pl = trPlan(P, Math.max(1, Math.ceil(big / 180))), w = pl.w, l = pl.l;
@@ -267,12 +290,13 @@ function trPreview(P, cv) {
 function openTerrain() {
   var bb = bbox(), hasSel = !!sel;
   if (!bb && tr.where === 'build') tr.where = 'all';
-  if (!hasSel && tr.where === 'sel') tr.where = bb ? 'build' : 'all';
+  if (!hasSel && (tr.where === 'sel' || tr.where === 'ring')) tr.where = bb ? 'build' : 'all';
+  if (wio && wio.area) tr.bio = 'mundo'; else if (tr.bio === 'mundo') tr.bio = 'auto'; // num mundo do jogo, o bioma de cada coluna
   var types = Object.keys(TR_TYPES).map(function (k) { return '<option value="' + k + '">' + TR_TYPES[k].n + '</option>'; }).join('');
-  var bios = '<option value="auto">Automático (pelo tipo)</option><option value="misto">Misto (pelo clima)</option>' + TR_BIOMES.map(function (n) { var b = BIO_BY_ID[trBio(n)]; return '<option value="' + n + '">' + esc(b ? b.pt : n) + '</option>'; }).join('');
+  var bios = (wio && wio.area ? '<option value="mundo">O do mundo (o bioma original de cada coluna)</option>' : '') + '<option value="auto">Automático (pelo tipo)</option><option value="misto">Misto (pelo clima)</option>' + TR_BIOMES.map(function (n) { var b = BIO_BY_ID[trBio(n)]; return '<option value="' + n + '">' + esc(b ? b.pt : n) + '</option>'; }).join('');
   openDialog('<h3>Gerar terreno</h3>' +
     '<div class="trg"><canvas id="trCv" width="240" height="240"></canvas><div>' +
-    '<label>Onde<select id="trWhere"><option value="build"' + (bb ? '' : ' disabled') + '>Em volta da construção</option><option value="sel"' + (hasSel ? '' : ' disabled') + '>Dentro da seleção</option><option value="all">Espaço inteiro</option></select></label>' +
+    '<label>Onde<select id="trWhere"><option value="build"' + (bb ? '' : ' disabled') + '>Em volta da construção</option><option value="sel"' + (hasSel ? '' : ' disabled') + '>Dentro da seleção</option><option value="ring"' + (hasSel ? '' : ' disabled') + '>Em volta da seleção</option><option value="all">Espaço inteiro</option></select></label>' +
     '<label id="trMarL">Margem em volta: <b id="trMarV"></b><input type="range" id="trMar" min="8" max="256" step="4"></label>' +
     '<label>Tipo<select id="trType">' + types + '</select></label>' +
     '<label id="trImgL" hidden>Imagem de relevo (branco alto, preto baixo)<input type="file" id="trImgF" accept="image/*"></label>' +
@@ -282,6 +306,7 @@ function openTerrain() {
     '<div class="row"><label>Rugosidade: <b id="trRV"></b><input type="range" id="trR" min="0" max="100"></label><label><span><input type="checkbox" id="trSeaOn"> Água, nível: <b id="trSeaV"></b></span><input type="range" id="trSea" min="-30" max="10"></label></div>' +
     '<div class="row"><label>Semente<input type="number" id="trSeed"></label><button class="btn" id="trDice" title="Outra semente">🎲 Outra</button><label class="check"><input type="checkbox" id="trDeco"><span>Árvores e plantas</span></label></div>' +
     '<p id="trInfo" class="pen"></p>' +
+    '<p class="trwarn" id="trWarn"></p>' +
     '<div class="row"><button class="btn primary" id="trGo">Gerar</button><button class="btn" id="trNo">Cancelar</button></div>',
     function () {
       var q = function (id) { return $(id); }, tmr = 0;
@@ -296,12 +321,14 @@ function openTerrain() {
       };
       var draw = function () {
         q('trMarV').textContent = tr.margin + ' blocos'; q('trAV').textContent = tr.A; q('trSV').textContent = tr.S; q('trRV').textContent = tr.rough; q('trSeaV').textContent = (tr.sea > 0 ? '+' : '') + tr.sea;
-        q('trMarL').hidden = tr.where !== 'build'; q('trImgL').hidden = tr.type !== 'imagem';
+        q('trMarL').hidden = tr.where !== 'build' && tr.where !== 'ring'; q('trImgL').hidden = tr.type !== 'imagem';
         var noSea = TR_TYPES[tr.type].sea === null; q('trSeaOn').disabled = noSea; q('trSea').disabled = noSea || !tr.seaOn;
-        var pl = trPreview(tr, q('trCv')), msg = (pl.x1 - pl.x0 + 1) + ' × ' + (pl.z1 - pl.z0 + 1) + ' colunas, relevo de ' + pl.minH + ' a +' + pl.maxH + ' em volta do chão' + (pl.any ? ' (o chão fica logo abaixo da construção)' : '') + '.';
+        var pl = trPreview(tr, q('trCv')), msg = (pl.x1 - pl.x0 + 1) + ' × ' + (pl.z1 - pl.z0 + 1) + ' colunas, relevo de ' + pl.minH + ' a +' + pl.maxH + ' em volta do chão' + (pl.any ? (tr.where === 'ring' ? ' (o chão fica logo abaixo da seleção)' : ' (o chão fica logo abaixo da construção)') : '') + '.';
         if (pl.grow) msg += ' Para caber, o espaço vai para ' + pl.sx + ' × ' + pl.sy + ' × ' + pl.sz + (pl.dx || pl.dy || pl.dz ? ' e a construção vai ' + [pl.dx ? pl.dx + ' para leste' : '', pl.dy ? pl.dy + ' para cima' : '', pl.dz ? pl.dz + ' para o sul' : ''].filter(Boolean).join(', ') : '') + ': o histórico de desfazer recomeça.';
         if (tr.type === 'imagem' && !trImg) msg += ' Escolha uma imagem.';
         q('trInfo').textContent = msg;
+        // aviso: o terreno não poupa o que está na área
+        q('trWarn').textContent = tr.where === 'build' ? '' : '⚠ O terreno não poupa o que está na área: árvores, casas e qualquer outro bloco nas colunas do terreno são apagados e trocados pelo terreno' + (tr.where === 'ring' ? ' (o que está dentro da seleção fica)' : '') + '. ' + (pl.clearCols ? 'Há cerca de ' + pl.clearCols.toLocaleString('pt-BR') + ' colunas com blocos nessa área. ' : '') + 'Ctrl+Z desfaz.';
       };
       var later = function () { read(); clearTimeout(tmr); tmr = setTimeout(draw, 60); };
       fill(); draw();

@@ -466,15 +466,26 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
   <div class="side">
     <figure><img src="img/terreno-janela.jpg" alt="Janela Gerar terreno com a prévia vista de cima (a construção em vermelho), onde gerar, margem, tipo, bioma, altura, tamanho das formas, rugosidade, nível da água, semente e árvores e plantas" width="536" height="674" loading="lazy"><figcaption>A prévia de cima muda na hora; a construção aparece em vermelho.</figcaption></figure>
     <ul class="plain">
-      <li><b>Onde</b>: <b>em volta da construção</b> (com a margem escolhida, de 8 a 256 blocos), <b>dentro da seleção</b> ou no <b>espaço inteiro</b>. Só os espaços vazios são preenchidos: nada do que você construiu é coberto.</li>
+      <li><b>Onde</b>:
+        <ul class="plain">
+          <li><b>Em volta da construção</b> (com a margem escolhida, de 8 a 256 blocos): o terreno chega até a base da construção, que fica como está.</li>
+          <li><b>Dentro da seleção</b>: o retângulo selecionado (Selecionar, <kbd>V</kbd>), na largura e na profundidade.</li>
+          <li><b>Em volta da seleção</b>: só a borda, com a margem escolhida, em volta do retângulo selecionado. O miolo da seleção fica como está, e o terreno vai suavemente até o chão dela (logo abaixo do ponto mais baixo da seleção).</li>
+          <li><b>Espaço inteiro</b>.</li>
+        </ul></li>
+      <li><b>O terreno não poupa o que está na área.</b> Dentro da seleção, em volta da seleção e no espaço inteiro, tudo o que existe nas colunas do terreno (árvores, casas, qualquer bloco, o chão antigo de um mundo do jogo) é apagado e trocado pelo terreno; a janela avisa e diz quantas colunas têm blocos. Só fica o que está fora da área, o miolo da seleção (em volta da seleção) e a construção (em volta da construção). Num mundo do jogo, a casca do terreno novo encosta no chão que ficou embaixo, sem vão. <kbd>Ctrl</kbd>+<kbd>Z</kbd> volta tudo.</li>
       <li>Só a <b>superfície</b>: o terreno é uma casca de 6 blocos (grama ou o chão do bioma, 3 de terra e 2 de pedra). Nas encostas e paredões a casca desce até cobrir o lado à mostra, então não aparecem buracos; embaixo fica vazio. Assim pesa bem menos (montanhas em volta da casa de exemplo: 68 mil blocos em vez de 250 mil). Ao exportar o .mcstructure com <b>deixar o terreno intacto</b>, esse vazio embaixo mantém o chão que já existe no mundo.</li>
       <li><b>Tipo</b>: planície ondulada, colinas, montanhas (neve e pedra no alto, encostas de pedra), ilha (a construção fica no meio, com praia e mar em volta), arquipélago, vale com rio (o rio corre pelo lado com mais espaço, longe da construção), planalto / mesa (degraus com paredões e as faixas de terracota) e <b>imagem de relevo</b> (uma imagem em tons de cinza: branco alto, preto baixo).</li>
-      <li><b>Bioma</b>: automático (o de cada tipo), <b>misto</b> (muda pelo terreno, de neve a deserto, como o clima do jogo) ou um bioma escolhido. A beira da água vira praia, o fundo vira oceano ou rio, e o alto das montanhas, neve e pedra. Os biomas são pintados nas colunas, então a cor da grama e das folhas sai certa, e vão para o mundo do jogo no .mcworld.</li>
+      <li><b>Bioma</b>: num mundo do jogo, <b>o do mundo</b> (já vem marcado): cada coluna fica com o bioma original e recebe o chão, as árvores e as plantas dele; nada é pintado por cima (só as colunas sem bioma lido usam o automático). Fora dele: automático (o de cada tipo), <b>misto</b> (muda pelo terreno, de neve a deserto, como o clima do jogo) ou um bioma escolhido. A beira da água vira praia, o fundo vira oceano ou rio, e o alto das montanhas, neve e pedra. Os biomas são pintados nas colunas, então a cor da grama e das folhas sai certa, e vão para o mundo do jogo no .mcworld.</li>
       <li><b>Altura</b>, <b>tamanho das formas</b> (morros pequenos e próximos ou grandes e espaçados), <b>rugosidade</b>, <b>nível da água</b> (em relação ao chão da construção; desmarque para não ter água) e <b>semente</b> (a mesma semente dá o mesmo relevo; 🎲 sorteia outra). <b>Árvores e plantas</b> pode ser desligado; perto da construção não nascem árvores.</li>
       <li>Se faltar lugar (terreno embaixo da construção, a margem em volta, a altura das montanhas), o <b>espaço cresce</b> e a construção é movida: a janela avisa antes, e isso recomeça o histórico de desfazer. Depois, a geração inteira é <b>um passo</b> de <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
       <li>A água gerada fica parada como foi posta (não escorre pelas bordas do terreno). Dá para continuar com a escultura, o pincel de bioma e o balde por cima.</li>
       <li>Tempo: em volta da casa de exemplo (10 mil colunas), de 1 a 2 s; com margem de 128 (70 mil colunas), uns 5 s.</li>
     </ul>
+  </div>
+  <div class="grid2">
+    <figure><img src="img/terreno-volta.jpg" alt="Janela Gerar terreno com Onde em Em volta da seleção, margem de 24 blocos, a prévia com a seleção em vermelho no meio e o aviso: o terreno não poupa o que está na área, árvores, casas e qualquer outro bloco nas colunas do terreno são apagados e trocados pelo terreno, o que está dentro da seleção fica" width="536" height="760" loading="lazy" style="max-width:536px"><figcaption><b>Em volta da seleção</b>, com o aviso de que o terreno não poupa o que está na área.</figcaption></figure>
+    <figure><img src="img/terreno-volta-3d.jpg" alt="A casa de exemplo com o quintal intactos no meio e colinas com floresta geradas em volta" width="972" height="680" loading="lazy"><figcaption>O resultado: a borda gerada em volta da seleção (a casa e o quintal); o miolo fica como estava.</figcaption></figure>
   </div>
   <h3>Simetria (espelho)</h3>
   <figure><img src="img/simetria.jpg" alt="Planos de simetria vermelho (X) e azul (Z) cruzando o terreno; um canto de muro com torre construído num quadrante aparece repetido nos outros três" width="972" height="718" loading="lazy"><figcaption>Simetria em X (plano vermelho) e Z (plano azul): o canto de muro com a torre foi construído uma vez e apareceu, espelhado, nos quatro cantos.</figcaption></figure>
@@ -1116,7 +1127,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
         <tr><td>Mapa do mundo…</td><td>Com um mundo do jogo aberto: o mundo inteiro visto de cima, em tela cheia, com zoom, biomas, a grade dos chunks e as coordenadas do Nether (cap. 12).</td></tr>
         <tr><td>Mostrar medidas: sim/não</td><td>Liga e desliga as cotas de X, Y e Z na tela (cap. 08). Tecla <kbd>D</kbd>.</td></tr>
         <tr><td>Simetria (espelho)</td><td>Liga e desliga os planos de simetria (cap. 03).</td></tr>
-        <tr><td>Gerar terreno…</td><td>Morros, montanhas, ilhas, rios e mesas em volta da construção, na seleção ou no espaço inteiro (cap. 03).</td></tr>
+        <tr><td>Gerar terreno…</td><td>Morros, montanhas, ilhas, rios e mesas em volta da construção, dentro ou em volta da seleção, ou no espaço inteiro; o que está na área sai (cap. 03).</td></tr>
         <tr><td>Remover blocos de apoio</td><td>Apaga todos os vidros de apoio postos com <kbd>Z</kbd> (cap. 04).</td></tr>
         <tr><td>Preencher o chão…</td><td>Cobre o espaço inteiro com um bloco de uma vez, sem marcar a área (veja abaixo).</td></tr>
         <tr><td>Tamanho do espaço…</td><td>Muda largura, altura e profundidade (cap. 14).</td></tr>
