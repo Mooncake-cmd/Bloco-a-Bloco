@@ -307,6 +307,7 @@ function wmDraw() {
     g.lineWidth = 2 * dpr; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(sp[0] - R - 6 * dpr, sp[1]); g.lineTo(sp[0] + R + 6 * dpr, sp[1]); g.moveTo(sp[0], sp[1] - R - 6 * dpr); g.lineTo(sp[0], sp[1] + R + 6 * dpr); g.stroke();
     if (wm.s >= 4) { var bp = wmToPx(wm.sel[0], wm.sel[1]); g.strokeStyle = cssColor('--accent') || '#c55a11'; g.strokeRect(bp[0], bp[1], wm.s, wm.s); }
   }
+  wmMarksDraw(g); // as marcações
   wmFootDraw(g); // a estrutura posicionada
   var zs = wm.s / dpr; $('wmvZoom').textContent = zs >= 1 ? Math.round(zs) + ' px por bloco' : '1 px = ' + Math.round(1 / zs) + ' blocos';
 }
@@ -322,6 +323,7 @@ function openWorldMap() {
     '<span class="mbtns"><button id="wmvT" aria-pressed="true">Terreno</button><button id="wmvB" aria-pressed="false">Biomas</button></span>' +
     '<label class="check"><input type="checkbox" id="wmvG"> Grade dos chunks</label>' +
     '<span class="mbtns"><button id="wmvOut" title="Afastar (−)">−</button><span id="wmvZoom"></span><button id="wmvIn" title="Aproximar (+)">+</button><button id="wmvMe" title="Onde o jogador está">Jogador</button></span>' +
+    '<button id="wmvMk" class="tbtn txt" title="Os pontos marcados neste mundo (casas, portais, vilas...)">Marcações</button>' +
     '<button id="wmvFp" class="tbtn txt" title="Um retângulo do tamanho de uma estrutura, para ver o espaço que ela ocupa">Estrutura no mapa…</button>' +
     '<span id="wmvStat" class="mixl"></span><button id="wmvX" class="tbtn txt" title="Esc">Fechar</button></div>' +
     '<canvas id="wmvCv"></canvas><div id="wmvTip" hidden></div>' +
@@ -394,15 +396,17 @@ function wmInfo() {
   var x = wm.sel[0], z = wm.sel[1], a = wmAt(x + 0.5, z + 0.5), D = WIO_DIMS[wm.dim], conv = '';
   if (wm.dim === 0) conv = ' · <b>no Nether</b>: X <b>' + Math.floor(x / 8) + '</b>, Z <b>' + Math.floor(z / 8) + '</b>';
   else if (wm.dim === 1) conv = ' · <b>no mundo normal</b>: X <b>' + x * 8 + '</b>, Z <b>' + z * 8 + '</b>';
-  var bn = wmBioName(a.bio), bl = wmBlockName(a);
-  el.innerHTML = '<span>' + D.name + ': X <b>' + x + '</b>' + (a.h != null ? ', Y <b>' + a.h + '</b>' : '') + ', Z <b>' + z + '</b>' + conv + '</span>' +
+  var bn = wmBioName(a.bio), bl = wmBlockName(a), mk = wmMarkAt(x, z);
+  el.innerHTML = (mk ? '<span><b style="color:' + mk.c + '">◆ ' + esc(mk.n) + '</b></span> ' : '') + '<span>' + D.name + ': X <b>' + x + '</b>' + (a.h != null ? ', Y <b>' + a.h + '</b>' : '') + ', Z <b>' + z + '</b>' + conv + '</span>' +
     '<span class="mixl">chunk ' + (x >> 4) + ', ' + (z >> 4) + ' · região r.' + (x >> 9) + '.' + (z >> 9) + (bn ? ' · ' + esc(bn) : '') + (bl ? ' · ' + esc(bl) : '') + '</span>' +
-    ' <span class="mbtns"><button id="wmvCopy">Copiar</button><button id="wmvLoad" title="Abrir a janela de área com o centro aqui">Carregar área aqui</button></span>';
+    ' <span class="mbtns"><button id="wmvCopy">Copiar</button>' + (mk ? '<button id="wmvMkEd">Editar marcação</button>' : '<button id="wmvMkAdd" title="Guardar este ponto com um nome">Marcar aqui</button>') + (window.BabApp ? '' : '<button id="wmvLoad" title="Abrir a janela de área com o centro aqui">Carregar área aqui</button>') + '</span>';
+  if ($('wmvMkAdd')) $('wmvMkAdd').onclick = function () { wmMarkEdit(null, { d: wm.dim, x: x, y: a.h, z: z }); };
+  if ($('wmvMkEd')) $('wmvMkEd').onclick = function () { wmMarkEdit(mk); };
   $('wmvCopy').onclick = function () {
     var t = x + ' ' + (a.h != null ? a.h : '~') + ' ' + z;
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copiado: ' + t); }, function () { toast(t); });
   };
-  $('wmvLoad').onclick = function () { var d = wm.dim; closeWorldMap(); wioArea.at = { dim: d, x: x, z: z }; wioArea(); };
+  if ($('wmvLoad')) $('wmvLoad').onclick = function () { var d = wm.dim; closeWorldMap(); wioArea.at = { dim: d, x: x, z: z }; wioArea(); };
 }
 function wmKeys(e) {
   if (!wm) return;
@@ -419,6 +423,7 @@ function wmBind() {
   window.addEventListener('resize', wmResize); document.addEventListener('keydown', wmKeys, true);
   $('wmvX').onclick = closeWorldMap;
   $('wmvFp').onclick = wmFootPick;
+  $('wmvMk').onclick = wmMarksList;
   wm.div.querySelectorAll('[data-wvd]').forEach(function (b) { b.onclick = function () { var d = +b.getAttribute('data-wvd'); if (d !== wm.dim) { wm.dim = d; wmLoadDim(); } }; });
   $('wmvT').onclick = function () { wm.mode = 'terrain'; $('wmvT').setAttribute('aria-pressed', 'true'); $('wmvB').setAttribute('aria-pressed', 'false'); wmDraw(); };
   $('wmvB').onclick = function () { wm.mode = 'bio'; $('wmvB').setAttribute('aria-pressed', 'true'); $('wmvT').setAttribute('aria-pressed', 'false'); wmDraw(); };
@@ -456,7 +461,7 @@ function wmBind() {
   var up = function (e) {
     ptrs.delete(e.pointerId);
     if (ptrs.size < 2) pinch = null;
-    if (drag && !drag.moved && e.type === 'pointerup') { var w = wmToWorld(drag.p[0], drag.p[1]); wm.sel = [Math.floor(w[0]), Math.floor(w[1])]; wmInfo(); wmDraw(); }
+    if (drag && !drag.moved && e.type === 'pointerup') { var hit = wmMarkHit(drag.p[0], drag.p[1]), w = wmToWorld(drag.p[0], drag.p[1]); wm.sel = hit ? [hit.x, hit.z] : [Math.floor(w[0]), Math.floor(w[1])]; wmInfo(); wmDraw(); }
     if (!ptrs.size) drag = null;
   };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
@@ -646,4 +651,78 @@ async function wmFootPick() {
       toast('Estrutura no mapa: arraste o retângulo para mover, R gira 90°, as setas empurram (Shift: 16 blocos).', 6000);
     };
   });
+}
+
+/* ---------- Marcações: pontos com nome guardados por mundo (neste navegador ou no aplicativo) ---------- */
+/* Cada mundo tem a sua lista (a chave junta o nome e a semente do mundo; no aplicativo, a pasta do mundo). A marcação
+   tem nome, cor, dimensão e X, Y, Z. Aparece no mapa como um losango com o nome; tocar nela mostra o ponto. */
+var WM_MARK_COLORS = ['#e8453c', '#f0a020', '#f3d23a', '#4caf50', '#2fb6c9', '#3d7be0', '#9a5ce6', '#f2f2f2'];
+function wmMarkKey() { return 'bloco-a-bloco-marcas:' + (wio.markId || (wio.name + ':' + (wio.spawn ? wio.spawn.join(',') : ''))); }
+function wmMarks() {
+  if (wio.marks) return wio.marks;
+  try { wio.marks = JSON.parse(localStorage.getItem(wmMarkKey()) || '[]'); } catch (e) { wio.marks = []; }
+  if (!Array.isArray(wio.marks)) wio.marks = [];
+  return wio.marks;
+}
+function wmMarksSave() { try { localStorage.setItem(wmMarkKey(), JSON.stringify(wio.marks || [])); } catch (e) { toast('Não foi possível guardar as marcações neste navegador.'); } }
+function wmMarkAt(x, z) { return wmMarks().filter(function (m) { return m.d === wm.dim && m.x === x && m.z === z; })[0] || null; }
+function wmMarkHit(px, pz) {
+  var best = null, bd = 18 * wm.dpr;
+  wmMarks().forEach(function (m) { if (m.d !== wm.dim) return; var p = wmToPx(m.x + 0.5, m.z + 0.5), d = Math.hypot(p[0] - px, p[1] - (pz + 8 * wm.dpr)); if (d < bd) { bd = d; best = m; } });
+  return best;
+}
+function wmMarksDraw(g) {
+  var L = wmMarks(), dpr = wm.dpr; if (!L.length) return;
+  g.font = 'bold ' + (12 * dpr) + 'px system-ui, sans-serif'; g.textAlign = 'center';
+  L.forEach(function (m) {
+    if (m.d !== wm.dim) return;
+    var p = wmToPx(m.x + 0.5, m.z + 0.5); if (p[0] < -200 || p[1] < -60 || p[0] > wm.W + 200 || p[1] > wm.H + 60) return;
+    var r = 7 * dpr, y = p[1] - 14 * dpr; // o losango fica acima do ponto, com a ponta embaixo apontando para ele
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(p[0] - r, y); g.lineTo(p[0], y - r * 1.4); g.lineTo(p[0] + r, y); g.closePath();
+    g.fillStyle = m.c || WM_MARK_COLORS[0]; g.fill(); g.lineWidth = 1.5 * dpr; g.strokeStyle = 'rgba(0,0,0,.75)'; g.stroke();
+    g.lineWidth = 3 * dpr; g.strokeStyle = 'rgba(0,0,0,.8)'; g.strokeText(m.n, p[0], y - r * 1.4 - 4 * dpr); g.fillStyle = '#fff'; g.fillText(m.n, p[0], y - r * 1.4 - 4 * dpr);
+  });
+  g.textAlign = 'start';
+}
+/* nova (m = null, com o ponto em at) ou mudar uma que existe */
+function wmMarkEdit(m, at) {
+  var nova = !m, c = m ? m.c : WM_MARK_COLORS[wmMarks().length % WM_MARK_COLORS.length];
+  if (nova) m = { n: '', c: c, d: at.d, x: at.x, y: at.y, z: at.z };
+  openDialog('<h3>' + (nova ? 'Nova marcação' : 'Marcação') + '</h3>' +
+    '<label>Nome <input type="text" id="wmkN" maxlength="40" value="' + esc(m.n) + '" placeholder="Casa, portal, vila…"></label>' +
+    '<div class="row" style="gap:6px;margin:8px 0">' + WM_MARK_COLORS.map(function (k) { return '<button class="btn" data-wmkc="' + k + '" aria-pressed="' + (k === c) + '" style="width:30px;height:30px;padding:0;background:' + k + ';outline-offset:2px" title="Cor"></button>'; }).join('') + '</div>' +
+    '<div class="row" style="gap:8px">' + ['X', 'Y', 'Z'].map(function (a) { var v = m[a.toLowerCase()]; return '<label>' + a + ' <input type="number" id="wmk' + a + '" value="' + (v == null ? '' : v) + '" style="width:90px"' + (a === 'Y' ? ' placeholder="?"' : '') + '></label>'; }).join('') + '</div>' +
+    '<div class="row"><button class="btn primary" id="wmkOk">Guardar</button>' + (nova ? '' : '<button class="btn" id="wmkDel">Apagar</button>') + '<button class="btn" id="wmkNo">Cancelar</button></div>', function () {
+    var pick = c;
+    overlayRoot.querySelectorAll('[data-wmkc]').forEach(function (b) { b.onclick = function () { pick = b.getAttribute('data-wmkc'); overlayRoot.querySelectorAll('[data-wmkc]').forEach(function (q) { q.setAttribute('aria-pressed', String(q === b)); q.style.outline = q === b ? '3px solid var(--accent)' : ''; }); }; if (b.getAttribute('aria-pressed') === 'true') b.style.outline = '3px solid var(--accent)'; });
+    var ok = function () {
+      var n = $('wmkN').value.trim(), X = Math.round(+$('wmkX').value), Z = Math.round(+$('wmkZ').value), Yv = $('wmkY').value.trim();
+      if (!n) { toast('Dê um nome à marcação.'); return; }
+      if (!isFinite(X) || !isFinite(Z)) { toast('X e Z precisam ser números.'); return; }
+      m.n = n; m.c = pick; m.x = X; m.z = Z; m.y = Yv === '' || !isFinite(+Yv) ? null : Math.round(+Yv);
+      if (nova) wmMarks().push(m);
+      wmMarksSave(); closeDialog(); if (wm) { wm.sel = [m.x, m.z]; wmInfo(); wmDraw(); }
+    };
+    $('wmkOk').onclick = ok; $('wmkN').addEventListener('keydown', function (e) { if (e.key === 'Enter') ok(); });
+    $('wmkNo').onclick = closeDialog;
+    if ($('wmkDel')) $('wmkDel').onclick = function () { wio.marks = wmMarks().filter(function (q) { return q !== m; }); wmMarksSave(); closeDialog(); if (wm) { wmInfo(); wmDraw(); } };
+  });
+}
+function wmMarksList() {
+  var L = wmMarks();
+  openDialog('<h3>Marcações</h3>' + (L.length ? '<div class="mat"><table>' + L.map(function (m, i) {
+    return '<tr><td><b style="color:' + m.c + '">◆</b> ' + esc(m.n) + '<br><small>' + WIO_DIMS[m.d].name + ' · X ' + m.x + (m.y != null ? ', Y ' + m.y : '') + ', Z ' + m.z + '</small></td>' +
+      '<td class="num"><button class="btn" data-wmkgo="' + i + '">Ir</button><button class="btn" data-wmked="' + i + '">Editar</button></td></tr>';
+  }).join('') + '</table></div>' : '<p>Nenhuma marcação neste mundo. Toque num ponto do mapa e em <b>Marcar aqui</b>.</p>') +
+    '<p class="mixl">As marcações ficam guardadas ' + (window.BabApp ? 'no aplicativo' : 'neste navegador') + ', separadas por mundo. Elas não vão para dentro do mundo do jogo.</p>' +
+    '<div class="row"><button class="btn" id="wmkClose">Fechar</button></div>', function () {
+    $('wmkClose').onclick = closeDialog;
+    overlayRoot.querySelectorAll('[data-wmkgo]').forEach(function (b) { b.onclick = function () { var m = L[+b.getAttribute('data-wmkgo')]; closeDialog(); wmGo(m); }; });
+    overlayRoot.querySelectorAll('[data-wmked]').forEach(function (b) { b.onclick = function () { wmMarkEdit(L[+b.getAttribute('data-wmked')]); }; });
+  });
+}
+function wmGo(m) {
+  if (!wm) return;
+  var go = function () { wm.cx = m.x + 0.5; wm.cz = m.z + 0.5; wm.s = Math.max(wm.s, 2 * wm.dpr); wm.sel = [m.x, m.z]; wmInfo(); wmDraw(); };
+  if (m.d !== wm.dim) { wm.dim = m.d; wmLoadDim().then(go); } else go();
 }

@@ -174,6 +174,13 @@ body.walking #viewport canvas{cursor:none}
 .item .star{border:0;background:transparent;color:var(--muted);font-size:16px;padding:2px 4px;line-height:1}
 .item .star.on{color:var(--accent)}
 .empty{padding:20px 12px;color:var(--muted);font-size:13px}
+#appHome{position:fixed;inset:0;z-index:40;overflow:auto;background:var(--bg);color:var(--fg);padding:0 0 24px}
+#appHome header{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line);font-size:17px}
+#appHome header span{color:var(--muted);font-size:14px}#appHome .appbox{display:flex;flex-direction:column;gap:12px;max-width:560px;margin:16px auto;padding:0 16px}
+#appHome .btn.big{padding:14px;font-size:16px}#appHome .applist{display:flex;flex-direction:column;gap:8px;max-width:560px;margin:16px auto;padding:0 16px}
+#appHome .appworld{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);text-align:left;cursor:pointer}
+#appHome .appworld img,#appHome .appworld .noimg{width:96px;height:54px;object-fit:cover;border-radius:6px;background:var(--line);flex:none}#appHome .appworld b{display:block;font-size:15px}#appHome .appworld small{color:var(--muted)}
+#appHome .appfoot{max-width:560px;margin:0 auto;padding:0 16px;gap:8px}#appHome code{word-break:break-all;font-size:12px}
 #wmView{position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;background:#1b1d1c;color:var(--fg)}
 #wmView .wmvbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:13px}
 #wmView .wmvbar .mbtns{display:inline-flex;align-items:center;gap:4px}
@@ -6617,6 +6624,7 @@ function wmDraw() {
     g.lineWidth = 2 * dpr; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(sp[0] - R - 6 * dpr, sp[1]); g.lineTo(sp[0] + R + 6 * dpr, sp[1]); g.moveTo(sp[0], sp[1] - R - 6 * dpr); g.lineTo(sp[0], sp[1] + R + 6 * dpr); g.stroke();
     if (wm.s >= 4) { var bp = wmToPx(wm.sel[0], wm.sel[1]); g.strokeStyle = cssColor('--accent') || '#c55a11'; g.strokeRect(bp[0], bp[1], wm.s, wm.s); }
   }
+  wmMarksDraw(g); // as marcações
   wmFootDraw(g); // a estrutura posicionada
   var zs = wm.s / dpr; $('wmvZoom').textContent = zs >= 1 ? Math.round(zs) + ' px por bloco' : '1 px = ' + Math.round(1 / zs) + ' blocos';
 }
@@ -6632,6 +6640,7 @@ function openWorldMap() {
     '<span class="mbtns"><button id="wmvT" aria-pressed="true">Terreno</button><button id="wmvB" aria-pressed="false">Biomas</button></span>' +
     '<label class="check"><input type="checkbox" id="wmvG"> Grade dos chunks</label>' +
     '<span class="mbtns"><button id="wmvOut" title="Afastar (−)">−</button><span id="wmvZoom"></span><button id="wmvIn" title="Aproximar (+)">+</button><button id="wmvMe" title="Onde o jogador está">Jogador</button></span>' +
+    '<button id="wmvMk" class="tbtn txt" title="Os pontos marcados neste mundo (casas, portais, vilas...)">Marcações</button>' +
     '<button id="wmvFp" class="tbtn txt" title="Um retângulo do tamanho de uma estrutura, para ver o espaço que ela ocupa">Estrutura no mapa…</button>' +
     '<span id="wmvStat" class="mixl"></span><button id="wmvX" class="tbtn txt" title="Esc">Fechar</button></div>' +
     '<canvas id="wmvCv"></canvas><div id="wmvTip" hidden></div>' +
@@ -6704,15 +6713,17 @@ function wmInfo() {
   var x = wm.sel[0], z = wm.sel[1], a = wmAt(x + 0.5, z + 0.5), D = WIO_DIMS[wm.dim], conv = '';
   if (wm.dim === 0) conv = ' · <b>no Nether</b>: X <b>' + Math.floor(x / 8) + '</b>, Z <b>' + Math.floor(z / 8) + '</b>';
   else if (wm.dim === 1) conv = ' · <b>no mundo normal</b>: X <b>' + x * 8 + '</b>, Z <b>' + z * 8 + '</b>';
-  var bn = wmBioName(a.bio), bl = wmBlockName(a);
-  el.innerHTML = '<span>' + D.name + ': X <b>' + x + '</b>' + (a.h != null ? ', Y <b>' + a.h + '</b>' : '') + ', Z <b>' + z + '</b>' + conv + '</span>' +
+  var bn = wmBioName(a.bio), bl = wmBlockName(a), mk = wmMarkAt(x, z);
+  el.innerHTML = (mk ? '<span><b style="color:' + mk.c + '">◆ ' + esc(mk.n) + '</b></span> ' : '') + '<span>' + D.name + ': X <b>' + x + '</b>' + (a.h != null ? ', Y <b>' + a.h + '</b>' : '') + ', Z <b>' + z + '</b>' + conv + '</span>' +
     '<span class="mixl">chunk ' + (x >> 4) + ', ' + (z >> 4) + ' · região r.' + (x >> 9) + '.' + (z >> 9) + (bn ? ' · ' + esc(bn) : '') + (bl ? ' · ' + esc(bl) : '') + '</span>' +
-    ' <span class="mbtns"><button id="wmvCopy">Copiar</button><button id="wmvLoad" title="Abrir a janela de área com o centro aqui">Carregar área aqui</button></span>';
+    ' <span class="mbtns"><button id="wmvCopy">Copiar</button>' + (mk ? '<button id="wmvMkEd">Editar marcação</button>' : '<button id="wmvMkAdd" title="Guardar este ponto com um nome">Marcar aqui</button>') + (window.BabApp ? '' : '<button id="wmvLoad" title="Abrir a janela de área com o centro aqui">Carregar área aqui</button>') + '</span>';
+  if ($('wmvMkAdd')) $('wmvMkAdd').onclick = function () { wmMarkEdit(null, { d: wm.dim, x: x, y: a.h, z: z }); };
+  if ($('wmvMkEd')) $('wmvMkEd').onclick = function () { wmMarkEdit(mk); };
   $('wmvCopy').onclick = function () {
     var t = x + ' ' + (a.h != null ? a.h : '~') + ' ' + z;
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copiado: ' + t); }, function () { toast(t); });
   };
-  $('wmvLoad').onclick = function () { var d = wm.dim; closeWorldMap(); wioArea.at = { dim: d, x: x, z: z }; wioArea(); };
+  if ($('wmvLoad')) $('wmvLoad').onclick = function () { var d = wm.dim; closeWorldMap(); wioArea.at = { dim: d, x: x, z: z }; wioArea(); };
 }
 function wmKeys(e) {
   if (!wm) return;
@@ -6729,6 +6740,7 @@ function wmBind() {
   window.addEventListener('resize', wmResize); document.addEventListener('keydown', wmKeys, true);
   $('wmvX').onclick = closeWorldMap;
   $('wmvFp').onclick = wmFootPick;
+  $('wmvMk').onclick = wmMarksList;
   wm.div.querySelectorAll('[data-wvd]').forEach(function (b) { b.onclick = function () { var d = +b.getAttribute('data-wvd'); if (d !== wm.dim) { wm.dim = d; wmLoadDim(); } }; });
   $('wmvT').onclick = function () { wm.mode = 'terrain'; $('wmvT').setAttribute('aria-pressed', 'true'); $('wmvB').setAttribute('aria-pressed', 'false'); wmDraw(); };
   $('wmvB').onclick = function () { wm.mode = 'bio'; $('wmvB').setAttribute('aria-pressed', 'true'); $('wmvT').setAttribute('aria-pressed', 'false'); wmDraw(); };
@@ -6766,7 +6778,7 @@ function wmBind() {
   var up = function (e) {
     ptrs.delete(e.pointerId);
     if (ptrs.size < 2) pinch = null;
-    if (drag && !drag.moved && e.type === 'pointerup') { var w = wmToWorld(drag.p[0], drag.p[1]); wm.sel = [Math.floor(w[0]), Math.floor(w[1])]; wmInfo(); wmDraw(); }
+    if (drag && !drag.moved && e.type === 'pointerup') { var hit = wmMarkHit(drag.p[0], drag.p[1]), w = wmToWorld(drag.p[0], drag.p[1]); wm.sel = hit ? [hit.x, hit.z] : [Math.floor(w[0]), Math.floor(w[1])]; wmInfo(); wmDraw(); }
     if (!ptrs.size) drag = null;
   };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
@@ -6956,6 +6968,80 @@ async function wmFootPick() {
       toast('Estrutura no mapa: arraste o retângulo para mover, R gira 90°, as setas empurram (Shift: 16 blocos).', 6000);
     };
   });
+}
+
+/* ---------- Marcações: pontos com nome guardados por mundo (neste navegador ou no aplicativo) ---------- */
+/* Cada mundo tem a sua lista (a chave junta o nome e a semente do mundo; no aplicativo, a pasta do mundo). A marcação
+   tem nome, cor, dimensão e X, Y, Z. Aparece no mapa como um losango com o nome; tocar nela mostra o ponto. */
+var WM_MARK_COLORS = ['#e8453c', '#f0a020', '#f3d23a', '#4caf50', '#2fb6c9', '#3d7be0', '#9a5ce6', '#f2f2f2'];
+function wmMarkKey() { return 'bloco-a-bloco-marcas:' + (wio.markId || (wio.name + ':' + (wio.spawn ? wio.spawn.join(',') : ''))); }
+function wmMarks() {
+  if (wio.marks) return wio.marks;
+  try { wio.marks = JSON.parse(localStorage.getItem(wmMarkKey()) || '[]'); } catch (e) { wio.marks = []; }
+  if (!Array.isArray(wio.marks)) wio.marks = [];
+  return wio.marks;
+}
+function wmMarksSave() { try { localStorage.setItem(wmMarkKey(), JSON.stringify(wio.marks || [])); } catch (e) { toast('Não foi possível guardar as marcações neste navegador.'); } }
+function wmMarkAt(x, z) { return wmMarks().filter(function (m) { return m.d === wm.dim && m.x === x && m.z === z; })[0] || null; }
+function wmMarkHit(px, pz) {
+  var best = null, bd = 18 * wm.dpr;
+  wmMarks().forEach(function (m) { if (m.d !== wm.dim) return; var p = wmToPx(m.x + 0.5, m.z + 0.5), d = Math.hypot(p[0] - px, p[1] - (pz + 8 * wm.dpr)); if (d < bd) { bd = d; best = m; } });
+  return best;
+}
+function wmMarksDraw(g) {
+  var L = wmMarks(), dpr = wm.dpr; if (!L.length) return;
+  g.font = 'bold ' + (12 * dpr) + 'px system-ui, sans-serif'; g.textAlign = 'center';
+  L.forEach(function (m) {
+    if (m.d !== wm.dim) return;
+    var p = wmToPx(m.x + 0.5, m.z + 0.5); if (p[0] < -200 || p[1] < -60 || p[0] > wm.W + 200 || p[1] > wm.H + 60) return;
+    var r = 7 * dpr, y = p[1] - 14 * dpr; // o losango fica acima do ponto, com a ponta embaixo apontando para ele
+    g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(p[0] - r, y); g.lineTo(p[0], y - r * 1.4); g.lineTo(p[0] + r, y); g.closePath();
+    g.fillStyle = m.c || WM_MARK_COLORS[0]; g.fill(); g.lineWidth = 1.5 * dpr; g.strokeStyle = 'rgba(0,0,0,.75)'; g.stroke();
+    g.lineWidth = 3 * dpr; g.strokeStyle = 'rgba(0,0,0,.8)'; g.strokeText(m.n, p[0], y - r * 1.4 - 4 * dpr); g.fillStyle = '#fff'; g.fillText(m.n, p[0], y - r * 1.4 - 4 * dpr);
+  });
+  g.textAlign = 'start';
+}
+/* nova (m = null, com o ponto em at) ou mudar uma que existe */
+function wmMarkEdit(m, at) {
+  var nova = !m, c = m ? m.c : WM_MARK_COLORS[wmMarks().length % WM_MARK_COLORS.length];
+  if (nova) m = { n: '', c: c, d: at.d, x: at.x, y: at.y, z: at.z };
+  openDialog('<h3>' + (nova ? 'Nova marcação' : 'Marcação') + '</h3>' +
+    '<label>Nome <input type="text" id="wmkN" maxlength="40" value="' + esc(m.n) + '" placeholder="Casa, portal, vila…"></label>' +
+    '<div class="row" style="gap:6px;margin:8px 0">' + WM_MARK_COLORS.map(function (k) { return '<button class="btn" data-wmkc="' + k + '" aria-pressed="' + (k === c) + '" style="width:30px;height:30px;padding:0;background:' + k + ';outline-offset:2px" title="Cor"></button>'; }).join('') + '</div>' +
+    '<div class="row" style="gap:8px">' + ['X', 'Y', 'Z'].map(function (a) { var v = m[a.toLowerCase()]; return '<label>' + a + ' <input type="number" id="wmk' + a + '" value="' + (v == null ? '' : v) + '" style="width:90px"' + (a === 'Y' ? ' placeholder="?"' : '') + '></label>'; }).join('') + '</div>' +
+    '<div class="row"><button class="btn primary" id="wmkOk">Guardar</button>' + (nova ? '' : '<button class="btn" id="wmkDel">Apagar</button>') + '<button class="btn" id="wmkNo">Cancelar</button></div>', function () {
+    var pick = c;
+    overlayRoot.querySelectorAll('[data-wmkc]').forEach(function (b) { b.onclick = function () { pick = b.getAttribute('data-wmkc'); overlayRoot.querySelectorAll('[data-wmkc]').forEach(function (q) { q.setAttribute('aria-pressed', String(q === b)); q.style.outline = q === b ? '3px solid var(--accent)' : ''; }); }; if (b.getAttribute('aria-pressed') === 'true') b.style.outline = '3px solid var(--accent)'; });
+    var ok = function () {
+      var n = $('wmkN').value.trim(), X = Math.round(+$('wmkX').value), Z = Math.round(+$('wmkZ').value), Yv = $('wmkY').value.trim();
+      if (!n) { toast('Dê um nome à marcação.'); return; }
+      if (!isFinite(X) || !isFinite(Z)) { toast('X e Z precisam ser números.'); return; }
+      m.n = n; m.c = pick; m.x = X; m.z = Z; m.y = Yv === '' || !isFinite(+Yv) ? null : Math.round(+Yv);
+      if (nova) wmMarks().push(m);
+      wmMarksSave(); closeDialog(); if (wm) { wm.sel = [m.x, m.z]; wmInfo(); wmDraw(); }
+    };
+    $('wmkOk').onclick = ok; $('wmkN').addEventListener('keydown', function (e) { if (e.key === 'Enter') ok(); });
+    $('wmkNo').onclick = closeDialog;
+    if ($('wmkDel')) $('wmkDel').onclick = function () { wio.marks = wmMarks().filter(function (q) { return q !== m; }); wmMarksSave(); closeDialog(); if (wm) { wmInfo(); wmDraw(); } };
+  });
+}
+function wmMarksList() {
+  var L = wmMarks();
+  openDialog('<h3>Marcações</h3>' + (L.length ? '<div class="mat"><table>' + L.map(function (m, i) {
+    return '<tr><td><b style="color:' + m.c + '">◆</b> ' + esc(m.n) + '<br><small>' + WIO_DIMS[m.d].name + ' · X ' + m.x + (m.y != null ? ', Y ' + m.y : '') + ', Z ' + m.z + '</small></td>' +
+      '<td class="num"><button class="btn" data-wmkgo="' + i + '">Ir</button><button class="btn" data-wmked="' + i + '">Editar</button></td></tr>';
+  }).join('') + '</table></div>' : '<p>Nenhuma marcação neste mundo. Toque num ponto do mapa e em <b>Marcar aqui</b>.</p>') +
+    '<p class="mixl">As marcações ficam guardadas ' + (window.BabApp ? 'no aplicativo' : 'neste navegador') + ', separadas por mundo. Elas não vão para dentro do mundo do jogo.</p>' +
+    '<div class="row"><button class="btn" id="wmkClose">Fechar</button></div>', function () {
+    $('wmkClose').onclick = closeDialog;
+    overlayRoot.querySelectorAll('[data-wmkgo]').forEach(function (b) { b.onclick = function () { var m = L[+b.getAttribute('data-wmkgo')]; closeDialog(); wmGo(m); }; });
+    overlayRoot.querySelectorAll('[data-wmked]').forEach(function (b) { b.onclick = function () { wmMarkEdit(L[+b.getAttribute('data-wmked')]); }; });
+  });
+}
+function wmGo(m) {
+  if (!wm) return;
+  var go = function () { wm.cx = m.x + 0.5; wm.cz = m.z + 0.5; wm.s = Math.max(wm.s, 2 * wm.dpr); wm.sel = [m.x, m.z]; wmInfo(); wmDraw(); };
+  if (m.d !== wm.dim) { wm.dim = m.d; wmLoadDim().then(go); } else go();
 }
 
 /* ---------- Abas: várias construções ou mundos abertos ao mesmo tempo ---------- */
@@ -11443,7 +11529,7 @@ function nbeOpen() {
     var dg = $('nbeBody').closest('.dialog'); if (dg) dg.classList.add('wide');
     var dl = $('nbeItems'); dl.innerHTML = NBE_ITEMS.concat(BLOCKS.filter(function (b) { return !b.hide && !b.isAir; }).map(function (b) { return b.java; })).map(function (n) { return '<option value="' + n + '">'; }).join('');
     document.querySelectorAll('[data-nt]').forEach(function (b) { b.onclick = function () { nbe.tab = b.getAttribute('data-nt'); document.querySelectorAll('[data-nt]').forEach(function (q) { q.setAttribute('aria-pressed', q === b); }); nbeRender(); }; });
-    $('nbeOk').onclick = async function () { try { var ch = await nbeCommit(); closeDialog(); toast(ch ? 'Mudanças gravadas: vão no Exportar mundo (o mundo original não muda).' + (nbe.java || !nbe.cheat ? '' : ' As conquistas ficam desativadas no mundo exportado.') : 'Nada mudou.', 7000); } catch (e) { reportErr(e); } };
+    $('nbeOk').onclick = async function () { if (window.BabApp) { appNbeSave(); return; } try { var ch = await nbeCommit(); closeDialog(); toast(ch ? 'Mudanças gravadas: vão no Exportar mundo (o mundo original não muda).' + (nbe.java || !nbe.cheat ? '' : ' As conquistas ficam desativadas no mundo exportado.') : 'Nada mudou.', 7000); } catch (e) { reportErr(e); } };
     $('nbeNo').onclick = function () { nbe = null; closeDialog(); };
     nbeRender();
   });
@@ -11946,6 +12032,149 @@ function nbeOldInvHtml() {
   });
   return '<p class="mixl">Nesta versão, os itens ficam guardados por número, e a barra de baixo aponta para os espaços do inventário. O site mostra o inventário, mas não muda: o jeito exato que a versão antiga grava não pôde ser conferido no jogo, e um erro aqui pode apagar o inventário.</p>' +
     (rows.length ? rows.join('') : '<p>O inventário está vazio.</p>');
+}
+
+/* ---------- Aplicativo para Android: Editor NBT e mapa direto na pasta dos mundos do jogo ---------- */
+/* O aplicativo (pasta android/ do repositório) é este mesmo site dentro de uma WebView, com uma ponte (window.BabApp)
+   para a pasta dos mundos do Minecraft, escolhida uma vez pelo seletor do Android (SAF):
+   - BabApp.pickFolder(): abre o seletor (já na pasta do Minecraft); a resposta chega em appFolderPicked(ok, msg).
+   - BabApp.folder(): a pasta escolhida ('' se nenhuma). BabApp.worlds(): JSON [{ id, name, time, icon }].
+   - Leitura: fetch('/w/<id>/list') dá [{ p, s }] (caminho e tamanho, com a pasta db); fetch('/w/<id>/f/<caminho>') dá o
+     arquivo. A WebView responde direto da pasta, sem copiar o mundo.
+   - BabApp.write(id, caminho, base64), BabApp.remove(id, caminho): 'ok' ou a mensagem do erro.
+   - BabApp.backup(id, caminho, carimbo) e BabApp.restore(id, caminho, carimbo): cópia de segurança na área do aplicativo.
+   Gravar no mundo: o level.dat (e o levelname.txt) trocados e um .log novo na pasta db com as chaves mudadas (o jogador
+   do aparelho), do mesmo jeito que o Exportar mundo grava (o jogo lê o .log ao abrir e junta ao banco). O Minecraft tem de
+   estar fechado: aberto, ele regrava o mundo por cima. "Desfazer a última gravação" volta o level.dat e apaga o .log
+   enquanto o jogo ainda não abriu o mundo (depois que o jogo abre, ele junta o .log ao banco e apaga o arquivo). */
+var app = null; // { worlds, world: { id, name }, saved: false }
+function appBase() { return location.origin; }
+function appEnc(s) { return encodeURIComponent(s); }
+function appB64(u) {
+  var s = '', CH = 0x8000;
+  for (var i = 0; i < u.length; i += CH) s += String.fromCharCode.apply(null, u.subarray(i, i + CH));
+  return btoa(s);
+}
+async function appFetch(url, bin) {
+  var r = await fetch(url); if (!r.ok) throw new Error('Não foi possível ler ' + decodeURIComponent(url.split('/').pop()) + ' (' + r.status + ').');
+  return bin ? new Uint8Array(await r.arrayBuffer()) : r.json();
+}
+/* A fonte dos arquivos do mundo (como a de um .zip: paths e read) */
+async function appWorldSrc(id) {
+  var list = await appFetch(appBase() + '/w/' + appEnc(id) + '/list');
+  var sizes = new Map(); list.forEach(function (f) { sizes.set(f.p, f.s); });
+  return { paths: list.map(function (f) { return f.p; }), size: function (p) { return sizes.get(p); }, dir: true,
+    read: function (p) { return appFetch(appBase() + '/w/' + appEnc(id) + '/f/' + p.split('/').map(appEnc).join('/'), true); } };
+}
+function appStart() {
+  document.body.classList.add('app');
+  app = { worlds: [], world: null };
+  var div = document.createElement('div'); div.id = 'appHome'; document.body.appendChild(div);
+  appList();
+}
+window.appFolderPicked = function (ok, msg) { if (!ok && msg) toast(msg, 9000); appList(); };
+function appList() {
+  closeWorldMap(); wio = null; app.world = null;
+  var folder = BabApp.folder(), worlds = [];
+  if (folder) { try { worlds = JSON.parse(BabApp.worlds()); } catch (e) { toast('Não foi possível ler a pasta: ' + e.message, 8000); } }
+  app.worlds = worlds;
+  var h = '<header><b>Bloco a Bloco</b><span>Editor de mundos</span></header>';
+  if (!folder) h += '<div class="appbox"><p>Escolha a pasta onde o Minecraft guarda os mundos. O seletor já abre nela: <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds</code>. Toque em <b>Usar esta pasta</b> e depois em <b>Permitir</b>.</p><button class="btn primary" id="appPick">Escolher a pasta dos mundos</button></div>';
+  else {
+    h += '<div class="applist">' + (worlds.length ? worlds.map(function (w, i) {
+      return '<button class="appworld" data-aw="' + i + '">' + (w.icon ? '<img src="' + appBase() + '/w/' + appEnc(w.id) + '/f/world_icon.jpeg" alt="">' : '<span class="noimg"></span>') +
+        '<span><b>' + esc(w.name) + '</b><small>' + (w.time ? new Date(w.time).toLocaleString('pt-BR') : '') + '</small></span></button>';
+    }).join('') : '<p>Nenhum mundo nesta pasta. Confira se é a pasta <code>minecraftWorlds</code> (ou a <code>com.mojang</code>).</p>') + '</div>' +
+      '<div class="row appfoot"><button class="btn" id="appPick">Trocar a pasta</button><button class="btn" id="appTex">Texturas…</button></div>';
+  }
+  $('appHome').innerHTML = h;
+  $('appPick').onclick = function () { BabApp.pickFolder(); };
+  if ($('appTex')) $('appTex').onclick = openTextures;
+  document.querySelectorAll('[data-aw]').forEach(function (b) { b.onclick = function () { appOpen(app.worlds[+b.getAttribute('data-aw')]); }; });
+}
+async function appOpen(w) {
+  try {
+    busy('Abrindo ' + w.name + '…', null);
+    var src = await appWorldSrc(w.id);
+    var o = await wioOpenFile(src, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
+    if (o.java || o.old) throw new Error('O aplicativo abre os mundos do Bedrock atual.');
+    o.markId = 'app:' + w.id; o.name = o.name || w.name;
+    if (o.leg) o.legKeep = true; // chunks no formato antigo: o mapa mostra como estão (o aplicativo não converte)
+    wio = o; app.world = w; busyEnd();
+    appWorldHome();
+  } catch (e) { busyEnd(); toast(e.message || 'Não foi possível abrir o mundo.', 9000); }
+}
+function appUndoKey() { return 'bloco-a-bloco-app-desfazer:' + app.world.id; }
+function appWorldHome() {
+  var u = null; try { u = JSON.parse(localStorage.getItem(appUndoKey()) || 'null'); } catch (e) {}
+  $('appHome').innerHTML = '<header><button class="btn" id="appBack">‹ Mundos</button><b>' + esc(wio.name) + '</b></header>' +
+    '<div class="appbox"><button class="btn primary big" id="appMap">Mapa e marcações</button><button class="btn primary big" id="appNbt">Editor NBT</button>' +
+    (u ? '<button class="btn" id="appUndo">Desfazer a última gravação (' + new Date(u.t).toLocaleString('pt-BR') + ')</button>' : '') +
+    '<p class="mixl">O Editor NBT grava direto neste mundo, com o Minecraft fechado. Antes de gravar, o aplicativo guarda uma cópia do que vai trocar.</p></div>';
+  $('appBack').onclick = appList;
+  $('appMap').onclick = openWorldMap;
+  $('appNbt').onclick = openNbtEditor;
+  if ($('appUndo')) $('appUndo').onclick = function () { appUndo(u); };
+}
+/* Grava no mundo o que o Editor NBT mudou (wio.files e wio.patches, como o Exportar mundo) */
+function appConfirm() {
+  if (appConfirm.ok) return Promise.resolve(true);
+  return new Promise(function (res) {
+    openDialog('<h3>Gravar no mundo</h3><p>Feche o Minecraft antes de gravar, inclusive em segundo plano (deslize ele para fora da lista de apps recentes). Com o jogo aberto, ele regrava o mundo por cima e as mudanças se perdem, ou o mundo pode estragar.</p>' +
+      '<div class="row"><button class="btn primary" id="apwOk">O jogo está fechado: gravar</button><button class="btn" id="apwNo">Voltar</button></div>', function () {
+      $('apwOk').onclick = function () { closeDialog(); appConfirm.ok = true; res(true); }; $('apwNo').onclick = function () { closeDialog(); res(false); };
+    });
+  });
+}
+async function appWrite() {
+  var id = app.world.id, t = Date.now(), names = [], undo = { t: t, files: [], added: null };
+  var src = await appWorldSrc(id); // o que existe agora na pasta
+  if (wio.files) wio.files.forEach(function (d, nm) { names.push(nm); });
+  var log = null;
+  if (wio.patches.size) {
+    var ents = []; wio.patches.forEach(function (v, k) { ents.push([k, v]); });
+    ents.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+    var num = wio.db.maxFile + 1, nm = String(num); while (nm.length < 6) nm = '0' + nm;
+    log = { name: 'db/' + nm + '.log', data: ldbLogWrite(ents, wio.db.maxSeq + 1), n: ents.length, num: num };
+    if (src.paths.indexOf(log.name) >= 0) throw new Error('Já existe ' + log.name + ' na pasta: o jogo mexeu no mundo. Volte à lista e abra o mundo de novo.');
+  }
+  busy('Gravando no mundo…', null);
+  try {
+    var chk = function (r, what) { if (r !== 'ok') throw new Error('Não foi possível gravar ' + what + ': ' + r); };
+    for (var i = 0; i < names.length; i++) if (src.paths.indexOf(names[i]) >= 0) { chk(BabApp.backup(id, names[i], String(t)), 'a cópia de ' + names[i]); undo.files.push(names[i]); }
+    if (log) { chk(BabApp.write(id, log.name, appB64(log.data)), log.name); undo.added = log.name; wio.db.maxFile = log.num; wio.db.maxSeq += log.n; }
+    for (i = 0; i < names.length; i++) chk(BabApp.write(id, names[i], appB64(wio.files.get(names[i]))), names[i]);
+    try { localStorage.setItem(appUndoKey(), JSON.stringify(undo)); } catch (e) {}
+  } finally { busyEnd(); }
+  appWorldHome();
+  return true;
+}
+/* o botão Gravar mudanças do Editor NBT no aplicativo: confirma que o jogo está fechado, junta e grava no mundo */
+async function appNbeSave() {
+  if (!nbe.dirtyL && !nbe.dirtyP) { closeDialog(); toast('Nada mudou.'); return; }
+  if (!(await appConfirm())) { nbeOpen(); return; }
+  try {
+    await nbeCommit(); closeDialog();
+    if (await appWrite()) toast('Gravado no mundo.' + (nbe && !nbe.java && nbe.cheat ? ' As conquistas ficam desativadas nele.' : '') + ' Já pode abrir o Minecraft.', 8000);
+  } catch (e) { busyEnd(); toast(e.message || 'Não foi possível gravar.', 10000); }
+}
+async function appUndo(u) {
+  var id = app.world.id, src = await appWorldSrc(id);
+  if (u.added && src.paths.indexOf(u.added) < 0) { toast('O jogo já abriu o mundo depois da gravação (ele junta as mudanças ao banco): não dá mais para desfazer por aqui.', 9000); localStorage.removeItem(appUndoKey()); appWorldHome(); return; }
+  var r;
+  for (var i = 0; i < u.files.length; i++) { r = BabApp.restore(id, u.files[i], String(u.t)); if (r !== 'ok') { toast('Não foi possível voltar ' + u.files[i] + ': ' + r, 9000); return; } }
+  if (u.added) { r = BabApp.remove(id, u.added); if (r !== 'ok') { toast('Não foi possível apagar ' + u.added + ': ' + r, 9000); return; } }
+  localStorage.removeItem(appUndoKey());
+  toast('A última gravação foi desfeita.', 5000);
+  appOpen(app.world);
+}
+/* o botão Voltar do Android: fecha a janela aberta, o mapa ou o mundo; na lista de mundos, sai do aplicativo */
+function appOnBack() {
+  if (!app) return false;
+  if (overlayRoot.firstChild) { closeDialog(); return true; }
+  if (wm) { closeWorldMap(); return true; }
+  if (app.world) { appList(); return true; }
+  return false;
 }
 
 /* ---------- Mundos no formato antigo do Bedrock (Pocket Edition até a 1.0: chunks "LegacyTerrain") ---------- */
@@ -14187,7 +14416,7 @@ async function wioBeds(dim, cx, cz) {
 /* Acha o mundo dentro do .zip/.mcworld: a pasta com level.dat e db/CURRENT (pode estar dentro de uma pasta, ou o
    .zip pode trazer um .mcworld dentro) */
 async function wioFind(file) {
-  var zip = await openZip(file), paths = zip.paths;
+  var zip = file && file.paths ? file : await openZip(file), paths = zip.paths; // file.paths: uma pasta já listada (o aplicativo, src/appmode.js)
   var lv = paths.filter(function (p) { return /(^|\/)level\.dat$/i.test(p); }).map(function (p) { return p.slice(0, p.length - 9); })
     .filter(function (pre) { return paths.indexOf(pre + 'db/CURRENT') >= 0; }).sort(function (a, b) { return a.length - b.length; });
   if (lv.length) return { zip: zip, blob: file, prefix: lv[0] };
@@ -14490,7 +14719,7 @@ function wioMeta() {
   return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl, legKeep: wio.legKeep, legVer: wio.legVer || '', oldCheat: wio.oldCheat || 0, presLeg: wio.pres.map(function (e) { return e.leg == null ? null : e.leg; }) };
 }
 function wioSaveSession(withFile) {
-  if (!wio) return Promise.resolve();
+  if (!wio || window.BabApp) return Promise.resolve(); // no aplicativo, o mundo é a própria pasta do jogo (src/appmode.js)
   var pat = {}; wio.patches.forEach(function (v, k) { pat[wioHex(k)] = v; });
   var meta = wioMeta();
   return idbDo('readwrite', function (st) {
@@ -16135,7 +16364,7 @@ async function start() {
   loadPacks().then(function () { if (packs.length) applyTextures(); });
   var ok = false;
   if (saved && (saved.rle || saved.chunks)) { try { loadProject(saved); ok = true; } catch (e) {} if (ok) wioForget(); }
-  if (!ok) { requestAnimationFrame(frame); framing = true; ok = await wioRestore(); } // a cena já desenha enquanto o mundo é lido (sem tela preta)
+  if (!ok && !window.BabApp) { requestAnimationFrame(frame); framing = true; ok = await wioRestore(); } // a cena já desenha enquanto o mundo é lido (sem tela preta)
   if (ok === 'parado') ok = 'vazio';
   if (!ok) { busy('Abrindo a construção salva…', null); try { ok = await loadAutosave(); } catch (e) { ok = false; } busyEnd(); }
   if (ok && ok !== 'vazio') { try { await histLoad(); } catch (e) {} } // a linha do tempo volta junto com a construção
@@ -16145,6 +16374,7 @@ async function start() {
   if (!ok) setTimeout(function () { toast('Exemplo carregado. Use Projeto > Novo para começar do zero.'); }, 600);
   if (!framing) requestAnimationFrame(frame);
   window.__bab = { ev: function (src) { return eval(src); }, name: function (a) { return cellName(gget(a[0], a[1], a[2])); }, exportBoth: async function () { var v = collectVoxels(); var a = await MCExport.exportSchem(v, BLOCKS, { name: "t" }), b = await MCExport.exportMcstructure(v, BLOCKS, { preserveTerrain: true }); var enc = function (u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }; return [enc(a), enc(b)]; }, geom: function (n, o) { var b = BLOCKS[BY_JAVA[n]]; var fo = {}; for (var k in b.defs) fo[k] = b.defs[k]; for (k in o) fo[k] = o[k]; return shapeGeom(b, fo).map(function (q) { return [b.jt[q.ti], q.p.map(function (p) { return p.map(function (v) { return +v.toFixed(3); }).join(","); }).join(" ")]; }); }, all: function () { var o = []; forEachBlock(function (x, y, z, v) { o.push([x, y, z, cellName(v)]); }); return o; }, chunks: function () { return W.size; }, mem: worldBytes, gsetN: function (n, name) { var v = cellFromName(name), k = 0; beginBatch(); for (var y = 0; y < SY && k < n; y++) for (var z = 0; z < SZ && k < n; z++) for (var x = 0; x < SX && k < n; x++, k++) editSet(x, y, z, v); endBatch(); }, setTool: setTool, cam: cam, press: pressAt, target: targetAt, count: function () { return blockCount; }, undo: undo, redo: redo, vox: collectVoxels, layer: setLayer, update: function () { updateCamera(); requestRender(); }, sel: function () { return sel; }, clip: function () { return clip; }, setSel: function (a, b) { sel = selFrom(a, b); selA = null; selRefresh(); }, copy: copySel, paste: startPaste, commitPaste: function (p) { commitPaste({ place: p }); }, rotClip: rotateClip, repl: openReplace, del: deleteSel, grow: function (c, big) { return growAt(c, big); }, setCell: function (c, n) { editSet(c[0], c[1], c[2], n ? cellFromName(n) : 0); }, batchSet: function (l) { beginBatch(); l.forEach(function (e) { editSet(e[0], e[1], e[2], e[3] ? cellFromName(e[3]) : 0); }); endBatch(); }, setFlowT: function (v) { setFlow(v); }, nameAt: function (i) { return cellName(gat(i)); }, ser: serialize, load: function (o) { return loadProject(o); }, resize: function (a, b, c) { resizeWorld(a, b, c); }, fillRaw: function (x0, y0, z0, x1, y1, z1, nm) { var v = cellFromName(nm), n = 0; for (var y = y0; y <= y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) { if (!gget(x, y, z)) { blockCount++; n++; } gset(x, y, z, v); markDirty(x, y, z); } verCounter++; changed(); return n; }, bbox: bbox, resetCam: resetCamera, meshInfo: function () { var tri = 0; chunks.forEach(function (ms) { ms.forEach(function (m) { tri += m.geometry.index.count / 3; }); }); return { montados: chunks.size, triangulos: tri, naFila: dirty.size, chunksMundo: W.size }; }, saveState: function () { return { pendentes: worldDirty.size, ocupado: autosaveBusy }; }, rulerVis: function () { return !!(rulerObj && rulerObj.visible); }, measVis: function () { return !!measureObj; }, rot: function (n) { var v = cellFromName(n); return v ? cellName(rotateCell(v)) : null; } };
+  if (window.BabApp) appStart(); // o aplicativo para Android (src/appmode.js)
 }
 })();
 </script>

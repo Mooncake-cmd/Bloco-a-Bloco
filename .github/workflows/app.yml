@@ -1,0 +1,44 @@
+# O aplicativo para Android (pasta android/): gera o APK com o site de dist/ e publica na versão "app" do repositório.
+# Link fixo para baixar: https://github.com/Mooncake-cmd/bloco-a-bloco/releases/download/app/bloco-a-bloco.apk
+name: Aplicativo Android
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'dist/bloco-a-bloco.html', '.github/workflows/app.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: app, cancel-in-progress: true }
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.11.1' }
+      # A chave de assinatura: o segredo BAB_KEYSTORE (o .jks em base64) com a senha em BAB_KEY_PASS, para as versões novas
+      # instalarem por cima das antigas. Sem o segredo, uma chave feita na hora (aí, para atualizar, desinstale a anterior).
+      - name: Chave de assinatura
+        env: { KS: '${{ secrets.BAB_KEYSTORE }}', KP: '${{ secrets.BAB_KEY_PASS }}' }
+        run: |
+          if [ -n "$KS" ] && [ -n "$KP" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/bab.jks"; echo "BAB_KEY_PASS=$KP" >> "$GITHUB_ENV"
+          else
+            P=$(openssl rand -hex 16); echo "::add-mask::$P"; echo "BAB_KEY_PASS=$P" >> "$GITHUB_ENV"
+            keytool -genkeypair -keystore "$RUNNER_TEMP/bab.jks" -storepass "$P" -keypass "$P" -alias bab -keyalg RSA -keysize 2048 -validity 20000 -dname "CN=Bloco a Bloco"
+            echo "::warning::Sem o segredo BAB_KEYSTORE: o APK foi assinado com uma chave nova (para atualizar, desinstale o anterior)."
+          fi
+          echo "BAB_KEYSTORE_FILE=$RUNNER_TEMP/bab.jks" >> "$GITHUB_ENV"
+      - name: Gerar o APK
+        working-directory: android
+        env: { APP_VERSION_CODE: '${{ github.run_number }}' }
+        run: gradle --no-daemon assembleRelease
+      - name: Publicar na versão "app"
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk bloco-a-bloco.apk
+          gh release view app >/dev/null 2>&1 || gh release create app --title "Aplicativo Android" --notes "Editor NBT e mapa direto na pasta dos mundos do Minecraft Bedrock (Android 11 e 12). Baixe o bloco-a-bloco.apk e instale."
+          gh release upload app bloco-a-bloco.apk --clobber
+          gh release edit app --notes "Editor NBT e mapa direto na pasta dos mundos do Minecraft Bedrock (Android 11 e 12). Versão 1.0.${{ github.run_number }}, de $(date -u +%d/%m/%Y). Baixe o bloco-a-bloco.apk e instale."

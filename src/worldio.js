@@ -419,7 +419,7 @@ async function wioBeds(dim, cx, cz) {
 /* Acha o mundo dentro do .zip/.mcworld: a pasta com level.dat e db/CURRENT (pode estar dentro de uma pasta, ou o
    .zip pode trazer um .mcworld dentro) */
 async function wioFind(file) {
-  var zip = await openZip(file), paths = zip.paths;
+  var zip = file && file.paths ? file : await openZip(file), paths = zip.paths; // file.paths: uma pasta já listada (o aplicativo, src/appmode.js)
   var lv = paths.filter(function (p) { return /(^|\/)level\.dat$/i.test(p); }).map(function (p) { return p.slice(0, p.length - 9); })
     .filter(function (pre) { return paths.indexOf(pre + 'db/CURRENT') >= 0; }).sort(function (a, b) { return a.length - b.length; });
   if (lv.length) return { zip: zip, blob: file, prefix: lv[0] };
@@ -722,7 +722,7 @@ function wioMeta() {
   return { name: wio.name, area: wio.area, pres: wio.pres.map(function (e) { return b64(e.raw); }), files: fl, legKeep: wio.legKeep, legVer: wio.legVer || '', oldCheat: wio.oldCheat || 0, presLeg: wio.pres.map(function (e) { return e.leg == null ? null : e.leg; }) };
 }
 function wioSaveSession(withFile) {
-  if (!wio) return Promise.resolve();
+  if (!wio || window.BabApp) return Promise.resolve(); // no aplicativo, o mundo é a própria pasta do jogo (src/appmode.js)
   var pat = {}; wio.patches.forEach(function (v, k) { pat[wioHex(k)] = v; });
   var meta = wioMeta();
   return idbDo('readwrite', function (st) {

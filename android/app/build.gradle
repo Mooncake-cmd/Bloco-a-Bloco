@@ -1,0 +1,35 @@
+// O aplicativo: o site (dist/bloco-a-bloco.html) dentro de uma WebView, com a ponte para a pasta dos mundos (MainActivity).
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'io.github.mooncakecmd.bab'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'io.github.mooncakecmd.bab'
+        minSdk 26
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv('APP_VERSION_CODE') ?: '1')
+        versionName '1.0.' + (System.getenv('APP_VERSION_CODE') ?: '1')
+    }
+    // Assinatura: a chave vem do GitHub Actions (o segredo BAB_KEYSTORE, ou uma chave feita na hora; ver .github/workflows/app.yml).
+    // Nada de chave nem senha no repositório.
+    signingConfigs {
+        bab {
+            storeFile file(System.getenv('BAB_KEYSTORE_FILE') ?: 'bab.jks')
+            storePassword System.getenv('BAB_KEY_PASS') ?: ''
+            keyAlias 'bab'
+            keyPassword System.getenv('BAB_KEY_PASS') ?: ''
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.bab }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+// O site vai junto, como index.html dos assets
+tasks.register('copySite', Copy) {
+    from('../../dist/bloco-a-bloco.html') { rename { 'index.html' } }
+    into 'src/main/assets'
+}
+preBuild.dependsOn copySite

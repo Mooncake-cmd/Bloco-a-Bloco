@@ -144,7 +144,7 @@ function nbeOpen() {
     var dg = $('nbeBody').closest('.dialog'); if (dg) dg.classList.add('wide');
     var dl = $('nbeItems'); dl.innerHTML = NBE_ITEMS.concat(BLOCKS.filter(function (b) { return !b.hide && !b.isAir; }).map(function (b) { return b.java; })).map(function (n) { return '<option value="' + n + '">'; }).join('');
     document.querySelectorAll('[data-nt]').forEach(function (b) { b.onclick = function () { nbe.tab = b.getAttribute('data-nt'); document.querySelectorAll('[data-nt]').forEach(function (q) { q.setAttribute('aria-pressed', q === b); }); nbeRender(); }; });
-    $('nbeOk').onclick = async function () { try { var ch = await nbeCommit(); closeDialog(); toast(ch ? 'Mudanças gravadas: vão no Exportar mundo (o mundo original não muda).' + (nbe.java || !nbe.cheat ? '' : ' As conquistas ficam desativadas no mundo exportado.') : 'Nada mudou.', 7000); } catch (e) { reportErr(e); } };
+    $('nbeOk').onclick = async function () { if (window.BabApp) { appNbeSave(); return; } try { var ch = await nbeCommit(); closeDialog(); toast(ch ? 'Mudanças gravadas: vão no Exportar mundo (o mundo original não muda).' + (nbe.java || !nbe.cheat ? '' : ' As conquistas ficam desativadas no mundo exportado.') : 'Nada mudou.', 7000); } catch (e) { reportErr(e); } };
     $('nbeNo').onclick = function () { nbe = null; closeDialog(); };
     nbeRender();
   });

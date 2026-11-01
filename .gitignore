@@ -4,3 +4,9 @@ package-lock.json
 *.mcstructure
 file:/
 undefined/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/
+android/local.properties
+android/*.jks
