@@ -12037,7 +12037,8 @@ function nbeOldInvHtml() {
 /* ---------- Aplicativo para Android: Editor NBT e mapa direto na pasta dos mundos do jogo ---------- */
 /* O aplicativo (pasta android/ do repositório) é este mesmo site dentro de uma WebView, com uma ponte (window.BabApp)
    para a pasta dos mundos do Minecraft, escolhida uma vez pelo seletor do Android (SAF):
-   - BabApp.pickFolder(): abre o seletor (já na pasta do Minecraft); a resposta chega em appFolderPicked(ok, msg).
+   - BabApp.pickFolder(caminho): abre o seletor já nessa pasta (como o File Manager+ pede, o que no Android 11 e 12 deixa
+     escolher dentro de Android/data); a resposta chega em appFolderPicked(ok, msg).
    - BabApp.folder(): a pasta escolhida ('' se nenhuma). BabApp.worlds(): JSON [{ id, name, time, icon }].
    - Leitura: fetch('/w/<id>/list') dá [{ p, s }] (caminho e tamanho, com a pasta db); fetch('/w/<id>/f/<caminho>') dá o
      arquivo. A WebView responde direto da pasta, sem copiar o mundo.
@@ -12079,7 +12080,8 @@ function appList() {
   if (folder) { try { worlds = JSON.parse(BabApp.worlds()); } catch (e) { toast('Não foi possível ler a pasta: ' + e.message, 8000); } }
   app.worlds = worlds;
   var h = '<header><b>Bloco a Bloco</b><span>Editor de mundos</span></header>';
-  if (!folder) h += '<div class="appbox"><p>Escolha a pasta onde o Minecraft guarda os mundos. O seletor já abre nela: <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds</code>. Toque em <b>Usar esta pasta</b> e depois em <b>Permitir</b>.</p><button class="btn primary" id="appPick">Escolher a pasta dos mundos</button></div>';
+  if (!folder) h += '<div class="appbox"><p>Escolha a pasta do Minecraft. O seletor do Android abre já nela (<code>Android/data/com.mojang.minecraftpe</code>): toque em <b>Usar esta pasta</b> e depois em <b>Permitir</b>. O aplicativo acha os mundos dentro.</p><button class="btn primary" id="appPick">Escolher a pasta do Minecraft</button>' +
+    '<p class="mixl">Se o seletor não deixar usar a pasta, tente abrir nas outras:</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-apk="Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds">Abrir em minecraftWorlds</button><button class="btn" data-apk="Android/data">Abrir em Android/data</button></div></div>';
   else {
     h += '<div class="applist">' + (worlds.length ? worlds.map(function (w, i) {
       return '<button class="appworld" data-aw="' + i + '">' + (w.icon ? '<img src="' + appBase() + '/w/' + appEnc(w.id) + '/f/world_icon.jpeg" alt="">' : '<span class="noimg"></span>') +
@@ -12088,7 +12090,8 @@ function appList() {
       '<div class="row appfoot"><button class="btn" id="appPick">Trocar a pasta</button><button class="btn" id="appTex">Texturas…</button></div>';
   }
   $('appHome').innerHTML = h;
-  $('appPick').onclick = function () { BabApp.pickFolder(); };
+  $('appPick').onclick = function () { BabApp.pickFolder('Android/data/com.mojang.minecraftpe'); };
+  document.querySelectorAll('[data-apk]').forEach(function (b) { b.onclick = function () { BabApp.pickFolder(b.getAttribute('data-apk')); }; });
   if ($('appTex')) $('appTex').onclick = openTextures;
   document.querySelectorAll('[data-aw]').forEach(function (b) { b.onclick = function () { appOpen(app.worlds[+b.getAttribute('data-aw')]); }; });
 }

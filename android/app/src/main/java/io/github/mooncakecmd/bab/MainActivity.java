@@ -157,7 +157,7 @@ public class MainActivity extends Activity {
 
     /** documentId de um arquivo do mundo pelo caminho (db/000005.log). Na memória do aparelho, o id é o próprio caminho. */
     String fileId(String world, String rel) {
-        if (EXT.equals(tree().getAuthority())) return world + "/" + rel;
+        if (tree().getAuthority() != null && tree().getAuthority().endsWith(EXT)) return world + "/" + rel;
         String cur = world;
         for (String part : rel.split("/")) { String[] e = children(cur).get(part); if (e == null) return null; cur = e[0]; }
         return cur;
@@ -224,10 +224,17 @@ public class MainActivity extends Activity {
     // ---------- window.BabApp ----------
     class Bridge {
         @JavascriptInterface public String folder() { Uri t = tree(); return t == null ? "" : t.toString(); }
-        @JavascriptInterface public void pickFolder() {
+        /** Abre o seletor de pastas do Android já na pasta pedida (rel, a partir da memória do aparelho). Como o File
+         *  Manager+ faz: o endereço inicial no formato de árvore (tree/.../document/...), que no Android 11 e 12 deixa
+         *  escolher pastas dentro de Android/data. */
+        @JavascriptInterface public void pickFolder(String rel) {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
-            i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUri(EXT, MC));
+            String id = "primary:" + (rel == null || rel.isEmpty() ? MC.substring(8) : rel);
+            Uri t = DocumentsContract.buildTreeDocumentUri(EXT, id);
+            i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUriUsingTree(t, id));
+            i.putExtra("android.content.extra.SHOW_ADVANCED", true);
+            i.putExtra("android.provider.extra.SHOW_ADVANCED", true);
             runOnUiThread(() -> startActivityForResult(i, PICK_TREE));
         }
         @JavascriptInterface public String worlds() {

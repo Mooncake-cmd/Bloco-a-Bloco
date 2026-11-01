@@ -1377,7 +1377,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <figure><img src="img/app-gravar.jpg" alt="O aviso Gravar no mundo: feche o Minecraft antes de gravar, com os botões O jogo está fechado: gravar e Voltar" width="824" height="1720" loading="lazy"><figcaption>Antes de gravar: o jogo fechado.</figcaption></figure>
   </div>
   <ol>
-    <li><b>Escolher a pasta dos mundos</b> (só da primeira vez): o seletor do Android já abre na pasta <code>minecraftWorlds</code>. Toque em <b>Usar esta pasta</b> e em <b>Permitir</b>. Escolher a pasta <code>com.mojang</code> (ou a <code>Android/data</code>) também serve: o aplicativo acha os mundos dentro.</li>
+    <li><b>Escolher a pasta do Minecraft</b> (só da primeira vez): o seletor de pastas do Android abre já em <code>Android/data/com.mojang.minecraftpe</code>, pedido do mesmo jeito que o File Manager+ pede, o que no Android 11 e 12 deixa usar pastas dentro de <code>Android/data</code> mesmo quando o gerenciador do próprio Android não mostra essa pasta. Toque em <b>Usar esta pasta</b> e em <b>Permitir</b>; o aplicativo acha os mundos dentro. Se o seletor recusar, os botões <b>Abrir em minecraftWorlds</b> e <b>Abrir em Android/data</b> tentam abrir em outro ponto.</li>
     <li>Toque num mundo. Ele é lido da pasta (um mundo grande leva um tempo, como no site).</li>
     <li><b>Mapa e marcações</b>: o mapa do mundo (veja Mapa do mundo), com as marcações deste mundo.</li>
     <li><b>Editor NBT</b>: as mesmas abas do site (Mundo, Regras, Jogador, Inventário, com os desenhos dos itens e os encantamentos). <b>Gravar mudanças</b> grava direto no mundo: o aplicativo pede para confirmar que o Minecraft está fechado e guarda uma cópia do que vai trocar.</li>
