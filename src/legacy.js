@@ -178,7 +178,7 @@ function legChooseMode(old, mix) {
   return new Promise(function (res) {
     openDialog('<h3>Mundo no formato antigo</h3>' + (mix ? '<p><b>Este mundo já foi aberto numa versão mais nova do jogo' + (mix.ver && !/^0(\.0)*$/.test(mix.ver) ? ' (' + esc(mix.ver) + ')' : '') + ':</b> ' + mix.n.toLocaleString('pt-BR') + ' chunks já estão no formato novo, e ele não abre mais nas versões antigas. Os outros chunks, os que ainda não foram visitados nessa versão, continuam no formato antigo. Por isso “Converter” já vem marcado: mantendo o formato antigo, um bloco mais novo (deepslate, cobre, cerejeira...) colocado num desses chunks viraria ar ao exportar.</p><p>Ao exportar:</p>' : '<p>Este mundo foi gravado por uma versão antiga do Minecraft Bedrock (Pocket Edition ' + (old ? '0.2 a 0.8, com o mundo de 256 × 256 blocos' : 'até a 1.0') + '): os blocos vão até a altura 127 e são guardados por número. O site lê o mundo do jeito que ele é. Ao exportar:</p>') +
       '<label class="check"><input type="radio" name="legM" value="keep"' + (mix ? '' : ' checked') + '><span><b>Manter o formato antigo</b> (para jogar na versão antiga): o editor tem a altura 0 a 127 e os blocos da época; um bloco que não existia vira ar ao exportar (o aviso conta quantos). A luz dos chunks editados é calculada de novo.</span></label>' +
-      '<label class="check"><input type="radio" name="legM" value="conv"' + (mix ? ' checked' : '') + '><span><b>Converter para o formato atual</b> (para jogar na versão de hoje): o editor tem a altura 0 a 255 e todos os blocos; os chunks editados saem num formato que o jogo atual atualiza sozinho, como faz com os outros, e ao abrir ele cria a parte de baixo do mundo (-64 a 0). O mundo deixa de abrir nas versões antigas.</span></label>' +
+      '<label class="check"><input type="radio" name="legM" value="conv"' + (mix ? ' checked' : '') + '><span><b>Converter para o formato atual</b> (para jogar na versão de hoje): ' + (mix ? 'o editor tem a altura toda do jogo (-64 a 319): os chunks já convertidos mostram a parte de baixo, e nos antigos ela fica vazia até o jogo convertê-los; ' : 'o editor tem a altura 0 a 255 e ') + 'todos os blocos; os chunks editados saem num formato que o jogo atual atualiza sozinho, como faz com os outros, e ao abrir ele cria a parte de baixo do mundo (-64 a 0). O mundo deixa de abrir nas versões antigas.</span></label>' +
       (old ? '' : '<label class="nberow" id="legVerRow"' + (mix ? ' hidden' : '') + '><span>Versão do jogo em que você vai jogar<br><small class="mixl">mantendo o formato antigo, os blocos e itens que ela não tem viram ar</small></span><select id="legVer"><option value="011">0.9 a 0.11</option><option value="10">0.12 a 1.0</option></select></label>') +
       '<div class="row"><button class="btn primary" id="legOk">Continuar</button></div>', function () {
       document.querySelectorAll('[name=legM]').forEach(function (r) { r.onchange = function () { if ($('legVerRow')) $('legVerRow').hidden = r.value === 'conv' && r.checked; }; });
@@ -237,11 +237,12 @@ function legAllYs(ecx, ecz, ys) { var s = new Set(ys); for (var cy = 0; cy * 16 
 /* Depois dos sub-chunks: troca o registro antigo pelas chaves de um chunk da 1.17 */
 async function legFinishConvert(cx, cz, dim, ecx, ecz, D) {
   var raw = await wioGet(wioKey(cx, cz, dim, 0x30)), d2 = new Uint8Array(768), dv = new DataView(d2.buffer);
+  var y0 = -D.min, y1 = Math.min(SY - 1, y0 + 255); // a faixa do editor que vai de 0 a 255 no mundo
   for (var x = 0; x < 16; x++) for (var z = 0; z < 16; z++) {
-    var top = -1; for (var y = SY - 1; y >= 0; y--) if (gget((ecx << 4) + x, y, (ecz << 4) + z)) { top = y; break; }
+    var top = -1; for (var y = y1; y >= y0; y--) if (gget((ecx << 4) + x, y, (ecz << 4) + z)) { top = y - y0; break; }
     var q = z * 16 + x; dv.setInt16(q * 2, top + 1, true); d2[512 + q] = raw && raw.length >= LEG_LEN ? raw[LEG_OFF.bio + q * 4] : 1;
   }
-  for (var sy = 0; sy * 16 < D.h; sy++) { // sub-chunks no formato da época (versão 8: sem o byte da altura)
+  for (var sy = 0; sy < 16; sy++) { // sub-chunks no formato da época (versão 8: sem o byte da altura), de 0 a 255
     var sk = wioKey(cx, cz, dim, 0x2f, sy), sb = wio.patches.get(sk);
     if (sb && sb[0] === 9) { var o = new Uint8Array(sb.length - 1); o[0] = 8; o[1] = sb[1]; o.set(sb.subarray(3), 2); wio.patches.set(sk, o); }
   }

@@ -617,6 +617,7 @@ async function wioCommit(prog) {
       continue;
     }
     var legConv = col.leg && !wio.legKeep && !!(await wioGet(wioKey(cx, cz, dim, 0x30))); if (legConv) ys = legAllYs(ecx, ecz, ys); // convertendo: a coluna inteira sai no formato novo
+    if (legConv) ys = ys.filter(function (ecy) { var sy = ecy + ms; if (sy >= 0 && sy < 16) return true; var ch = W.get(ckey(ecx, ecy, ecz)); if (ch) res.outLeg = (res.outLeg || 0) + ch.n; return false; }); // o formato da 1.17 vai de 0 a 255: o jogo cria o que fica abaixo
     var beKey = wioKey(cx, cz, dim, 0x31), beRaw = await wioGet(beKey), beList = [];
     if (beRaw) try { beList = nbtList(beRaw); } catch (e) { beList = null; }
     var beds = new Map(); (beList || []).forEach(function (e) { if (e.o.id === 'Bed' && e.o.color != null) beds.set(e.o.x + ',' + e.o.y + ',' + e.o.z, e.o.color); });
@@ -1050,7 +1051,7 @@ async function wioGoArea(dim, x0, z0, w, d, quiet) {
     if (!quiet) toast('Área carregada: ' + blockCount.toLocaleString('pt-BR') + ' blocos.' + (r.miss ? ' ' + r.miss + ' chunks ainda não gerados ficaram vazios.' : '') +
       (unk.length ? ' Blocos que o editor não conhece aparecem em roxo e voltam iguais para o mundo (' + unk.slice(0, 4).join(', ') + (unk.length > 4 ? '…' : '') + ').' : '') +
       (wio.legacy ? ' ' + wio.legacy + ' pedaços num formato antigo do jogo ficaram de fora (abra o mundo no jogo uma vez e exporte de novo).' : '') +
-      (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : '') + (r0 && r0.notOld ? ' ' + r0.notOld + ' blocos que não existiam na versão antiga viraram ar.' : '') +
+      (r0 && r0.lost ? ' ' + r0.lost + ' blocos em chunks não gerados não foram guardados.' : '') + (r0 && r0.notOld ? ' ' + r0.notOld + ' blocos que não existiam na versão antiga viraram ar.' : '') + (r0 && r0.outLeg ? ' ' + r0.outLeg + ' blocos abaixo do 0 ou acima do 255 em chunks ainda no formato antigo ficaram de fora (essa parte o jogo cria quando converte o chunk).' : '') +
       (wio.leg && !blockCount ? ' Esta área não tem chunks do mundo antigo: escolha outra no mapa.' : ''), 10000);
     return true;
   } catch (e) { toast(e.message || 'Não foi possível carregar a área.', 9000); return false; }
@@ -1068,7 +1069,7 @@ async function wioExport() {
       var a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = nm; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
     }
-    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : oldKeep ? 'Extraia o .zip na pasta minecraftWorlds do jogo (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (out.note ? ' ' + out.note : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
+    toast('Mundo exportado: ' + nm + '. ' + (wio.java ? 'Extraia o .zip na pasta saves do Minecraft Java (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : oldKeep ? 'Extraia o .zip na pasta minecraftWorlds do jogo (a pasta de dentro é o mundo); guarde o original antes, por segurança.' : 'Abra o arquivo no jogo: ele vira um mundo novo, e o original continua como estava.') + (r.lost ? ' ' + r.lost + ' blocos em chunks não gerados ficaram de fora.' : '') + (r.bedrockOnly ? ' ' + r.bedrockOnly + ' blocos que só existem no Bedrock viraram ar.' : '') + (r.notOld ? ' ' + r.notOld + ' blocos que não existiam na versão antiga do mundo viraram ar.' : '') + (r.outLeg ? ' ' + r.outLeg + ' blocos abaixo do 0 ou acima do 255 em chunks ainda no formato antigo ficaram de fora (essa parte o jogo cria quando converte o chunk).' : '') + (out.note ? ' ' + out.note : '') + (wio.leg && wio.legKeep ? ' O mundo continua no formato antigo.' : wio.leg ? ' Ao abrir, o jogo converte o mundo para o formato atual e cria a parte de baixo (-64 a 0); ele não abre mais nas versões antigas.' : ''), 12000);
   } catch (e) { reportErr(e); }
   finally { busyEnd(); }
 }
