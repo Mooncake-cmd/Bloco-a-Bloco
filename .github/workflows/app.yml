@@ -3,12 +3,10 @@
 name: Aplicativo Android
 on:
   push:
-    branches: [main]
-    paths: ['android/**', 'dist/bloco-a-bloco.html', '.github/workflows/app.yml']
-  workflow_dispatch:
+    branches: [app-teste]
 permissions:
   contents: write
-concurrency: { group: app, cancel-in-progress: true }
+concurrency: { group: app-teste, cancel-in-progress: true }
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -35,10 +33,6 @@ jobs:
         working-directory: android
         env: { APP_VERSION_CODE: '${{ github.run_number }}' }
         run: gradle --no-daemon assembleRelease
-      - name: Publicar na versão "app"
-        env: { GH_TOKEN: '${{ github.token }}' }
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk bloco-a-bloco.apk
-          gh release view app >/dev/null 2>&1 || gh release create app --title "Aplicativo Android" --notes "Editor NBT e mapa direto na pasta dos mundos do Minecraft Bedrock (Android 11 e 12). Baixe o bloco-a-bloco.apk e instale."
-          gh release upload app bloco-a-bloco.apk --clobber
-          gh release edit app --notes "Editor NBT e mapa direto na pasta dos mundos do Minecraft Bedrock (Android 11 e 12). Versão 1.0.${{ github.run_number }}, de $(date -u +%d/%m/%Y). Baixe o bloco-a-bloco.apk e instale."
+      # Build de teste (versão modificada pelo usuário): só como artefato da execução, sem publicar nada
+      - uses: actions/upload-artifact@v4
+        with: { name: bloco-a-bloco-modificado, path: android/app/build/outputs/apk/release/app-release.apk, retention-days: 1 }

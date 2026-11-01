@@ -237,7 +237,24 @@ public class MainActivity extends Activity {
             i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUriUsingTree(t, id));
             i.putExtra("android.content.extra.SHOW_ADVANCED", true);
             i.putExtra("android.provider.extra.SHOW_ADVANCED", true);
-            runOnUiThread(() -> startActivityForResult(i, PICK_TREE));
+
+            // Mostra o seletor de aplicativos compatíveis com ACTION_OPEN_DOCUMENT_TREE.
+            // Assim, quando houver gerenciadores de arquivos que implementem o SAF,
+            // o usuário poderá escolher qual deles deseja utilizar. O seletor padrão
+            // do Android continua disponível como uma das opções.
+            Intent chooser = Intent.createChooser(i, "Escolha o gerenciador de arquivos");
+            runOnUiThread(() -> {
+                try {
+                    startActivityForResult(chooser, PICK_TREE);
+                } catch (Exception chooserError) {
+                    // Compatibilidade com versões/dispositivos que não aceitem o chooser.
+                    try {
+                        startActivityForResult(i, PICK_TREE);
+                    } catch (Exception e) {
+                        js("appFolderPicked(false," + JSONObject.quote("Não foi possível abrir um gerenciador de arquivos.") + ")");
+                    }
+                }
+            });
         }
         @JavascriptInterface public String worlds() {
             JSONArray a = new JSONArray();
