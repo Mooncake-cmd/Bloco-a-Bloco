@@ -36,3 +36,9 @@ jobs:
       # Build de teste (versão modificada pelo usuário): só como artefato da execução, sem publicar nada
       - uses: actions/upload-artifact@v4
         with: { name: bloco-a-bloco-modificado, path: android/app/build/outputs/apk/release/app-release.apk, retention-days: 1 }
+      # o APK também vai para a própria branch de teste (para baixar com git; a branch é apagada depois)
+      - name: Guardar o APK na branch de teste
+        run: |
+          mkdir -p saida && cp android/app/build/outputs/apk/release/app-release.apk saida/bloco-a-bloco-modificado.apk
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add -f saida/bloco-a-bloco-modificado.apk && git commit -m "APK de teste" && git push origin HEAD:app-teste
