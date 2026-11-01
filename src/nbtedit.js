@@ -385,11 +385,11 @@ function nbeItemRead(g, i) {
   if (!nbe.java) {
     var nm = (nbeGet(c, 'Name') || {}).v || '', n = nbeNum(nbeGet(c, 'Count')) || 0; if (!nm || !n) return null;
     var tg = nbeGet(c, 'tag'), dm = tg && nbeGet(tg.v, 'Damage');
-    return { id: nm.replace(/^minecraft:/, ''), n: n, dmg: dm ? nbeNum(dm) : 0 };
+    return { id: nm.replace(/^minecraft:/, ''), n: n, dmg: dm ? nbeNum(dm) : 0, aux: nbeNum(nbeGet(c, 'Damage')) || 0, ench: nbeEnchRead(c) };
   }
   var id = (nbeGet(c, 'id') || {}).v || ''; if (!id) return null;
   var cn = nbeGet(c, 'count') || nbeGet(c, 'Count'), comp = nbeGet(c, 'components'), d = comp && nbeGet(comp.v, 'minecraft:damage'), tg2 = nbeGet(c, 'tag'), d2 = tg2 && nbeGet(tg2.v, 'Damage');
-  return { id: id.replace(/^minecraft:/, ''), n: cn ? nbeNum(cn) : 1, dmg: d ? nbeNum(d) : d2 ? nbeNum(d2) : 0 };
+  return { id: id.replace(/^minecraft:/, ''), n: cn ? nbeNum(cn) : 1, dmg: d ? nbeNum(d) : d2 ? nbeNum(d2) : 0, aux: 0, ench: nbeEnchRead(c) };
 }
 function nbeItemWrite(g, i, it) {
   var r = nbeSlotRef(g, i), old = nbeItemRead(g, i), same = old && it && old.id === it.id;
@@ -421,21 +421,25 @@ function nbeShort(id) { var b = BY_JAVA[id] != null ? BLOCKS[BY_JAVA[id]].name :
 function nbeInvHtml() {
   if (!nbe.pl) return nbePlayerHtml();
   if (nbe.old) return nbeOldInvHtml();
-  var h = '<p class="mixl">Clique num espaço para pôr, trocar ou tirar um item. 0 a 8 são a barra de baixo do jogo.</p>';
+  var h = '<p class="mixl">Clique num espaço para pôr, trocar ou tirar um item e ver ou mudar os encantamentos dele (✦). 0 a 8 são a barra de baixo do jogo.</p>';
+  if (!packs.some(function (P) { return P.items; })) h += '<p class="mixl">' + (packs.length ? 'Para ver o desenho de cada item, escolha o pacote de texturas de novo em Projeto › Texturas (os pacotes guardados antes não trazem os itens).' : 'Para ver o desenho de cada item, escolha um pacote de texturas em Projeto › Texturas.') + '</p>';
   NBE_GROUPS.forEach(function (G) {
     h += '<h4>' + G[1] + '</h4><div class="nbeinv nbe' + G[0] + '">';
     for (var i = 0; i < G[2]; i++) {
       var it = nbeItemRead(G[0], i), on = nbeSlotSel && nbeSlotSel[0] === G[0] && nbeSlotSel[1] === i;
-      h += '<button class="nbeslot' + (it ? ' full' : '') + (on ? ' on' : '') + '" data-ns="' + G[0] + ':' + i + '" title="' + esc(it ? nbeShort(it.id) + ' × ' + it.n + (it.dmg ? ' (uso ' + it.dmg + ')' : '') : (G[0] === 'armor' ? NBE_ARMOR[i] : G[0] === 'main' && i < 9 ? 'Barra ' + (i + 1) : 'Vazio')) + '">' +
-        (it ? '<span class="nbesw" style="' + beSwatch(it.id) + '"></span><span class="nbenm">' + esc(nbeShort(it.id)) + '</span><b>' + it.n + '</b>' : '<span class="nbenm mixl">' + (G[0] === 'armor' ? NBE_ARMOR[i] : G[0] === 'main' && i < 9 ? i + 1 : '') + '</span>') + '</button>';
+      var en = it && it.ench.length;
+      h += '<button class="nbeslot' + (it ? ' full' : '') + (en ? ' ench' : '') + (on ? ' on' : '') + '" data-ns="' + G[0] + ':' + i + '" title="' + esc(it ? nbeShort(it.id) + ' × ' + it.n + (it.dmg ? ' (uso ' + it.dmg + ')' : '') + (en ? '\n' + it.ench.map(nbeEnchLabel).join('\n') : '') : (G[0] === 'armor' ? NBE_ARMOR[i] : G[0] === 'main' && i < 9 ? 'Barra ' + (i + 1) : 'Vazio')) + '">' +
+        (it ? nbeIcon(it) + '<span class="nbenm">' + esc(nbeShort(it.id)) + '</span><b>' + it.n + '</b>' + (en ? '<i>✦</i>' : '') : '<span class="nbenm mixl">' + (G[0] === 'armor' ? NBE_ARMOR[i] : G[0] === 'main' && i < 9 ? i + 1 : '') + '</span>') + '</button>';
     }
     h += '</div>';
   });
   if (nbeSlotSel) {
     var it = nbeItemRead(nbeSlotSel[0], nbeSlotSel[1]) || { id: '', n: 1, dmg: 0 };
     h += '<div class="nbeedit row"><label>Item <input type="text" id="nbeIt" list="nbeItems" value="' + esc(it.id) + '" placeholder="diamond_sword" autocomplete="off"></label><label>Quantidade <input type="number" id="nbeIn" value="' + it.n + '" min="1" max="' + (nbe.java ? 99 : 255) + '" style="width:70px"></label>' +
-      '<label>Uso <input type="number" id="nbeId2" value="' + it.dmg + '" min="0" max="10000" style="width:70px" title="Durabilidade gasta (0 = nova)"></label><button class="btn primary" id="nbeItOk">Usar</button><button class="btn" id="nbeIt64">64</button><button class="btn" id="nbeItDel">Esvaziar</button></div>';
+      '<label>Uso <input type="number" id="nbeId2" value="' + it.dmg + '" min="0" max="10000" style="width:70px" title="Durabilidade gasta (0 = nova)"></label><button class="btn primary" id="nbeItOk">Usar</button><button class="btn" id="nbeIt64">64</button><button class="btn" id="nbeItDel">Esvaziar</button>' +
+      (it.id ? nbeEnchHtml(it) : '') + '</div>';
   }
+  nbeIconLater();
   return h;
 }
 function nbeInvBind() {
@@ -453,6 +457,165 @@ function nbeInvBind() {
   $('nbeIt64').onclick = function () { apply(64); };
   $('nbeItDel').onclick = function () { nbeItemWrite(nbeSlotSel[0], nbeSlotSel[1], null); nbeTouch(false); nbeRender(); };
   $('nbeIt').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); apply(0); } });
+  nbeEnchBind();
+}
+
+/* ---------- Encantamentos ----------
+   Bedrock: tag.ench, lista de {id: short (o número abaixo), lvl: short}; o livro encantado usa o mesmo (conferido com o
+   servidor oficial 1.26.52: um livro de cada encantamento pela tabela de loot, lido do baú). Java: components
+   "minecraft:enchantments" (livro: "minecraft:stored_enchantments") com {nome: nível} (de 1.20.5 a 1.21.4 dentro de
+   "levels"); antes da 1.20.5, tag.Enchantments (livro: StoredEnchantments), lista de {id: "minecraft:nome", lvl: short}.
+   [número no Bedrock, nome, nome no jogo em português (texts/pt_BR.lang), nível máximo normal, itens em que vem] */
+var NBE_ENCH = [[0, 'protection', 'Proteção', 4, 'armor'], [1, 'fire_protection', 'Proteção Contra Fogo', 4, 'armor'], [2, 'feather_falling', 'Peso-pena', 4, 'boots'],
+  [3, 'blast_protection', 'Proteção Contra Explosões', 4, 'armor'], [4, 'projectile_protection', 'Proteção Contra Projéteis', 4, 'armor'], [5, 'thorns', 'Espinhos', 3, 'armor'],
+  [6, 'respiration', 'Respiração', 3, 'helmet'], [7, 'depth_strider', 'Passos Profundos', 3, 'boots'], [8, 'aqua_affinity', 'Afinidade Aquática', 1, 'helmet'],
+  [9, 'sharpness', 'Afiação', 5, 'sword axe spear'], [10, 'smite', 'Julgamento', 5, 'sword axe mace spear'], [11, 'bane_of_arthropods', 'Ruína dos Artrópodes', 5, 'sword axe mace spear'],
+  [12, 'knockback', 'Repulsão', 2, 'sword spear'], [13, 'fire_aspect', 'Aspecto de Fogo', 2, 'sword mace spear'], [14, 'looting', 'Pilhagem', 3, 'sword spear'],
+  [15, 'efficiency', 'Eficiência', 5, 'tool axe shears'], [16, 'silk_touch', 'Toque de Seda', 1, 'tool axe'], [17, 'unbreaking', 'Inquebrável', 3, 'dur'],
+  [18, 'fortune', 'Fortuna', 3, 'tool axe'], [19, 'power', 'Força', 5, 'bow'], [20, 'punch', 'Impacto', 2, 'bow'], [21, 'flame', 'Chama', 1, 'bow'], [22, 'infinity', 'Infinidade', 1, 'bow'],
+  [23, 'luck_of_the_sea', 'Sorte do Mar', 3, 'rod'], [24, 'lure', 'Isca', 3, 'rod'], [25, 'frost_walker', 'Caminhante de Geada', 2, 'boots'], [26, 'mending', 'Reparação', 1, 'dur'],
+  [27, 'binding', 'Maldição de Fuga', 1, 'armor elytra'], [28, 'vanishing', 'Maldição do Desaparecimento', 1, 'dur'], [29, 'impaling', 'Empalamento', 5, 'trident'],
+  [30, 'riptide', 'Correnteza', 3, 'trident'], [31, 'loyalty', 'Lealdade', 3, 'trident'], [32, 'channeling', 'Condutividade', 1, 'trident'], [33, 'multishot', 'Tiro Múltiplo', 1, 'xbow'],
+  [34, 'piercing', 'Perfuração', 4, 'xbow'], [35, 'quick_charge', 'Carregamento Rápido', 3, 'xbow'], [36, 'soul_speed', 'Velocidade de Almas', 3, 'boots'], [37, 'swift_sneak', 'Passos Furtivos', 3, 'legs'],
+  [38, 'wind_burst', 'Explosão de Vento', 3, 'mace'], [39, 'density', 'Densidade', 5, 'mace'], [40, 'breach', 'Brecha', 4, 'mace'], [41, 'lunge', 'Investida', 3, 'spear']];
+var NBE_ENCH_JAVA = { binding: 'binding_curse', vanishing: 'vanishing_curse' };
+function nbeEnchByName(n) { n = String(n).replace(/^minecraft:/, ''); for (var i = 0; i < NBE_ENCH.length; i++) if (NBE_ENCH[i][1] === n || NBE_ENCH_JAVA[NBE_ENCH[i][1]] === n) return NBE_ENCH[i]; return null; }
+function nbeEnchById(n) { for (var i = 0; i < NBE_ENCH.length; i++) if (NBE_ENCH[i][0] === n) return NBE_ENCH[i]; return null; }
+var NBE_ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+function nbeEnchLabel(e) { var E = nbeEnchByName(e.n); return (E ? E[2] : e.n) + ' ' + (NBE_ROMAN[e.lv] || e.lv); }
+/* os grupos do item (para pôr primeiro os encantamentos que o jogo dá a ele) */
+function nbeItemCats(id) {
+  var c = [];
+  if (/_helmet$|^turtle_helmet$/.test(id)) c.push('armor', 'helmet');
+  if (/_chestplate$/.test(id)) c.push('armor');
+  if (/_leggings$/.test(id)) c.push('armor', 'legs');
+  if (/_boots$/.test(id)) c.push('armor', 'boots');
+  if (/_sword$/.test(id)) c.push('sword'); if (/(^|_)axe$/.test(id) && !/pickaxe$/.test(id)) c.push('axe');
+  if (/_(pickaxe|shovel|hoe)$/.test(id)) c.push('tool'); if (id === 'shears') c.push('shears'); if (/_spear$/.test(id)) c.push('spear');
+  if (id === 'bow') c.push('bow'); if (id === 'crossbow') c.push('xbow'); if (id === 'trident') c.push('trident'); if (id === 'fishing_rod') c.push('rod'); if (id === 'mace') c.push('mace');
+  if (id === 'elytra') c.push('elytra');
+  if (c.length || /^(flint_and_steel|carrot_on_a_stick|warped_fungus_on_a_stick|shield|brush)$/.test(id)) c.push('dur');
+  if (/^(enchanted_book|book)$/.test(id)) c.push('*');
+  return c;
+}
+function nbeEnchFits(E, cats) { return cats.indexOf('*') >= 0 || E[4].split(' ').some(function (k) { return cats.indexOf(k) >= 0; }); }
+function nbeJavaEnchKey(c) { var id = ((nbeGet(c, 'id') || {}).v || '').replace(/^minecraft:/, ''); return id === 'enchanted_book'; }
+function nbeEnchRead(c) {
+  if (!c) return [];
+  var out = [], push = function (n, lv) { out.push({ n: String(n).replace(/^minecraft:/, ''), lv: lv }); };
+  if (!nbe.java) {
+    var tg = nbeGet(c, 'tag'), L = tg && nbeGet(tg.v, 'ench');
+    if (L && L.t === 9 && L.v.et === 10) L.v.a.forEach(function (e) { var id = nbeNum(nbeGet(e, 'id')), E = nbeEnchById(id); push(E ? E[1] : 'número ' + id, nbeNum(nbeGet(e, 'lvl'))); });
+    return out;
+  }
+  var book = nbeJavaEnchKey(c), comp = nbeGet(c, 'components');
+  var ce = comp && nbeGet(comp.v, book ? 'minecraft:stored_enchantments' : 'minecraft:enchantments');
+  if (ce && ce.t === 10) { var m = nbeGet(ce.v, 'levels'); (m && m.t === 10 ? m.v : ce.v).forEach(function (e) { if (e.k !== 'show_in_tooltip' && e.t !== 10) push(e.k, nbeNum(e)); }); return out; }
+  var tg2 = nbeGet(c, 'tag'), L2 = tg2 && nbeGet(tg2.v, book ? 'StoredEnchantments' : 'Enchantments');
+  if (L2 && L2.t === 9 && L2.v.et === 10) L2.v.a.forEach(function (e) { var id = nbeGet(e, 'id'); push(id ? (id.t === 8 ? id.v : 'número ' + nbeNum(id)) : '?', nbeNum(nbeGet(e, 'lvl'))); });
+  return out;
+}
+function nbeEnchWrite(c, list) {
+  if (!nbe.java) {
+    var tg = nbeGet(c, 'tag');
+    if (!list.length) { if (tg) tg.v = tg.v.filter(function (x) { return x.k !== 'ench'; }); return; }
+    if (!tg) { tg = { k: 'tag', t: 10, v: [] }; c.push(tg); }
+    tg.v = tg.v.filter(function (x) { return x.k !== 'ench'; });
+    tg.v.push({ k: 'ench', t: 9, v: { et: 10, a: list.map(function (e) { var E = nbeEnchByName(e.n); return [{ k: 'id', t: 2, v: E ? E[0] : 0 }, { k: 'lvl', t: 2, v: e.lv }]; }) } });
+    return;
+  }
+  var book = nbeJavaEnchKey(c), jn = function (n) { return 'minecraft:' + (NBE_ENCH_JAVA[n] || n); };
+  if (nbeJavaNew()) {
+    var key = book ? 'minecraft:stored_enchantments' : 'minecraft:enchantments', comp = nbeGet(c, 'components');
+    if (!comp) { if (!list.length) return; comp = { k: 'components', t: 10, v: [] }; c.push(comp); }
+    comp.v = comp.v.filter(function (x) { return x.k !== key; });
+    if (!list.length) return;
+    var lv = list.map(function (e) { return { k: jn(e.n), t: 3, v: e.lv }; });
+    comp.v.push({ k: key, t: 10, v: (wio.dataVersion || 0) >= 4325 ? lv : [{ k: 'levels', t: 10, v: lv }] }); // 1.21.5 tirou o "levels"
+    return;
+  }
+  var k2 = book ? 'StoredEnchantments' : 'Enchantments', tg2 = nbeGet(c, 'tag');
+  if (!tg2) { if (!list.length) return; tg2 = { k: 'tag', t: 10, v: [] }; c.push(tg2); }
+  tg2.v = tg2.v.filter(function (x) { return x.k !== k2; });
+  if (list.length) tg2.v.push({ k: k2, t: 9, v: { et: 10, a: list.map(function (e) { return [{ k: 'id', t: 8, v: jn(e.n) }, { k: 'lvl', t: 2, v: e.lv }]; }) } });
+}
+function nbeEnchHtml(it) {
+  var cats = nbeItemCats(it.id), fit = NBE_ENCH.filter(function (E) { return nbeEnchFits(E, cats); }), rest = NBE_ENCH.filter(function (E) { return !nbeEnchFits(E, cats); });
+  var opt = function (E) { return '<option value="' + E[1] + '">' + esc(E[2]) + ' (até ' + (NBE_ROMAN[E[3]] || E[3]) + ')</option>'; };
+  var h = '<div class="nbench"><b>Encantamentos</b>';
+  if (!it.ench.length) h += '<span class="mixl">Este item não tem encantamento.</span>';
+  it.ench.forEach(function (e, i) {
+    var E = nbeEnchByName(e.n);
+    h += '<div class="row"><b class="nm">' + esc(E ? E[2] : e.n) + '</b><label>Nível <input type="number" data-enlv="' + i + '" value="' + e.lv + '" min="1" max="32767" style="width:70px"></label>' + (E ? '<span class="mixl">normal até ' + E[3] + '</span>' : '') + '<button class="btn" data-endel="' + i + '">Tirar</button></div>';
+  });
+  h += '<div class="row"><select id="nbeEnN">' + (fit.length ? '<optgroup label="Os que o jogo dá a este item">' + fit.map(opt).join('') + '</optgroup><optgroup label="Outros">' + rest.map(opt).join('') + '</optgroup>' : NBE_ENCH.map(opt).join('')) + '</select>' +
+    '<label>Nível <input type="number" id="nbeEnL" value="1" min="1" max="32767" style="width:70px"></label><button class="btn" id="nbeEnAdd">Pôr encantamento</button><button class="btn" id="nbeEnMax" title="Põe os do item com o nível máximo normal (sem os que brigam entre si nem as maldições)">Todos no máximo</button></div></div>';
+  return h;
+}
+/* encantamentos que o jogo não deixa juntos: fica o primeiro da lista */
+var NBE_ENCH_CLASH = [['protection', 'fire_protection', 'blast_protection', 'projectile_protection'], ['sharpness', 'smite', 'bane_of_arthropods', 'breach', 'density'], ['silk_touch', 'fortune'], ['infinity', 'mending'], ['riptide', 'loyalty', 'channeling'], ['multishot', 'piercing'], ['depth_strider', 'frost_walker']];
+function nbeEnchBind() {
+  var add = $('nbeEnAdd'); if (!add) return;
+  var cur = function () { return nbeSlotRef(nbeSlotSel[0], nbeSlotSel[1]).c; };
+  var save = function (list) { var c = cur(); if (!c) return; nbeEnchWrite(c, list); nbeTouch(false); nbeRender(); };
+  var lvOf = function (v) { var n = Math.round(+v); return isFinite(n) && n >= 1 && n <= 32767 ? n : null; };
+  add.onclick = function () {
+    var n = $('nbeEnN').value, lv = lvOf($('nbeEnL').value); if (!lv) { toast('Nível: de 1 a 32767.'); return; }
+    var list = nbeEnchRead(cur()).filter(function (e) { return e.n !== n; }); list.push({ n: n, lv: lv }); save(list);
+  };
+  $('nbeEnMax').onclick = function () {
+    var it = nbeItemRead(nbeSlotSel[0], nbeSlotSel[1]), cats = nbeItemCats(it.id), list = it.ench.slice();
+    if (cats.indexOf('*') >= 0 || !cats.length) { toast('Escolha um encantamento na lista: este item não tem os do jogo definidos.'); return; }
+    NBE_ENCH.forEach(function (E) {
+      if (!nbeEnchFits(E, cats) || /^(binding|vanishing)$/.test(E[1])) return;
+      var grp = NBE_ENCH_CLASH.filter(function (g) { return g.indexOf(E[1]) >= 0; })[0];
+      if (grp && list.some(function (e) { return e.n !== E[1] && grp.indexOf(e.n) >= 0; })) return;
+      list = list.filter(function (e) { return e.n !== E[1]; }); list.push({ n: E[1], lv: E[3] });
+    });
+    save(list);
+  };
+  document.querySelectorAll('[data-endel]').forEach(function (b) { b.onclick = function () { var i = +b.getAttribute('data-endel'), list = nbeEnchRead(cur()); list.splice(i, 1); save(list); }; });
+  document.querySelectorAll('[data-enlv]').forEach(function (el) { el.onchange = function () { var lv = lvOf(el.value); if (!lv) { toast('Nível: de 1 a 32767.'); nbeRender(); return; } var i = +el.getAttribute('data-enlv'), list = nbeEnchRead(cur()); list[i].lv = lv; save(list); }; });
+}
+
+/* ---------- O desenho de cada item (do pacote de texturas: textures/items no Bedrock, textures/item no Java) ---------- */
+var NBE_COLORS = 'white orange magenta light_blue yellow lime pink gray light_gray cyan purple blue brown green red black'.split(' ');
+var NBE_ICON = {}, nbeIconBusy = false;
+function nbeIconKey(it) { return it.id === 'bed' && !nbe.java ? 'bed:' + (it.aux & 15) : it.id; }
+function nbeIcon(it) {
+  var u = NBE_ICON[nbeIconKey(it)];
+  return u ? '<img class="nbeimg" src="' + u + '" alt="">' : '<span class="nbesw" style="' + beSwatch(it.id) + '"></span>';
+}
+function nbeIconTex(k) {
+  for (var i = packs.length - 1; i >= 0; i--) { var P = packs[i]; if (P.items && P.items[k]) return P.items[k]; }
+  return k.indexOf(':') > 0 ? nbeIconTex(k.split(':')[0]) : null;
+}
+/* lê os desenhos que faltam e mostra de novo (uma vez: o que não tem desenho fica marcado) */
+function nbeIconLater() {
+  if (nbeIconBusy) return;
+  var want = [];
+  NBE_GROUPS.forEach(function (G) { for (var i = 0; i < G[2]; i++) { var it = nbeItemRead(G[0], i); if (it && !(nbeIconKey(it) in NBE_ICON)) want.push(nbeIconKey(it)); } });
+  if (!want.length) return;
+  nbeIconBusy = true;
+  (async function () {
+    for (var j = 0; j < want.length; j++) {
+      var k = want[j]; if (k in NBE_ICON) continue; NBE_ICON[k] = '';
+      var t = nbeIconTex(k); if (!t) continue;
+      try { NBE_ICON[k] = nbeIconUrl(await decodeImage(t), k); } catch (e) {}
+    }
+    nbeIconBusy = false;
+    if (nbe && nbe.tab === 'inv' && $('nbeBody')) { var sc = $('nbeBody').scrollTop; nbeRender(); $('nbeBody').scrollTop = sc; }
+  })();
+}
+/* o primeiro quadro (alguns desenhos são tiras animadas); o couro vem cinza e o jogo pinta com a cor padrão */
+function nbeIconUrl(img, k) {
+  var s = Math.min(img.w, img.h), cv = document.createElement('canvas'); cv.width = cv.height = s;
+  var g = cv.getContext('2d'), out = g.createImageData(s, s), tint = /^leather_(helmet|chestplate|leggings|boots|horse_armor)$/.test(k) ? [0xa0 / 255, 0x65 / 255, 0x40 / 255] : null;
+  for (var y = 0; y < s; y++) for (var x = 0; x < s; x++) {
+    var i = (y * img.w + x) * 4, o = (y * s + x) * 4;
+    out.data[o] = tint ? img.d[i] * tint[0] : img.d[i]; out.data[o + 1] = tint ? img.d[i + 1] * tint[1] : img.d[i + 1]; out.data[o + 2] = tint ? img.d[i + 2] * tint[2] : img.d[i + 2]; out.data[o + 3] = img.d[i + 3];
+  }
+  g.putImageData(out, 0, 0); return cv.toDataURL();
 }
 
 /* ---------- Pocket Edition 0.2 a 0.8 (o jogador dentro do level.dat) ---------- */

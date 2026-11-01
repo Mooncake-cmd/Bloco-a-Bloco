@@ -252,6 +252,8 @@ kbd{font:500 11px var(--font-mono);padding:1px 6px;border:1px solid var(--line);
 .nbeinv{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px}.nbearmor,.nbeoff{grid-template-columns:repeat(4,minmax(0,1fr));max-width:420px}
 .nbeslot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;padding:3px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-size:10px;cursor:pointer;overflow:hidden}
 .nbeslot.on{outline:2px solid var(--accent)}.nbeslot b{position:absolute;right:3px;bottom:1px;font-size:11px}.nbesw{width:18px;height:18px;border-radius:3px;border:1px solid rgba(0,0,0,.2)}
+.nbeimg{width:24px;height:24px;image-rendering:pixelated;image-rendering:crisp-edges}.nbeslot.ench{box-shadow:inset 0 0 0 1px #a86bff,inset 0 0 10px rgba(168,107,255,.45)}.nbeslot i{position:absolute;left:3px;top:1px;font-style:normal;color:#a86bff;font-size:11px}
+.nbench{flex-basis:100%;display:flex;flex-direction:column;gap:6px}.nbench .row{flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}.nbench b.nm{color:#a86bff;min-width:150px}.nbeedit .nbench label{flex-direction:row;align-items:center;gap:4px}
 .nbenm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nbeedit{flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:8px}
 #cmdBox{position:fixed;left:50%;bottom:122px;transform:translateX(-50%);z-index:59;width:min(560px,calc(100% - 32px));padding:6px 8px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
 #cmdBox .cmdrow{display:flex;align-items:center;gap:4px}#cmdBox .cmdsl{font-family:var(--font-mono);color:var(--muted);padding-left:2px}
@@ -1798,6 +1800,7 @@ $('layerUp').addEventListener('click', function () { setLayer(true, layerY + 1);
    lidas e guardadas no IndexedDB. Elas viram um atlas (DataTexture), em que os ladrilhos 0 e 1 são o ruído
    cinza usado pelos blocos sem textura (1 = versão translúcida, para vidros). */
 var BE_TEX = /*%%BETEX%%*/{};
+var ITEM_TEX = /*%%ITEMTEX%%*/{}; // item do Bedrock -> desenho em textures/items/ (data/item-tex.json, de scripts/gen_itemtex.js)
 var GRASS_TINT = 0x91BD59;
 var BEDROCK_ZIP = 'https://github.com/Mojang/bedrock-samples/archive/refs/heads/main.zip';
 var PACK_V = 6; // sobe quando a lista de blocos passa a usar texturas novas (pacotes antigos não têm todas guardadas)
@@ -2018,13 +2021,27 @@ async function importPack(src, name, depth, prog) {
       if (pp) jobs.push([k, pp[0], pp[1]]);
     }
   }
+  // Os desenhos dos itens (para o inventário do Editor NBT): Bedrock pela tabela, Java pelo nome do item
+  var ijobs = [], ik;
+  if (kind === 'java') { var inames = {}; Object.keys(ITEM_TEX).concat(NBE_ITEMS).forEach(function (n) { inames[n] = 1; }); for (ik in inames) ijobs.push([ik, 'assets/minecraft/textures/item/' + ik]); }
+  else {
+    for (ik in ITEM_TEX) ijobs.push([ik, 'textures/items/' + ITEM_TEX[ik]]);
+    NBE_COLORS.forEach(function (c, i) { ijobs.push(['bed:' + i, 'textures/items/bed_' + (c === 'light_gray' ? 'silver' : c)]); }); // a cor da cama vem no valor auxiliar
+  }
+  pack.items = {};
   // Lê várias texturas ao mesmo tempo: num pacote grande, uma por vez demora muito no celular
   var done = 0;
   await pool(jobs, 8, async function (j) {
     var d = await file(j[1] + '.png'), ext = 'png';
     if (!d && kind !== 'java') { d = await file(j[1] + '.tga'); ext = 'tga'; }
     if (d) pack.tex[j[0]] = { d: d, ext: ext, ov: j[2] };
-    prog(++done, jobs.length);
+    prog(++done, jobs.length + ijobs.length);
+  });
+  await pool(ijobs, 8, async function (j) {
+    var d = await file(j[1] + '.png'), ext = 'png';
+    if (!d && kind !== 'java') { d = await file(j[1] + '.tga'); ext = 'tga'; }
+    if (d) pack.items[j[0]] = { d: d, ext: ext };
+    prog(++done, jobs.length + ijobs.length);
   });
   return Object.keys(pack.tex).length ? pack : null;
 }
