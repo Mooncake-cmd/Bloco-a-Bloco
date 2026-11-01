@@ -1,8 +1,11 @@
 package io.github.mooncakecmd.bab;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
@@ -30,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +125,60 @@ public class MainActivity extends Activity {
     }
 
     void js(String code) { runOnUiThread(() -> web.evaluateJavascript(code, null)); }
+
+
+    /**
+     * Exibe uma lista própria dos aplicativos instalados que realmente declaram suporte
+     * à seleção de pastas pelo Storage Access Framework (ACTION_OPEN_DOCUMENT_TREE).
+     * Não usamos o chooser genérico do Android: o usuário escolhe explicitamente um item.
+     * Aplicativos que apenas abrem arquivos, mas não devolvem uma URI de árvore SAF,
+     * não podem ser usados com segurança para dar acesso persistente às pastas.
+     */
+    void showFolderManagerList(Intent folderIntent) {
+        PackageManager pm = getPackageManager();
+        List<ResolveInfo> handlers = pm.queryIntentActivities(folderIntent, PackageManager.MATCH_DEFAULT_ONLY);
+
+        // Uma entrada por aplicativo, mesmo que ele declare mais de uma Activity compatível.
+        Map<String, ResolveInfo> unique = new HashMap<>();
+        for (ResolveInfo info : handlers) {
+            if (info.activityInfo != null && info.activityInfo.packageName != null) {
+                unique.put(info.activityInfo.packageName, info);
+            }
+        }
+        handlers = new ArrayList<>(unique.values());
+        Collections.sort(handlers, (a, b) ->
+                String.valueOf(a.loadLabel(pm)).compareToIgnoreCase(String.valueOf(b.loadLabel(pm))));
+
+        if (handlers.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Gerenciadores de arquivos")
+                    .setMessage("Nenhum gerenciador instalado informou suporte à seleção de pastas do Android. Instale um gerenciador compatível com o Storage Access Framework (SAF) e tente novamente.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        final List<ResolveInfo> availableManagers = handlers;
+        String[] names = new String[availableManagers.size()];
+        for (int n = 0; n < availableManagers.size(); n++) {
+            names[n] = String.valueOf(availableManagers.get(n).loadLabel(pm));
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Escolha o gerenciador de arquivos")
+                .setItems(names, (dialog, which) -> {
+                    ResolveInfo selected = availableManagers.get(which);
+                    Intent targeted = new Intent(folderIntent);
+                    targeted.setPackage(selected.activityInfo.packageName);
+                    try {
+                        startActivityForResult(targeted, PICK_TREE);
+                    } catch (Exception e) {
+                        js("appFolderPicked(false," + JSONObject.quote("Não foi possível abrir o gerenciador selecionado. Escolha outro aplicativo compatível.") + ")");
+                    }
+                })
+                .setNegativeButton("Cancelar", (dialog, which) -> js("appFolderPicked(false,'')"))
+                .show();
+    }
 
     // ---------- A pasta escolhida ----------
     Uri tree() { String t = prefs.getString("tree", null); return t == null ? null : Uri.parse(t); }
@@ -237,7 +295,7 @@ public class MainActivity extends Activity {
             i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUriUsingTree(t, id));
             i.putExtra("android.content.extra.SHOW_ADVANCED", true);
             i.putExtra("android.provider.extra.SHOW_ADVANCED", true);
-            runOnUiThread(() -> startActivityForResult(i, PICK_TREE));
+            runOnUiThread(() -> showFolderManagerList(i));
         }
         @JavascriptInterface public String worlds() {
             JSONArray a = new JSONArray();
