@@ -137,6 +137,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <div class="fact"><b>24</b><span>ferramentas, mais simetria em X, Y e Z</span></div>
     <div class="fact"><b>13</b><span>paletas de blocos prontas, editáveis, mais as que você criar</span></div>
     <div class="fact"><b>2 + 2</b><span>formatos de saída e de entrada: .mcstructure, .schem, .litematic e projeto .json, além de mundos inteiros do Bedrock (.mcworld) e do Java (.zip)</span></div>
+    <div class="fact"><b>APK</b><span>aplicativo para Android com o Editor NBT e o mapa direto na pasta dos mundos do jogo</span></div>
     <div class="fact"><b>100 mi+</b><span>blocos construídos no computador; o espaço vazio não ocupa memória (até 16.384 × 4.096 × 16.384)</span></div>
   </div>
 </header>
@@ -1303,6 +1304,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li><b>Grade dos chunks</b>: as divisas de cada chunk (16 × 16 blocos), com as das regiões (32 × 32 chunks, um arquivo .mca no Java) mais fortes; bem perto, o número de cada chunk; de longe, só as regiões. Fica guardada no navegador.</li>
     <li><b>Janela flutuante</b>: passando o mouse, mostra o bioma (o nome em português e o do jogo), X e Z, a altura e o bloco de cima.</li>
     <li><b>Clique</b> num ponto: aparece uma cruz e, embaixo, X e Z do jogo, a altura, o chunk, a região e as coordenadas correspondentes <b>no Nether</b> (X e Z divididos por 8, para construir um portal ligado). No Nether, mostra as do mundo normal (× 8). <b>Copiar</b> copia "X Y Z"; <b>Carregar área aqui</b> abre a janela de área já com o centro nesse ponto.</li>
+    <li><b>Marcações</b>: com um ponto clicado, <b>Marcar aqui</b> guarda o ponto com um nome e uma cor (casa, portal, vila...). Ele aparece no mapa como um losango com o nome; tocar nele mostra o ponto, e <b>Editar marcação</b> muda o nome, a cor e X, Y, Z, ou apaga. O botão <b>Marcações</b>, em cima, lista todas, com <b>Ir</b> (vai até ela, mesmo em outra dimensão). Cada mundo tem a sua lista, guardada no navegador (ou no aplicativo); as marcações não vão para dentro do mundo do jogo.</li>
     <li>Os botões de cima trocam a dimensão (mundo normal, Nether, End) e <b>Jogador</b> vai até onde o jogador está. A área carregada no editor aparece tracejada, e o mapa mostra o que está no editor nela (as edições antes de exportar).</li>
   </ul>
   <div class="grid2">
@@ -1364,6 +1366,30 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
     <li>O jogador do Bedrock é o do aparelho (a chave <code>~local_player</code>): num mundo de servidor ou num mundo em que ninguém entrou, a aba Jogador avisa que não há jogador. No Java, é o jogador do <code>level.dat</code> (o do mundo de um jogador só).</li>
     <li><b>Conferido no servidor oficial do Bedrock (1.26.52):</b> um mundo com as regras, a hora (dia 5, 6000), a tempestade e o ponto de nascimento mudados abriu com tudo como foi escolhido (o servidor usa o modo de jogo e a dificuldade do <code>server.properties</code>, por isso esses dois só valem fora dele). O jogador e o inventário foram conferidos lendo de volta o mundo exportado: o servidor não usa o jogador do aparelho.</li>
     <li><b>Encantamentos conferidos no servidor oficial (1.26.52):</b> um livro de cada um dos 42 encantamentos, tirado de uma tabela de loot e lido do baú, deu o número que o editor usa para cada um (de Proteção = 0 a Investida = 41) e o jeito que o jogo grava (<code>tag.ench</code>, com <code>id</code> e <code>lvl</code>). No Java, o editor grava como cada versão: <code>minecraft:enchantments</code> da 1.20.5 em diante (o livro, <code>minecraft:stored_enchantments</code>) e <code>Enchantments</code> antes.</li>
+  </ul>
+
+  <h3 id="app">Aplicativo para Android: Editor NBT e mapa direto no mundo</h3>
+  <p>O <b>aplicativo Bloco a Bloco</b> para Android abre os mundos direto da pasta do Minecraft no celular, sem exportar nem importar: escolhe o mundo, vê o mapa com as marcações e muda pelo Editor NBT, gravando no próprio mundo. Baixe o arquivo <a href="https://github.com/Mooncake-cmd/bloco-a-bloco/releases/download/app/bloco-a-bloco.apk">bloco-a-bloco.apk</a> no celular e abra: o Android pede para permitir a instalação de fora da loja (vale só para esse arquivo). Feito para o <b>Android 11 e 12</b>, em que os mundos ficam em <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds</code>.</p>
+  <div class="grid4">
+    <figure><img src="img/app-mundos.jpg" alt="O aplicativo no celular: a lista de mundos da pasta do Minecraft, com o nome e a data de cada um, e os botões Trocar a pasta e Texturas" width="824" height="1720" loading="lazy"><figcaption>Os mundos da pasta do jogo.</figcaption></figure>
+    <figure><img src="img/app-mapa.jpg" alt="O mapa do mundo no aplicativo, com duas marcações, Casa em vermelho e Portal em roxo, e embaixo as coordenadas da Casa com os botões Copiar e Editar marcação" width="824" height="1720" loading="lazy"><figcaption>O mapa com as marcações.</figcaption></figure>
+    <figure><img src="img/app-nbt.jpg" alt="O Editor NBT no aplicativo, na aba Inventário, com a espada de diamante escolhida e o encantamento Afiação no nível 5" width="824" height="1720" loading="lazy"><figcaption>O Editor NBT, igual ao do site.</figcaption></figure>
+    <figure><img src="img/app-gravar.jpg" alt="O aviso Gravar no mundo: feche o Minecraft antes de gravar, com os botões O jogo está fechado: gravar e Voltar" width="824" height="1720" loading="lazy"><figcaption>Antes de gravar: o jogo fechado.</figcaption></figure>
+  </div>
+  <ol>
+    <li><b>Escolher a pasta dos mundos</b> (só da primeira vez): o seletor do Android já abre na pasta <code>minecraftWorlds</code>. Toque em <b>Usar esta pasta</b> e em <b>Permitir</b>. Escolher a pasta <code>com.mojang</code> (ou a <code>Android/data</code>) também serve: o aplicativo acha os mundos dentro.</li>
+    <li>Toque num mundo. Ele é lido da pasta (um mundo grande leva um tempo, como no site).</li>
+    <li><b>Mapa e marcações</b>: o mapa do mundo (veja Mapa do mundo), com as marcações deste mundo.</li>
+    <li><b>Editor NBT</b>: as mesmas abas do site (Mundo, Regras, Jogador, Inventário, com os desenhos dos itens e os encantamentos). <b>Gravar mudanças</b> grava direto no mundo: o aplicativo pede para confirmar que o Minecraft está fechado e guarda uma cópia do que vai trocar.</li>
+  </ol>
+  <ul class="plain">
+    <li><b>Feche o Minecraft antes de gravar</b>, inclusive em segundo plano (tire ele da lista de apps recentes). Com o jogo aberto, ele regrava o mundo por cima, e a mudança se perde ou o mundo pode estragar. Depois de gravar, é só abrir o jogo.</li>
+    <li><b>O que é gravado:</b> o <code>level.dat</code> (e o <code>levelname.txt</code>, se o nome mudou) e, se o jogador mudou, um arquivo novo na pasta <code>db</code> com os dados dele, do mesmo jeito que o Exportar mundo do site. O jogo lê esse arquivo ao abrir o mundo e junta ao resto. Os blocos não mudam.</li>
+    <li><b>Desfazer a última gravação</b> (na tela do mundo) volta o <code>level.dat</code> e apaga o arquivo novo, enquanto o jogo ainda não abriu o mundo. Depois que o jogo abre, ele junta as mudanças ao banco do mundo e não dá mais para desfazer por ali.</li>
+    <li><b>Texturas…</b> (na lista dos mundos) escolhe o pacote de texturas, como no site: os desenhos dos itens e o mapa de perto usam ele.</li>
+    <li>As conquistas seguem a mesma regra do Editor NBT do site: uma mudança que não seja só o nome desativa as conquistas do mundo.</li>
+    <li><b>Conferido no servidor oficial do Bedrock (1.26.52):</b> um mundo gravado pelo aplicativo (a hora mudada para 6000 e a espada do jogador com Afiação 5) abriu com a hora certa. O jogo juntou o arquivo novo ao banco, e o jogador, a espada encantada e os baús estavam lá. O aplicativo em si foi testado com a pasta simulada no navegador; o seletor de pastas do Android só pode ser conferido no celular.</li>
+    <li><b>Android 13 ou mais novo:</b> o sistema não deixa outros aplicativos abrirem a pasta <code>Android/data</code>, e o seletor recusa a pasta. Nesses aparelhos, use o site (Exportar e importar o mundo).</li>
   </ul>
 
   <h3 id="java">Mundos do Java</h3>
@@ -1566,6 +1592,7 @@ ol.steps li::marker{font:600 14px var(--mono);color:var(--accent)}
       <tr><td>Biomas</td><td>O pincel pinta a coluna inteira com um bioma só (não dá para pôr uma caverna exuberante embaixo de uma planície). Só o topo do bloco de grama muda de cor: a lateral continua com a cor do pacote. A vegetação do Transformar o terreno imita o jogo, mas não é igual ao gerador do Minecraft (sem estruturas, lagos, cogumelos de pântano ou blocos de abelha). Áreas de nascimento de estruturas (saqueadores, bruxas da cabana, blazes, guardiões) não podem ser criadas: o jogo ignora as feitas fora da geração (testado). O .mcstructure e o .schem não levam bioma; só o mundo exportado.</td></tr>
       <tr><td>Importação</td><td>Nomes do Java de antes da 1.13 e o .schematic do MCEdit não abrem (os nomes antigos do Bedrock são traduzidos para os de hoje). A água dentro de blocos (segunda camada do .mcstructure) é ignorada.</td></tr>
       <tr><td>Rotação dentro do jogo</td><td>Faltam conferências no jogo do rosto do observador, do padrão da terracota esmaltada e do crafter no Bedrock.</td></tr>
+      <tr><td>Aplicativo para Android</td><td>Só o Bedrock atual, no Android 11 e 12 (no 13 ou mais novo o sistema não deixa abrir a pasta <code>Android/data</code>). Grava só o que o Editor NBT muda (não os blocos). O Minecraft precisa estar fechado ao gravar. Desfazer volta só a última gravação, e só enquanto o jogo não abriu o mundo.</td></tr>
       <tr><td>Crafter</td><td>Gira só nas quatro direções horizontais.</td></tr>
       <tr><td>Fornalhas e âncoras de projetos antigos</td><td>Voltam com a frente para o norte; gire de novo com <kbd>T</kbd>.</td></tr>
     </tbody>
