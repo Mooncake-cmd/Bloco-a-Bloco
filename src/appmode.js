@@ -109,8 +109,16 @@ async function appWrite() {
   try {
     var chk = function (r, what) { if (r !== 'ok') throw new Error('Não foi possível gravar ' + what + ': ' + r); };
     for (var i = 0; i < names.length; i++) if (src.paths.indexOf(names[i]) >= 0) { chk(BabApp.backup(id, names[i], String(t)), 'a cópia de ' + names[i]); undo.files.push(names[i]); }
-    if (log) { chk(BabApp.write(id, log.name, appB64(log.data)), log.name); undo.added = log.name; wio.db.maxFile = log.num; wio.db.maxSeq += log.n; }
-    for (i = 0; i < names.length; i++) chk(BabApp.write(id, names[i], appB64(wio.files.get(names[i]))), names[i]);
+    // o .log primeiro e o level.dat depois; se algo falhar no meio, o que já foi gravado volta (o mundo fica como estava)
+    try {
+      if (log) { chk(BabApp.write(id, log.name, appB64(log.data)), log.name); undo.added = log.name; }
+      for (i = 0; i < names.length; i++) { chk(BabApp.write(id, names[i], appB64(wio.files.get(names[i]))), names[i]); undo.done = i + 1; }
+    } catch (e) {
+      for (i = 0; i < (undo.done || 0); i++) if (undo.files.indexOf(names[i]) >= 0) BabApp.restore(id, names[i], String(t));
+      if (undo.added) BabApp.remove(id, undo.added);
+      throw new Error(e.message + ' Nada foi mudado no mundo.');
+    }
+    if (log) { wio.db.maxFile = log.num; wio.db.maxSeq += log.n; }
     try { localStorage.setItem(appUndoKey(), JSON.stringify(undo)); } catch (e) {}
   } finally { busyEnd(); }
   appWorldHome();

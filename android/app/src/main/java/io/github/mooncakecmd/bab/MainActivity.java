@@ -187,7 +187,7 @@ public class MainActivity extends Activity {
                 try {
                     InputStream in = getContentResolver().openInputStream(doc(id));
                     return new WebResourceResponse("application/octet-stream", null, in);
-                } catch (FileNotFoundException e) { return text(404, "text/plain", "não existe"); }
+                } catch (Exception e) { return text(404, "text/plain", "não existe"); }
             }
         }
         return text(404, "text/plain", "não existe");
@@ -206,14 +206,16 @@ public class MainActivity extends Activity {
     File backupFile(String world, String rel, String t) {
         return new File(getFilesDir(), "copias/" + Integer.toHexString(world.hashCode()) + "/" + t + "/" + rel);
     }
-    /** Abre o arquivo do mundo para gravar do começo (cria se não existir; a pasta db já existe) */
+    /** Abre o arquivo do mundo para gravar do começo; se ainda não existe (o .log novo da pasta db), cria. A existência é
+     *  vista na lista da pasta: pedir um arquivo que não existe ao Android dá um erro de "não é filho da pasta" (não um
+     *  FileNotFoundException), em vez de criar. */
     OutputStream openWrite(String world, String rel) throws Exception {
         ContentResolver cr = getContentResolver();
-        String id = fileId(world, rel);
-        if (id != null) { try { return cr.openOutputStream(doc(id), "wt"); } catch (FileNotFoundException e) { /* não existe: cria */ } }
         int k = rel.lastIndexOf('/');
         String parent = k < 0 ? world : fileId(world, rel.substring(0, k)), name = rel.substring(k + 1);
         if (parent == null) throw new FileNotFoundException(rel);
+        String[] e = children(parent).get(name);
+        if (e != null) return cr.openOutputStream(doc(e[0]), "wt");
         Uri made = DocumentsContract.createDocument(cr, doc(parent), "application/octet-stream", name);
         if (made == null) throw new FileNotFoundException(rel);
         String got = DocumentsContract.getDocumentId(made);
@@ -273,7 +275,12 @@ public class MainActivity extends Activity {
             catch (Exception e) { return String.valueOf(e.getMessage()); }
         }
         @JavascriptInterface public String remove(String world, String rel) {
-            try { String id = fileId(world, rel); if (id != null) DocumentsContract.deleteDocument(getContentResolver(), doc(id)); return "ok"; }
+            try {
+                int k = rel.lastIndexOf('/'); String parent = k < 0 ? world : fileId(world, rel.substring(0, k));
+                String[] e = parent == null ? null : children(parent).get(rel.substring(k + 1));
+                if (e != null) DocumentsContract.deleteDocument(getContentResolver(), doc(e[0]));
+                return "ok";
+            }
             catch (Exception e) { return String.valueOf(e.getMessage()); }
         }
     }
