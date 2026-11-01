@@ -5481,12 +5481,15 @@ function hydDab(c, st) {
       if (p[1] > 0 && !hydIsWater(p[0], p[1] - 1, p[2])) seal(p[0], p[1] - 1, p[2], true);
     });
   }
-  // 3 e 4. bioma e decoração (cada coluna uma vez por traço)
-  if (!hyd.deco) return;
-  cols.forEach(function (q) {
-    var key = q.x + ',' + q.z;
-    if (st.decoW.has(key)) return;
-    st.decoW.add(key);
+  // 3 e 4 (bioma e decoração) ficam para o fim do traço (hydDecorate): uma pincelada seguinte pode aprofundar uma
+  // coluna e levaria junto o que tivesse sido decorado nela
+}
+/* Decora, no fim do traço, cada coluna de água dele uma vez, já com o leito final (o mesmo resultado num clique e
+   num rio arrastado) */
+function hydDecorate(st) {
+  var L = st.L;
+  st.floor.forEach(function (fl, key) {
+    var pp = key.split(','), q = { x: +pp[0], z: +pp[1] };
     var mix = hydMix(q.x, q.z, st);
     mix.forEach(function (m) { st.cls[m[0]] = (st.cls[m[0]] || 0) + m[1]; });
     {
@@ -5527,7 +5530,7 @@ function hydLevelFor(c) { return hydAutoLevel(c); } // sempre a superfície (a �
 function hydStart(t) {
   var c = hydCenter(t); if (!c) return;
   if (!hyd.carve && !hyd.fill && !hyd.deco) { toast('Ligue pelo menos uma etapa no aviso: Escavar, Encher ou Decorar.'); return; }
-  hydStroke = { L: hydLevelFor(c), seed: hydSeed, last: c, floor: new Map(), mine: new Set(), mix: new Map(), decoW: new Set(), cls: {}, carved: 0, water: 0, sealed: 0, deco: 0 };
+  hydStroke = { L: hydLevelFor(c), seed: hydSeed, last: c, floor: new Map(), mine: new Set(), mix: new Map(), cls: {}, carved: 0, water: 0, sealed: 0, deco: 0 };
   stroke = { mode: 'water', cells: new Set(), on: true }; beginBatch('Pincel de água'); fluidStop();
   hydDab(c, hydStroke); requestRender();
   clearInterval(hydTimer);
@@ -5544,6 +5547,7 @@ function hydStart(t) {
 function hydEnd() {
   clearInterval(hydTimer); hydTimer = 0;
   var s = hydStroke; hydStroke = null; hydSeed = (Math.random() * 1e9) | 0; if (!s) return;
+  if (hyd.deco) hydDecorate(s); // ainda dentro do passo de desfazer do traço (releaseStroke fecha o lote depois)
   var tot = 0, k; for (k in s.cls) tot += s.cls[k];
   var bs = Object.keys(s.cls).sort(function (a, b) { return s.cls[b] - s.cls[a]; }).map(function (k3) { return HYD_CLASS_PT[k3] + ' ' + Math.round(100 * s.cls[k3] / tot) + '%'; });
   var p = []; if (s.carved) p.push(s.carved + ' blocos escavados'); if (s.water) p.push(s.water + ' de água'); if (s.sealed) p.push(s.sealed + ' fechados para a água não vazar'); if (s.deco) p.push(s.deco + ' de fundo, paredes e plantas');
