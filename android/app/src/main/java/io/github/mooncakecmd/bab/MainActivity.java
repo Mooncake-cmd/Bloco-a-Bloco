@@ -96,6 +96,9 @@ public class MainActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); web.saveState(o); }
 
+    /** Volta para a tela: a página confere de novo a pasta (mundos novos ou mudados pelo jogo; src/appmode.js) */
+    @Override protected void onResume() { super.onResume(); if (web != null) web.evaluateJavascript("window.appResume && appResume()", null); }
+
     @Override
     public void onBackPressed() {
         web.evaluateJavascript("window.appOnBack ? appOnBack() : false", v -> { if (!"true".equals(v)) finish(); });

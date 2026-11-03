@@ -11,7 +11,14 @@
    Gravar no mundo: o level.dat (e o levelname.txt) trocados e um .log novo na pasta db com as chaves mudadas (o jogador
    do aparelho), do mesmo jeito que o Exportar mundo grava (o jogo lê o .log ao abrir e junta ao banco). O Minecraft tem de
    estar fechado: aberto, ele regrava o mundo por cima. "Desfazer a última gravação" volta o level.dat e apaga o .log
-   enquanto o jogo ainda não abriu o mundo (depois que o jogo abre, ele junta o .log ao banco e apaga o arquivo). */
+   enquanto o jogo ainda não abriu o mundo (depois que o jogo abre, ele junta o .log ao banco e apaga o arquivo).
+   Guardado no aparelho (IndexedDB 'bab-app'), para abrir sem ler o mundo de novo:
+   - 't:<mundo>|<tabela>': as chaves de cada tabela .ldb (uma tabela nunca muda depois de criada; as novas, que o jogo cria
+     ao jogar, são lidas e guardadas na vez seguinte). As tabelas só são lidas quando um valor delas é pedido (ldbTable).
+   - 'map:<mundo>:<dimensão>': a visão geral do mapa já desenhada, com a assinatura dos arquivos da pasta db (nome e
+     tamanho) de quando foi feita. Se o jogo mudou o mundo, o mapa guardado aparece na hora e é refeito por trás.
+   - 'm:<mundo>': a assinatura da última preparação. Na lista dos mundos (ao abrir o aplicativo e ao voltar para ele), os
+     mundos novos na pasta ou mudados pelo jogo são preparados sozinhos, um de cada vez. */
 var app = null; // { worlds, world: { id, name }, saved: false }
 function appBase() { return location.origin; }
 function appEnc(s) { return encodeURIComponent(s); }
@@ -31,6 +38,71 @@ async function appWorldSrc(id) {
   return { paths: list.map(function (f) { return f.p; }), size: function (p) { return sizes.get(p); }, dir: true,
     read: function (p) { return appFetch(appBase() + '/w/' + appEnc(id) + '/f/' + p.split('/').map(appEnc).join('/'), true); } };
 }
+/* ---------- O que fica guardado no aparelho ---------- */
+var appIdbP = null;
+function appIdb() {
+  if (!appIdbP) appIdbP = new Promise(function (res, rej) { var q = indexedDB.open('bab-app', 1); q.onupgradeneeded = function () { q.result.createObjectStore('c'); }; q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; });
+  return appIdbP;
+}
+async function appDb(mode, fn) {
+  var db = await appIdb();
+  return new Promise(function (res, rej) { var t = db.transaction('c', mode), r = fn(t.objectStore('c')); t.oncomplete = function () { res(r && r.result); }; t.onerror = t.onabort = function () { rej(t.error); }; });
+}
+function appGet(k) { return appDb('readonly', function (st) { return st.get(k); }).catch(function () { return null; }); }
+function appPut(k, v) { return appDb('readwrite', function (st) { st.put(v, k); }).catch(function () {}); }
+/* apaga as chaves que começam com pre e não passam em keep */
+function appPrune(pre, keep) {
+  return appDb('readwrite', function (st) { var q = st.openKeyCursor(IDBKeyRange.bound(pre, pre + '\uffff')); q.onsuccess = function () { var c = q.result; if (!c) return; if (!keep(c.key)) st.delete(c.key); c.continue(); }; }).catch(function () {});
+}
+function appTCache(id) { return { get: function (n) { return appGet('t:' + id + '|' + n); }, put: function (n, e) { return appPut('t:' + id + '|' + n, e); } }; }
+/* a assinatura da pasta db: muda quando o jogo grava no mundo */
+function appSig(src) {
+  var L = src.paths.filter(function (p) { return p.indexOf('db/') === 0; }).sort().map(function (p) { return p + ':' + src.size(p); }).join('|'), h = 2166136261;
+  for (var i = 0; i < L.length; i++) h = Math.imul(h ^ L.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(36) + '.' + L.length;
+}
+async function appZ(u) { return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer()); }
+async function appMapPack(m, sig) {
+  return { sig: sig, w: m.w, h: m.h, x0: m.x0, z0: m.z0, sc: m.sc, min: m.min, bcnt: m.bcnt, img: await appZ(new Uint8Array(m.img.data.buffer)), bimg: await appZ(new Uint8Array(m.bimg.data.buffer)), bid: await appZ(m.bid) };
+}
+async function appMapUnpack(p) {
+  return { w: p.w, h: p.h, x0: p.x0, z0: p.z0, sc: p.sc, min: p.min, bcnt: p.bcnt, img: new ImageData(new Uint8ClampedArray((await inflate(p.img)).buffer), p.w, p.h), bimg: new ImageData(new Uint8ClampedArray((await inflate(p.bimg)).buffer), p.w, p.h), bid: await inflate(p.bid) };
+}
+function appDimsOf(o) { return [0, 1, 2].filter(function (d) { return Array.from(o.dims[d].values()).some(function (c) { return c.ok; }); }); }
+/* abre o mundo (com as chaves guardadas) e põe no objeto os mapas guardados; stale: as dimensões cujo mapa falta ou é velho */
+async function appLoad(w, prog) {
+  var src = await appWorldSrc(w.id), sig = appSig(src);
+  var o = await wioOpenFile(src, prog, appTCache(w.id));
+  if (o.java || o.old) throw new Error('O aplicativo abre os mundos do Bedrock atual.');
+  o.markId = 'app:' + w.id; o.name = o.name || w.name; o.sig = sig; o.stale = [];
+  if (o.leg) o.legKeep = true; // chunks no formato antigo: o mapa mostra como estão (o aplicativo não converte)
+  var dims = appDimsOf(o);
+  for (var i = 0; i < dims.length; i++) {
+    var p = await appGet('map:' + w.id + ':' + dims[i]), m = null;
+    if (p) { try { m = await appMapUnpack(p); } catch (e) { m = null; } }
+    if (m) o.maps[dims[i]] = m;
+    if (!m || p.sig !== sig) o.stale.push(dims[i]);
+  }
+  // tabelas que o jogo já apagou: as chaves guardadas delas saem
+  var live = {}; o.db.tnames.forEach(function (n) { live['t:' + w.id + '|' + n] = 1; });
+  appPrune('t:' + w.id + '|', function (k) { return live[k]; });
+  return o;
+}
+/* refaz os mapas velhos ou que faltam (com wio = o); prog(texto) */
+async function appMaps(o, w, prog) {
+  while (o.stale.length) {
+    var d = o.stale[0], had = !!o.maps[d], label = WIO_DIMS[d].name;
+    if (wio !== o) return false;
+    var cb = function (i, n) { prog(label + ': ' + Math.round(100 * i / Math.max(1, n)) + '%'); };
+    var m = had ? await wioMapDraw(d, cb) : await wioMap(d, cb); // sem mapa guardado: o mesmo desenho que o mapa aberto usaria
+    if (wio !== o) return false;
+    o.maps[d] = m; o.stale.shift();
+    if (m) await appPut('map:' + w.id + ':' + d, await appMapPack(m, o.sig));
+    if (had && wm && wm.dim === d) { wm.ov = m; wm.ovT = await createImageBitmap(m.img); wm.ovB = await createImageBitmap(m.bimg); wmDraw(); } // o mapa aberto troca para o novo
+  }
+  await appPut('m:' + w.id, { sig: o.sig, t: Date.now() });
+  return true;
+}
 function appStart() {
   document.body.classList.add('app');
   app = { worlds: [], world: null };
@@ -38,8 +110,15 @@ function appStart() {
   appList();
 }
 window.appFolderPicked = function (ok, msg) { if (!ok && msg) toast(msg, 9000); appList(); };
+/* o Android avisa quando o aplicativo volta para a tela (o jogo pode ter mudado os mundos) */
+window.appResume = function () {
+  if (!app) return;
+  if (!app.world) { if (!overlayRoot.firstChild) appList(); return; }
+  if (app.checking) return; app.checking = true;
+  appWorldSrc(app.world.id).then(function (src) { app.checking = false; if (wio && app.world && appSig(src) !== wio.sig && !app.writing) { app.changed = true; appWorldHome(); } }, function () { app.checking = false; });
+};
 function appList() {
-  closeWorldMap(); wio = null; app.world = null;
+  closeWorldMap(); if (!app.job) wio = null; app.world = null; app.changed = false;
   var folder = BabApp.folder(), worlds = [];
   if (folder) { try { worlds = JSON.parse(BabApp.worlds()); } catch (e) { toast('Não foi possível ler a pasta: ' + e.message, 8000); } }
   app.worlds = worlds;
@@ -49,7 +128,7 @@ function appList() {
   else {
     h += '<div class="applist">' + (worlds.length ? worlds.map(function (w, i) {
       return '<button class="appworld" data-aw="' + i + '">' + (w.icon ? '<img src="' + appBase() + '/w/' + appEnc(w.id) + '/f/world_icon.jpeg" alt="">' : '<span class="noimg"></span>') +
-        '<span><b>' + esc(w.name) + '</b><small>' + (w.time ? new Date(w.time).toLocaleString('pt-BR') : '') + '</small></span></button>';
+        '<span><b>' + esc(w.name) + '</b><small>' + (w.time ? new Date(w.time).toLocaleString('pt-BR') : '') + '</small><small class="appst" id="aps' + i + '"></small></span></button>';
     }).join('') : '<p>Nenhum mundo nesta pasta. Confira se é a pasta <code>minecraftWorlds</code> (ou a <code>com.mojang</code>).</p>') + '</div>' +
       '<div class="row appfoot"><button class="btn" id="appPick">Trocar a pasta</button><button class="btn" id="appTex">Texturas…</button></div>';
   }
@@ -58,30 +137,75 @@ function appList() {
   document.querySelectorAll('[data-apk]').forEach(function (b) { b.onclick = function () { BabApp.pickFolder(b.getAttribute('data-apk')); }; });
   if ($('appTex')) $('appTex').onclick = openTextures;
   document.querySelectorAll('[data-aw]').forEach(function (b) { b.onclick = function () { appOpen(app.worlds[+b.getAttribute('data-aw')]); }; });
+  appScan();
+}
+function appStatus(w, t) { w.st = t; var i = app.worlds.indexOf(w), e = i >= 0 && $('aps' + i); if (e) e.textContent = t; }
+/* confere cada mundo da pasta e prepara (chaves e mapa) os novos e os que o jogo mudou, um de cada vez */
+async function appScan() {
+  var my = app.scan = {}, todo = [];
+  for (var i = 0; i < app.worlds.length; i++) {
+    var w = app.worlds[i];
+    if (app.job && app.job.w.id === w.id) { appStatus(w, app.job.st || 'Preparando…'); continue; }
+    try {
+      var src = await appWorldSrc(w.id), meta = await appGet('m:' + w.id), sig = appSig(src);
+      if (app.scan !== my) return;
+      if (meta && meta.sig === sig) appStatus(w, 'Pronto para abrir');
+      else { appStatus(w, meta ? 'Mudou no jogo: vai ser atualizado' : 'Novo: vai ser lido'); todo.push(w); }
+    } catch (e) { appStatus(w, ''); }
+  }
+  if (app.job) await app.job.p;
+  for (var j = 0; j < todo.length; j++) {
+    if (app.scan !== my || app.world) return; // saiu da lista: para (volta na próxima vez)
+    await appPrepare(todo[j]);
+  }
+}
+function appPrepare(w) {
+  var job = app.job = { w: w, st: 'Lendo…' };
+  var st = function (t) { job.st = t; appStatus(w, t); };
+  job.p = (async function () {
+    try {
+      var o = await appLoad(w, function (i, n) { st('Lendo: ' + Math.round(100 * i / Math.max(1, n)) + '%'); });
+      if (wio && wio !== o && app.world) throw new Error('aberto outro');
+      wio = o; job.o = o;
+      var ok = await appMaps(o, w, function (t) { st('Desenhando o mapa: ' + t); });
+      if (wio === o && !app.world) wio = null;
+      st(ok ? 'Pronto para abrir' : '');
+    } catch (e) { st(''); if (wio === job.o && !app.world) wio = null; }
+    finally { if (app.job === job) app.job = null; }
+  })();
+  return job.p;
 }
 async function appOpen(w) {
   try {
+    if (app.job) {
+      busy(app.job.w.id === w.id ? 'Preparando ' + w.name + '… ' : 'Terminando de preparar ' + app.job.w.name + '…', null);
+      var same = app.job.w.id === w.id; app.scan = null; // a fila para depois deste
+      await app.job.p;
+      if (same && app.job === null) { /* acabou de ficar pronto */ }
+    }
     busy('Abrindo ' + w.name + '…', null);
-    var src = await appWorldSrc(w.id);
-    var o = await wioOpenFile(src, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
-    if (o.java || o.old) throw new Error('O aplicativo abre os mundos do Bedrock atual.');
-    o.markId = 'app:' + w.id; o.name = o.name || w.name;
-    if (o.leg) o.legKeep = true; // chunks no formato antigo: o mapa mostra como estão (o aplicativo não converte)
-    wio = o; app.world = w; busyEnd();
+    var o = await appLoad(w, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
+    wio = o; app.world = w; app.changed = false; busyEnd();
     appWorldHome();
+    if (o.stale.length) { // o mapa guardado é velho ou falta: refaz por trás
+      var e = function (t) { var x = $('appMapSt'); if (x) x.textContent = 'Atualizando o mapa (' + t + ')…'; };
+      appMaps(o, w, e).then(function (ok) { var x = $('appMapSt'); if (x && ok) x.textContent = 'Mapa atualizado.'; }, function () { var x = $('appMapSt'); if (x) x.textContent = ''; });
+    }
   } catch (e) { busyEnd(); toast(e.message || 'Não foi possível abrir o mundo.', 9000); }
 }
 function appUndoKey() { return 'bloco-a-bloco-app-desfazer:' + app.world.id; }
 function appWorldHome() {
   var u = null; try { u = JSON.parse(localStorage.getItem(appUndoKey()) || 'null'); } catch (e) {}
   $('appHome').innerHTML = '<header><button class="btn" id="appBack">‹ Mundos</button><b>' + esc(wio.name) + '</b></header>' +
-    '<div class="appbox"><button class="btn primary big" id="appMap">Mapa e marcações</button><button class="btn primary big" id="appNbt">Editor NBT</button>' +
+    '<div class="appbox">' + (app.changed ? '<div class="info">O mundo mudou fora do aplicativo (o jogo gravou nele). Leia de novo antes de editar.<div class="row" style="margin-top:6px"><button class="btn primary" id="appReread">Ler o mundo de novo</button></div></div>' : '') +
+    '<button class="btn primary big" id="appMap">Mapa e marcações</button><small class="mixl" id="appMapSt"></small><button class="btn primary big" id="appNbt">Editor NBT</button>' +
     (u ? '<button class="btn" id="appUndo">Desfazer a última gravação (' + new Date(u.t).toLocaleString('pt-BR') + ')</button>' : '') +
     '<p class="mixl">O Editor NBT grava direto neste mundo, com o Minecraft fechado. Antes de gravar, o aplicativo guarda uma cópia do que vai trocar.</p></div>';
   $('appBack').onclick = appList;
   $('appMap').onclick = openWorldMap;
   $('appNbt').onclick = openNbtEditor;
   if ($('appUndo')) $('appUndo').onclick = function () { appUndo(u); };
+  if ($('appReread')) $('appReread').onclick = function () { appOpen(app.world); };
 }
 /* Grava no mundo o que o Editor NBT mudou (wio.files e wio.patches, como o Exportar mundo) */
 function appConfirm() {
@@ -96,6 +220,8 @@ function appConfirm() {
 async function appWrite() {
   var id = app.world.id, t = Date.now(), names = [], undo = { t: t, files: [], added: null };
   var src = await appWorldSrc(id); // o que existe agora na pasta
+  if (appSig(src) !== wio.sig) { app.changed = true; appWorldHome(); throw new Error('O mundo mudou fora do aplicativo (o jogo gravou nele) depois de aberto. Toque em Ler o mundo de novo e refaça a mudança. Nada foi mudado no mundo.'); }
+  app.writing = true;
   if (wio.files) wio.files.forEach(function (d, nm) { names.push(nm); });
   var log = null;
   if (wio.patches.size) {
@@ -120,7 +246,11 @@ async function appWrite() {
     }
     if (log) { wio.db.maxFile = log.num; wio.db.maxSeq += log.n; }
     try { localStorage.setItem(appUndoKey(), JSON.stringify(undo)); } catch (e) {}
-  } finally { busyEnd(); }
+    // a gravação não muda os chunks: o mapa guardado continua valendo, com a assinatura nova da pasta
+    var old = wio.sig; wio.sig = appSig(await appWorldSrc(id));
+    var meta = await appGet('m:' + id); if (meta && meta.sig === old) await appPut('m:' + id, { sig: wio.sig, t: Date.now() });
+    for (var d = 0; d < 3; d++) { var p = await appGet('map:' + id + ':' + d); if (p && p.sig === old) { p.sig = wio.sig; await appPut('map:' + id + ':' + d, p); } }
+  } finally { busyEnd(); app.writing = false; }
   appWorldHome();
   return true;
 }

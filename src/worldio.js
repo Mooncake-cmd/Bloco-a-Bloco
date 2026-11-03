@@ -144,8 +144,10 @@ function ldbManifest(data) {
   return m;
 }
 /* Indexa o banco: para cada chave, onde está o valor mais novo. read(nome) devolve os bytes do arquivo da pasta db/. */
-async function ldbOpen(names, read, prog, stream) {
-  var db = { idx: new Map(), tables: [], cache: new Map(), maxSeq: 0, maxFile: 0 };
+/* tcache (o aplicativo, src/appmode.js): guarda as chaves de cada tabela .ldb (o arquivo nunca muda depois de criado), para
+   abrir de novo sem ler e descomprimir as tabelas; elas só são lidas quando um valor delas é pedido (ldbTable). */
+async function ldbOpen(names, read, prog, stream, tcache) {
+  var db = { idx: new Map(), tables: [], tnames: [], read: read, lazy: !!tcache, tlru: [], cache: new Map(), maxSeq: 0, maxFile: 0 };
   var num = function (n) { var m = /^(\d+)\.(log|ldb|sst)$/.exec(n); return m ? +m[1] : -1; };
   names.forEach(function (n) { var k = num(n) > 0 ? num(n) : (/^MANIFEST-(\d+)$/.exec(n) || [0, 0])[1] | 0; if (k > db.maxFile) db.maxFile = k; });
   var man = null;
@@ -160,7 +162,16 @@ async function ldbOpen(names, read, prog, stream) {
   var idx = db.idx, total = tbls.length + logs.length, done = 0;
   function put(k, ref) { var o = idx.get(k); if (!o || o.q <= ref.q) idx.set(k, ref); if (ref.q > db.maxSeq) db.maxSeq = ref.q; }
   for (var ti = 0; ti < tbls.length; ti++) {
-    var f = await read(tbls[ti]), fi = db.tables.length; db.tables.push(f);
+    var fi = db.tables.length; db.tnames.push(tbls[ti]);
+    var ce = tcache ? await tcache.get(tbls[ti]) : null;
+    if (ce) { // as chaves guardadas: nada de ler a tabela agora
+      db.tables.push(null);
+      for (var ei = 0, en = ce.o.length; ei < en; ei++) put(wioStr(ce.keys.subarray(ce.ko[ei], ce.ko[ei + 1])), { f: fi, o: ce.o[ei], s: ce.s[ei], vo: ce.vo[ei], vl: ce.vl[ei], q: ce.q[ei], t: ce.t[ei] });
+      done++; if (prog) prog(done, total); continue;
+    }
+    var f = await read(tbls[ti]); db.tables.push(tcache ? null : f);
+    if (tcache) ldbTableKeep(db, fi, f);
+    var rec = tcache ? [] : null;
     var r = wioVar(f, f.length - 48); r = wioVar(f, r[1]); r = wioVar(f, r[1]); var io = r[0]; r = wioVar(f, r[1]); var isz = r[0];
     var index = await ldbInflate(f.subarray(io, io + isz), f[io + isz]);
     var handles = [];
@@ -169,10 +180,12 @@ async function ldbOpen(names, read, prog, stream) {
       var bo = handles[hi][0], bs = handles[hi][1], blk = await ldbInflate(f.subarray(bo, bo + bs), f[bo + bs]);
       ldbEntries(blk, function (k, p, vl) {
         var n = k.length, lo = (k[n - 8] | k[n - 7] << 8 | k[n - 6] << 16 | k[n - 5] << 24) >>> 0, hi2 = (k[n - 4] | k[n - 3] << 8 | k[n - 2] << 16 | k[n - 1] << 24) >>> 0;
-        put(wioStr(k.subarray(0, n - 8)), { f: fi, o: bo, s: bs, vo: p, vl: vl, q: hi2 * 16777216 + (lo >>> 8), t: lo & 255 });
+        var ref = { f: fi, o: bo, s: bs, vo: p, vl: vl, q: hi2 * 16777216 + (lo >>> 8), t: lo & 255 };
+        put(wioStr(k.subarray(0, n - 8)), ref); if (rec) rec.push([k.slice(0, n - 8), ref]);
       });
       if (prog) prog(done + hi / handles.length, total);
     }
+    if (rec) await tcache.put(tbls[ti], ldbPack(rec));
     done++;
   }
   for (var li = 0; li < logs.length; li++) {
@@ -265,6 +278,23 @@ async function ldbDeflateMany(us) {
   }
   return Promise.all(us.map(ldbDeflate));
 }
+/* as chaves de uma tabela em vetores (para guardar no IndexedDB) */
+function ldbPack(rec) {
+  var n = rec.length, kl = 0; rec.forEach(function (e) { kl += e[0].length; });
+  var o = { keys: new Uint8Array(kl), ko: new Uint32Array(n + 1), o: new Uint32Array(n), s: new Uint32Array(n), vo: new Uint32Array(n), vl: new Uint32Array(n), q: new Float64Array(n), t: new Uint8Array(n) }, p = 0;
+  rec.forEach(function (e, i) { o.keys.set(e[0], p); o.ko[i] = p; p += e[0].length; var r = e[1]; o.o[i] = r.o; o.s[i] = r.s; o.vo[i] = r.vo; o.vl[i] = r.vl; o.q[i] = r.q; o.t[i] = r.t; });
+  o.ko[n] = p; return o;
+}
+/* tabelas lidas sob demanda: as últimas 16 ficam na memória */
+function ldbTableKeep(db, fi, f) {
+  db.tlru = db.tlru.filter(function (e) { return e[0] !== fi; }); db.tlru.push([fi, f]);
+  if (db.tlru.length > 16) db.tlru.shift();
+}
+async function ldbTable(db, fi) {
+  if (db.tables[fi]) return db.tables[fi];
+  for (var i = 0; i < db.tlru.length; i++) if (db.tlru[i][0] === fi) { var e = db.tlru[i]; ldbTableKeep(db, fi, e[1]); return e[1]; }
+  var f = await db.read(db.tnames[fi]); ldbTableKeep(db, fi, f); return f;
+}
 async function ldbGet(db, k) {
   var r = db.idx.get(k); if (!r || r.t !== 1) return null;
   if (r.f === -1) return r.val;
@@ -272,7 +302,7 @@ async function ldbGet(db, k) {
   var ck = r.f + ':' + r.o, blk = db.cache.get(ck);
   if (blk) { db.cache.delete(ck); db.cache.set(ck, blk); }
   else {
-    var f = db.tables[r.f]; blk = await ldbInflate(f.subarray(r.o, r.o + r.s), f[r.o + r.s]);
+    var f = db.tables[r.f] || await ldbTable(db, r.f); blk = await ldbInflate(f.subarray(r.o, r.o + r.s), f[r.o + r.s]);
     db.cache.set(ck, blk); if (db.cache.size > 48) db.cache.delete(db.cache.keys().next().value);
   }
   return blk.subarray(r.vo, r.vo + r.vl);
@@ -435,12 +465,12 @@ async function wioFind(file) {
   if (inner) { var b = new Blob([await zip.read(inner)]); return wioFind(b); }
   throw new Error('Não achei um mundo do Minecraft neste arquivo (Bedrock: level.dat e a pasta db, ou level.dat e chunks.dat nos da Pocket Edition 0.2 a 0.8; Java: level.dat e a pasta region).');
 }
-async function wioOpenFile(file, prog) {
+async function wioOpenFile(file, prog, tcache) {
   var f = await wioFind(file), zip = f.zip, pre = f.prefix;
   if (f.java) return jwOpen(f, prog);
   if (f.old) return legOldOpen(f);
   var dbNames = zip.paths.filter(function (p) { return p.indexOf(pre + 'db/') === 0 && p.indexOf('/', pre.length + 3) < 0; }).map(function (p) { return p.slice(pre.length + 3); });
-  var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog, zip.stream && function (n) { return zip.stream(pre + 'db/' + n); });
+  var db = await ldbOpen(dbNames, function (n) { return zip.read(pre + 'db/' + n); }, prog, zip.stream && function (n) { return zip.stream(pre + 'db/' + n); }, tcache);
   var w = { file: f.blob, zip: zip, prefix: pre, db: db, name: 'Mundo', player: null, dims: [new Map(), new Map(), new Map()], maps: [],
     patches: new Map(), cells: new Map(), entries: new Map(), pres: [], presMap: new Map(), unknown: {}, area: null, edited: new Set(), bioEdited: new Set(), bmaps: [], legacy: 0 };
   try { var nm = new TextDecoder().decode(await zip.read(pre + 'levelname.txt')).trim(); if (nm) w.name = nm; } catch (e) {}
