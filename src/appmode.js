@@ -159,9 +159,11 @@ async function appScan() {
     await appPrepare(todo[j]);
   }
 }
+/* a preparação para no meio quando outro mundo é aberto (job.cancel): as chaves das tabelas já lidas ficam guardadas, e
+   ela continua de onde parou na próxima vez que a lista aparecer */
 function appPrepare(w) {
-  var job = app.job = { w: w, st: 'Lendo…' };
-  var st = function (t) { job.st = t; appStatus(w, t); };
+  var job = app.job = { w: w, st: 'Lendo…', cancel: false };
+  var st = function (t) { if (job.cancel) throw new Error('parado'); job.st = t; appStatus(w, t); };
   job.p = (async function () {
     try {
       var o = await appLoad(w, function (i, n) { st('Lendo: ' + Math.round(100 * i / Math.max(1, n)) + '%'); });
@@ -170,7 +172,7 @@ function appPrepare(w) {
       var ok = await appMaps(o, w, function (t) { st('Desenhando o mapa: ' + t); });
       if (wio === o && !app.world) wio = null;
       st(ok ? 'Pronto para abrir' : '');
-    } catch (e) { st(''); if (wio === job.o && !app.world) wio = null; }
+    } catch (e) { job.st = job.cancel ? 'Pausado: continua ao voltar para a lista' : ''; appStatus(w, job.st); if (wio === job.o && !app.world) wio = null; }
     finally { if (app.job === job) app.job = null; }
   })();
   return job.p;
@@ -178,10 +180,10 @@ function appPrepare(w) {
 async function appOpen(w) {
   try {
     if (app.job) {
-      busy(app.job.w.id === w.id ? 'Preparando ' + w.name + '… ' : 'Terminando de preparar ' + app.job.w.name + '…', null);
-      var same = app.job.w.id === w.id; app.scan = null; // a fila para depois deste
-      await app.job.p;
-      if (same && app.job === null) { /* acabou de ficar pronto */ }
+      var job = app.job; app.scan = null; // a fila de preparação para
+      if (job.w.id === w.id) busy('Terminando de preparar ' + w.name + '…', null); // o mesmo mundo: espera ficar pronto
+      else job.cancel = true; // outro mundo: a preparação pausa (continua quando a lista aparecer de novo)
+      await job.p;
     }
     busy('Abrindo ' + w.name + '…', null);
     var o = await appLoad(w, function (i, n) { busy('Lendo o mundo: ' + Math.round(i) + ' de ' + n + ' arquivos', i / n); });
