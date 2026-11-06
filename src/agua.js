@@ -28,7 +28,7 @@
    Um traço é um passo de desfazer; a malha é refeita pela fila de pedaços (rebuildDirty). O nível da água é sempre o
    da superfície no primeiro clique (a água que já existe ali, ou um bloco abaixo do chão) e vale para o traço inteiro
    (água parada é plana). */
-var hyd = { r: 6, kind: 'lake', bio: -1, dep: null, carve: true, fill: true, deco: true };
+var hyd = { r: 6, kind: 'lake', bio: -1, dep: null, carve: true, fill: true, deco: true, bank: 'degraus' }; // bank: margem em degraus ('degraus', 'suave' ou 'reta')
 try { var hyd0 = JSON.parse(localStorage.getItem('bloco-a-bloco-agua') || 'null'); if (hyd0) hyd = Object.assign(hyd, hyd0); } catch (e) {}
 var HYD_KIND_PT = { river: 'Rio', lake: 'Lago', ocean: 'Oceano', deep: 'Oceano fundo' };
 var HYD_BED = { river: [1.6, 1.1, 10], lake: [1.2, 1.0, 6], ocean: [1.4, 1.3, 15], deep: [1.4, 1.3, 24] }; // a, s, Pmáx
@@ -338,6 +338,65 @@ function hydDab(c, st) {
 }
 /* Decora, no fim do traço, cada coluna de água dele uma vez, já com o leito final (o mesmo resultado num clique e
    num rio arrastado) */
+/* ---------- Margem em degraus ----------
+   Onde o terreno em volta da água é mais alto que ela, o barranco vira uma encosta em degraus de 1 bloco, em vez de uma
+   parede reta: a coluna a d blocos da água fica com o topo, no máximo, em L + (d - 1) / passo (passo 1: um degrau por
+   bloco; 2: suave), com um pouco de ruído para os degraus não saírem em anéis perfeitos. A primeira coluna fica rente à
+   água; nada abaixo de L muda (a água não vaza). Alcance: 12 degraus (o que fica além, numa montanha, fica como está).
+   Na coluna rebaixada saem também as plantas e o tronco que ficariam soltos, e as folhas que ficam sem tronco perto; o
+   topo novo recebe o bloco de cima que a coluna tinha (grama, areia, neve...). Construções não são tocadas. */
+var HYD_TOPS = /^(grass_block|podzol|mycelium|sand|red_sand|snow_block|gravel|moss_block|coarse_dirt|mud)$/;
+function hydBank(st) {
+  var L = st.L, pas = hyd.bank === 'suave' ? 2 : 1, DM = 12 * pas, keys = Array.from(st.floor.keys()); if (!keys.length) return;
+  var x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
+  keys.forEach(function (k) { var p = k.split(','), x = +p[0], z = +p[1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; });
+  x0 -= DM + 1; z0 -= DM + 1; x1 += DM + 1; z1 += DM + 1;
+  var W = x1 - x0 + 1, H = z1 - z0 + 1, d = new Float32Array(W * H).fill(1e9);
+  keys.forEach(function (k) { var p = k.split(','); d[(+p[1] - z0) * W + (+p[0] - x0)] = 0; });
+  // distância até a água (chanfro 1 e 1,41, duas passadas)
+  var R2 = Math.SQRT2, i, x, z;
+  for (z = 0; z < H; z++) for (x = 0; x < W; x++) { i = z * W + x; var v = d[i];
+    if (x > 0) v = Math.min(v, d[i - 1] + 1); if (z > 0) { v = Math.min(v, d[i - W] + 1); if (x > 0) v = Math.min(v, d[i - W - 1] + R2); if (x < W - 1) v = Math.min(v, d[i - W + 1] + R2); } d[i] = v; }
+  for (z = H - 1; z >= 0; z--) for (x = W - 1; x >= 0; x--) { i = z * W + x; v = d[i];
+    if (x < W - 1) v = Math.min(v, d[i + 1] + 1); if (z < H - 1) { v = Math.min(v, d[i + W] + 1); if (x < W - 1) v = Math.min(v, d[i + W + 1] + R2); if (x > 0) v = Math.min(v, d[i + W - 1] + R2); } d[i] = v; }
+  var logs = [], n0 = st.carved, ymax = Math.min(SY - 1, L + DM + 40);
+  for (z = 0; z < H; z++) for (x = 0; x < W; x++) {
+    var dd = d[z * W + x]; if (dd <= 0 || dd > DM) continue;
+    var X = x + x0, Z = z + z0; if (!inB(X, 0, Z)) continue;
+    var h = Math.max(L, L + Math.floor((dd - 0.5 + 0.7 * hydNoise(X, Z, st.seed + 91)) / pas)); // o topo permitido
+    // o terreno mais alto da coluna (a vegetação em cima não conta); uma construção ou água acima de h: a coluna fica
+    var T = -1, skip = false;
+    for (var y = ymax; y > h; y--) { var k = hydAt(X, y, Z); if (k === 3) { skip = true; break; } if (k === 1) { T = y; break; } if (k === 2 && hydIsWater(X, y, Z)) { skip = true; break; } }
+    if (skip || T <= h) continue;
+    for (y = T + 1; y <= ymax; y++) { if (hydAt(X, y, Z) === 3) { skip = true; break; } if (hydAt(X, y, Z) === 0) break; } // uma construção em cima da terra
+    if (skip) continue;
+    var top = cellBlock(gget(X, T, Z)), sv = gget(X, T - 1, Z), sub = sv && hydKindOf(cellBlock(sv)) === 1 ? cellBlock(sv) : BY_JAVA.dirt; // o bloco de baixo, para tapar um oco
+    // o que estava em cima da terra: plantas e o tronco (as folhas ficam, se tiverem tronco perto)
+    for (y = T + 1; y <= ymax; y++) {
+      var bv = gget(X, y, Z); if (!bv || hydKindOf(cellBlock(bv)) !== 2) break;
+      var jn = BLOCKS[cellBlock(bv)].java; if (/_leaves$/.test(jn)) break;
+      if (/_log$|_stem$|_wood$/.test(jn)) logs.push([X, y, Z]);
+      hydRemove(X, y, Z, st);
+    }
+    for (y = T; y > h; y--) if (hydAt(X, y, Z) !== 3) hydRemove(X, y, Z, st);
+    // terreno oco por dentro (o gerador de terreno do site faz só uma casca): o degrau ganha chão por baixo
+    for (y = h; y >= 0 && y > h - 6 && hydAt(X, y, Z) === 0; y--) editSet(X, y, Z, mkCell(y === h ? top : sub));
+    if (HYD_TOPS.test(BLOCKS[top].java) && hydAt(X, h, Z) === 1) editSet(X, h, Z, mkCell(top)); // o topo novo com o bloco de cima de antes
+  }
+  // folhas que ficaram sem tronco perto (a até 4 blocos)
+  if (logs.length) {
+    var near = function (a, b, c) { for (var dy = -5; dy <= 2; dy++) for (var dz = -4; dz <= 4; dz++) for (var dx = -4; dx <= 4; dx++) { var v = gget(a + dx, b + dy, c + dz); if (v && /_log$|_stem$|_wood$/.test(BLOCKS[cellBlock(v)].java)) return true; } return false; };
+    var seen = new Set();
+    logs.forEach(function (l) {
+      for (var dy = -1; dy <= 8; dy++) for (var dz = -4; dz <= 4; dz++) for (var dx = -4; dx <= 4; dx++) {
+        var a = l[0] + dx, b = l[1] + dy, c = l[2] + dz; if (!inB(a, b, c)) continue; var key = idx(a, b, c); if (seen.has(key)) continue; seen.add(key);
+        var v = gget(a, b, c); if (!v || !/_leaves$/.test(BLOCKS[cellBlock(v)].java)) continue;
+        if (!near(a, b, c)) hydRemove(a, b, c, st);
+      }
+    });
+  }
+  st.bank = st.carved - n0;
+}
 function hydDecorate(st) {
   var L = st.L;
   st.floor.forEach(function (fl, key) {
@@ -410,10 +469,11 @@ function hydRayPoint(st) {
 function hydEnd() {
   clearInterval(hydTimer); hydTimer = 0;
   var s = hydStroke; hydStroke = null; hydSeed = (Math.random() * 1e9) | 0; if (!s) return;
+  if (hyd.carve && hyd.bank !== 'reta') hydBank(s); // a margem mais alta que a água desce em degraus
   if (hyd.deco) hydDecorate(s); // ainda dentro do passo de desfazer do traço (releaseStroke fecha o lote depois)
   var tot = 0, k; for (k in s.cls) tot += s.cls[k];
   var bs = Object.keys(s.cls).sort(function (a, b) { return s.cls[b] - s.cls[a]; }).map(function (k3) { return HYD_CLASS_PT[k3] + ' ' + Math.round(100 * s.cls[k3] / tot) + '%'; });
-  var p = []; if (s.carved) p.push(s.carved + ' blocos escavados'); if (s.water) p.push(s.water + ' de água'); if (s.sealed) p.push(s.sealed + ' fechados para a água não vazar'); if (s.deco) p.push(s.deco + ' de fundo, paredes e plantas');
+  var p = []; if (s.carved) p.push(s.carved + ' blocos escavados' + (s.bank ? ' (' + s.bank + ' na margem em degraus)' : '')); if (s.water) p.push(s.water + ' de água'); if (s.sealed) p.push(s.sealed + ' fechados para a água não vazar'); if (s.deco) p.push(s.deco + ' de fundo, paredes e plantas');
   var gy = s.L + hydYOff();
   toast(p.length ? HYD_KIND_PT[hyd.kind] + ' na superfície Y ' + gy + ': ' + p.join(', ') + (bs.length ? '. Bioma: ' + bs.join(', ') : '') + '. Ctrl+Z desfaz o traço.' : 'Nada mudou: confira as etapas ligadas no aviso (a superfície ficou no Y ' + gy + ').', 8000);
 }
@@ -432,6 +492,7 @@ function updateWaterChip() {
   if (document.activeElement !== $('hydDep')) $('hydDep').value = hyd.dep > 0 ? hyd.dep : '';
   c.querySelectorAll('[data-hk]').forEach(function (b) { b.setAttribute('aria-pressed', String(hyd.kind === b.getAttribute('data-hk'))); });
   c.querySelectorAll('[data-hs]').forEach(function (b) { b.setAttribute('aria-pressed', String(!!hyd[b.getAttribute('data-hs')])); });
+  var bk = $('hydBank'); if (bk) { bk.textContent = 'Margem: ' + (hyd.bank === 'suave' ? 'suave' : hyd.bank === 'reta' ? 'reta' : 'degraus'); bk.setAttribute('aria-pressed', String(hyd.bank !== 'reta')); }
 }
 function setHydR(r) { hyd.r = Math.max(2, Math.min(32, r)); hydSave(); updateWaterChip(); updatePreview(); }
 $('waterChip').addEventListener('click', function (e) {
@@ -441,6 +502,7 @@ $('waterChip').addEventListener('click', function (e) {
   else if (b.id === 'hydRm') hyd.r = Math.max(2, hyd.r - 1);
   else if (b.id === 'hydRp') hyd.r = Math.min(32, hyd.r + 1);
   else if (b.id === 'hydRules') { openHydRules(); return; }
+  else if (b.id === 'hydBank') hyd.bank = hyd.bank === 'reta' ? 'degraus' : hyd.bank === 'suave' ? 'reta' : 'suave'; // degraus → suave → reta
   hydSave(); updateWaterChip(); updatePreview();
 });
 $('hydBio').addEventListener('change', function () { hyd.bio = +$('hydBio').value; hydSave(); });
