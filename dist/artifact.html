@@ -5547,18 +5547,29 @@ function hydStart(t) {
   var c = hydCenter(t); if (!c) return;
   if (!hyd.carve && !hyd.fill && !hyd.deco) { toast('Ligue pelo menos uma etapa no aviso: Escavar, Encher ou Decorar.'); return; }
   hydStroke = { L: hydLevelFor(c), seed: hydSeed, last: c, floor: new Map(), mine: new Set(), mix: new Map(), cls: {}, carved: 0, water: 0, sealed: 0, deco: 0 };
+  c = hydRayPoint(hydStroke) || c; hydStroke.last = c; // o primeiro ponto também no chão (não na copa de uma árvore)
   stroke = { mode: 'water', cells: new Set(), on: true }; beginBatch('Pincel de água'); fluidStop();
   hydDab(c, hydStroke); requestRender();
   clearInterval(hydTimer);
   hydTimer = setInterval(function () {
     if (!stroke || stroke.mode !== 'water') { clearInterval(hydTimer); return; }
-    var c2 = hydCenter(hoverT), st = hydStroke; if (!c2 || !st) return;
+    var st = hydStroke, c2 = st && (hydRayPoint(st) || hydCenter(hoverT)); if (!c2 || !st) return;
     // do ponto anterior ao atual, em passos de um terço do raio: o rio sai contínuo mesmo com o mouse rápido
     var dx = c2[0] - st.last[0], dz = c2[2] - st.last[2], d = Math.hypot(dx, dz); if (d < Math.max(1, hyd.r / 4)) return;
     var n = Math.ceil(d / Math.max(1, hyd.r / 3));
     for (var i = 1; i <= n; i++) hydDab([Math.round(st.last[0] + dx * i / n), c2[1], Math.round(st.last[2] + dz * i / n)], st);
     st.last = c2; updatePreview(); requestRender();
   }, 160);
+}
+/* Onde o mouse aponta, no plano do chão onde o traço começou (o topo dos blocos do nível da água + 1). O bloco que o
+   mouse acerta não serve durante o traço: com a câmera inclinada, a copa de uma árvore (mais alta) ou a água e o fundo já
+   cavados (mais baixos) ficam em pontos diferentes da linha do mouse, e o rio saía ondulado mesmo com o mouse em linha reta. */
+function hydRayPoint(st) {
+  if (!hoverXY) return null;
+  var r = rayFrom(hoverXY[0], hoverXY[1]), py = st.L + 2;
+  if (r.d[1] > -1e-6 || r.o[1] <= py) return null;
+  var t = (py - r.o[1]) / r.d[1], x = Math.floor(r.o[0] + r.d[0] * t), z = Math.floor(r.o[2] + r.d[2] * t);
+  return inB(x, 0, z) ? [x, st.L + 1, z] : null;
 }
 function hydEnd() {
   clearInterval(hydTimer); hydTimer = 0;
